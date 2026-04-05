@@ -1,0 +1,40 @@
+<Project>
+  <PropertyGroup>
+    <HasRepositoryRoot Condition="Exists('$(MSBuildThisFileDirectory).git')">true</HasRepositoryRoot>
+    <HasRepositoryRoot Condition="'$(HasRepositoryRoot)' == ''">false</HasRepositoryRoot>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/your-org/AIToolkit</RepositoryUrl>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags Condition="'$(PackageTags)' == ''">ai;toolkit;dotnet;nuget</PackageTags>
+    <Authors Condition="'$(Authors)' == ''">AIToolkit Contributors</Authors>
+    <Company Condition="'$(Company)' == ''">AIToolkit</Company>
+    <Product Condition="'$(Product)' == ''">AIToolkit</Product>
+    <VersionPrefix Condition="'$(VersionPrefix)' == ''">0.1.0</VersionPrefix>
+    <PackageId Condition="'$(PackageId)' == ''">$(MSBuildProjectName)</PackageId>
+    <Description Condition="'$(Description)' == ''">$(MSBuildProjectName) package for the AIToolkit repository.</Description>
+    <PublishRepositoryUrl Condition="'$(HasRepositoryRoot)' == 'true'">true</PublishRepositoryUrl>
+    <EmbedUntrackedSources Condition="'$(HasRepositoryRoot)' == 'true'">true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true' and '$(HasRepositoryRoot)' == 'true'">true</ContinuousIntegrationBuild>
+    <GenerateDocumentationFile Condition="'$(GenerateDocumentationFile)' == '' and '$(IsPackable)' == 'true'">true</GenerateDocumentationFile>
+    <PackageReadmeFile Condition="'$(IsPackable)' == 'true'">README.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts\packages</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Condition="'$(HasRepositoryRoot)' == 'true'" />
+    <None Update="README.md" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildProjectDirectory)\README.md')" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Link="LICENSE" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)LICENSE')" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/AIToolkit.Sql.MySql.Sample/AIToolkit.Sql.MySql.Sample.csproj" />
+    <Project Path="samples/AIToolkit.Sql.PostgreSql.Sample/AIToolkit.Sql.PostgreSql.Sample.csproj" />
+    <Project Path="samples/AIToolkit.Sql.SqlServer.Sample/AIToolkit.Sql.SqlServer.Sample.csproj" />
+    <Project Path="samples/AIToolkit.Sql.Sqlite.Sample/AIToolkit.Sql.Sqlite.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AIToolkit.Sql/AIToolkit.Sql.csproj" />
+    <Project Path="src/AIToolkit.Sql.MySql/AIToolkit.Sql.MySql.csproj" />
+    <Project Path="src/AIToolkit.Sql.PostgreSql/AIToolkit.Sql.PostgreSql.csproj" />
+    <Project Path="src/AIToolkit.Sql.SqlServer/AIToolkit.Sql.SqlServer.csproj" />
+    <Project Path="src/AIToolkit.Sql.Sqlite/AIToolkit.Sql.Sqlite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AIToolkit.Sql.MySql.Tests/AIToolkit.Sql.MySql.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Sql.PostgreSql.Tests/AIToolkit.Sql.PostgreSql.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Sql.Tests/AIToolkit.Sql.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Sql.SqlServer.Tests/AIToolkit.Sql.SqlServer.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Sql.Sqlite.Tests/AIToolkit.Sql.Sqlite.Tests.csproj" />
+  </Folder>
+</Solution>
