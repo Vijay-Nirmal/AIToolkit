@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>MySQL tools and Microsoft.Extensions.AI functions for schema exploration and query execution in AIToolkit.</Description>
+    <PackageTags>$(PackageTags);sql;mysql;database;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="MySqlConnector" />
+    <ProjectReference Include="..\AIToolkit.Tools.Sql\AIToolkit.Tools.Sql.csproj" />
+  </ItemGroup>
+
+</Project>

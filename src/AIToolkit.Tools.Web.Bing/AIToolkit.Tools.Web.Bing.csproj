@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Bing Web Search backed IWebSearchProvider and convenience web tool factories for AIToolkit.</Description>
+    <PackageTags>$(PackageTags);web;search;bing;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIToolkit.Tools.Web\AIToolkit.Tools.Web.csproj" />
+  </ItemGroup>
+
+</Project>

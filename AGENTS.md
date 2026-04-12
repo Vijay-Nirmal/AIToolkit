@@ -28,6 +28,10 @@ dotnet pack src/<PackageName>/<PackageName>.csproj -c Release
 - Every new package should have a clear package `README.md` in its project directory.
 - Prefer small public APIs with tests and a sample that proves the intended usage.
 - Update `docs/` and the root `README.md` when the package list or repo workflow changes.
+- Prefer `public static` entry-point classes for package tool factories and keep implementation types `internal` where possible.
+- For AI function packages, keep tool behavior in an internal service and keep stable tool names and descriptions in a separate factory class.
+- Tool methods exposed through `AIFunctionFactory` should accept optional `IServiceProvider` and `CancellationToken` parameters so DI and cancellation flow through `AIFunctionArguments.Services` and `InvokeAsync` automatically.
+- Prefer structured result records with `Success` and `Message` fields over ad hoc strings for tool responses.
 
 ## Documentation guidance
 

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Google Custom Search backed IWebSearchProvider and convenience web tool factories for AIToolkit.</Description>
+    <PackageTags>$(PackageTags);web;search;google;programmable-search;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIToolkit.Tools.Web\AIToolkit.Tools.Web.csproj" />
+  </ItemGroup>
+
+</Project>

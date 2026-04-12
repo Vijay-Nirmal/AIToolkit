@@ -15,28 +15,42 @@ This document is the developer-facing guide for the AIToolkit repository.
 dotnet restore AIToolkit.slnx
 dotnet build AIToolkit.slnx -c Release
 dotnet test AIToolkit.slnx -c Release
-dotnet pack src/AIToolkit.Sql/AIToolkit.Sql.csproj -c Release
-dotnet pack src/AIToolkit.Sql.PostgreSql/AIToolkit.Sql.PostgreSql.csproj -c Release
-dotnet pack src/AIToolkit.Sql.MySql/AIToolkit.Sql.MySql.csproj -c Release
-dotnet pack src/AIToolkit.Sql.SqlServer/AIToolkit.Sql.SqlServer.csproj -c Release
-dotnet pack src/AIToolkit.Sql.Sqlite/AIToolkit.Sql.Sqlite.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Sql/AIToolkit.Tools.Sql.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Sql.PostgreSql/AIToolkit.Tools.Sql.PostgreSql.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Sql.MySql/AIToolkit.Tools.Sql.MySql.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Sql.SqlServer/AIToolkit.Tools.Sql.SqlServer.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Sql.Sqlite/AIToolkit.Tools.Sql.Sqlite.csproj -c Release
+dotnet pack src/AIToolkit.Tools/AIToolkit.Tools.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Web/AIToolkit.Tools.Web.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Web.DuckDuckGo/AIToolkit.Tools.Web.DuckDuckGo.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Web.Google/AIToolkit.Tools.Web.Google.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Web.Bing/AIToolkit.Tools.Web.Bing.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Web.Brave/AIToolkit.Tools.Web.Brave.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Web.Tavily/AIToolkit.Tools.Web.Tavily.csproj -c Release
 ```
 
 NuGet packages are emitted to `artifacts/packages/`.
 
 ## Package docs
 
-- `AIToolkit.Sql.SqlServer`: see `docs/AIToolkit.Sql.SqlServer.md`
-- `AIToolkit.Sql.PostgreSql`: see `docs/AIToolkit.Sql.PostgreSql.md`
-- `AIToolkit.Sql.MySql`: see `docs/AIToolkit.Sql.MySql.md`
-- `AIToolkit.Sql.Sqlite`: see `docs/AIToolkit.Sql.Sqlite.md`
+- `AIToolkit.Tools.Sql.SqlServer`: see `docs/AIToolkit.Tools.Sql.SqlServer.md`
+- `AIToolkit.Tools.Sql.PostgreSql`: see `docs/AIToolkit.Tools.Sql.PostgreSql.md`
+- `AIToolkit.Tools.Sql.MySql`: see `docs/AIToolkit.Tools.Sql.MySql.md`
+- `AIToolkit.Tools.Sql.Sqlite`: see `docs/AIToolkit.Tools.Sql.Sqlite.md`
+- `AIToolkit.Tools`: see `docs/AIToolkit.Tools.md`
+- `AIToolkit.Tools.Web`: see `docs/AIToolkit.Tools.Web.md`
+- `AIToolkit.Tools.Web.DuckDuckGo`: see `docs/AIToolkit.Tools.Web.DuckDuckGo.md`
+- `AIToolkit.Tools.Web.Google`: see `docs/AIToolkit.Tools.Web.Google.md`
+- `AIToolkit.Tools.Web.Bing`: see `docs/AIToolkit.Tools.Web.Bing.md`
+- `AIToolkit.Tools.Web.Brave`: see `docs/AIToolkit.Tools.Web.Brave.md`
+- `AIToolkit.Tools.Web.Tavily`: see `docs/AIToolkit.Tools.Web.Tavily.md`
 
 ## Project conventions
 
 - Target .NET 10 for packages unless there is a documented reason to multi-target.
 - Keep shared repo and package metadata in `Directory.Build.props`.
 - Keep package versions in `Directory.Packages.props`.
-- Put provider-neutral SQL contracts in `AIToolkit.Sql` and provider-specific behavior in packages such as `AIToolkit.Sql.SqlServer`.
+- Put provider-neutral SQL contracts in `AIToolkit.Tools.Sql` and provider-specific behavior in packages such as `AIToolkit.Tools.Sql.SqlServer`.
 - New packages should include a package-specific `README.md` under the project folder.
 - Tests should use MSTest.
 - Tests and samples stay non-packable.

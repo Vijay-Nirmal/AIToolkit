@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>DuckDuckGo HTML search backed IWebSearchProvider and convenience web tool factories for AIToolkit.</Description>
+    <PackageTags>$(PackageTags);web;search;duckduckgo;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIToolkit.Tools.Web\AIToolkit.Tools.Web.csproj" />
+  </ItemGroup>
+
+</Project>

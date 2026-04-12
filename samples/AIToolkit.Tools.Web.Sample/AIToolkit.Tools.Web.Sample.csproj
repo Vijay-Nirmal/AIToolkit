@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>AIToolkit.Tools.Web.Sample-cb8fdc58-7751-4e69-8568-bec2276e88b3</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Web\AIToolkit.Tools.Web.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Web.DuckDuckGo\AIToolkit.Tools.Web.DuckDuckGo.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Web.Google\AIToolkit.Tools.Web.Google.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Web.Bing\AIToolkit.Tools.Web.Bing.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Web.Brave\AIToolkit.Tools.Web.Brave.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Web.Tavily\AIToolkit.Tools.Web.Tavily.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+    <PackageReference Include="OpenAI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

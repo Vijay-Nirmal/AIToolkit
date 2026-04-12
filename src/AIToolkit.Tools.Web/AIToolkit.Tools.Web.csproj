@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Generic web fetch and web search Microsoft.Extensions.AI functions plus provider abstractions for AIToolkit.</Description>
+    <PackageTags>$(PackageTags);web;search;fetch;http;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="ReverseMarkdown" />
+  </ItemGroup>
+
+</Project>
