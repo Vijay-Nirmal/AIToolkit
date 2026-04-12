@@ -32,7 +32,7 @@ jobs:
         run: dotnet pack src/AIToolkit.Tools.Sql.SqlServer/AIToolkit.Tools.Sql.SqlServer.csproj --configuration Release --no-build -p:ContinuousIntegrationBuild=true
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-packages
           path: artifacts/packages/*
