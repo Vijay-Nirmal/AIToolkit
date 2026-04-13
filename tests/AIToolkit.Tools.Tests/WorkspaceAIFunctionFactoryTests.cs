@@ -63,6 +63,20 @@ public class WorkspaceAIFunctionFactoryTests
         StringAssert.Contains(prompt, "Base prompt");
         StringAssert.Contains(prompt, "# Using workspace tools");
     }
+
+    [TestMethod]
+    public void FileToolDescriptionsUseReferenceStyleGuidance()
+    {
+        var readFunction = WorkspaceTools.CreateReadFileFunction();
+        var writeFunction = WorkspaceTools.CreateWriteFileFunction();
+        var editFunction = WorkspaceTools.CreateEditFileFunction();
+
+        StringAssert.Contains(readFunction.Description, "Reads a file from the local filesystem. You can access any file directly by using this tool.");
+        StringAssert.Contains(readFunction.Description, "line number + tab");
+        StringAssert.Contains(writeFunction.Description, "you MUST use the workspace_read_file tool first");
+        StringAssert.Contains(editFunction.Description, "Performs exact string replacements in files.");
+        StringAssert.Contains(editFunction.Description, "replace_all");
+    }
 }
 
 [TestClass]

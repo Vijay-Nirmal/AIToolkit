@@ -1,10 +1,14 @@
 using AIToolkit.Tools;
+using AIToolkit.Tools.PDF;
+using Google.GenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using System.ClientModel;
+using GoogleGenAIClient = Google.GenAI.Client;
+using GoogleGenAIHttpOptions = Google.GenAI.Types.HttpOptions;
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
@@ -12,14 +16,7 @@ var configuration = new ConfigurationBuilder()
     .AddUserSecrets<Program>(optional: true)
     .Build();
 
-var apiKey = configuration["OpenAI:ApiKey"];
-if (string.IsNullOrWhiteSpace(apiKey))
-{
-    Console.Error.WriteLine("OpenAI:ApiKey is not configured.");
-    Console.Error.WriteLine("Set it with:");
-    Console.Error.WriteLine("dotnet user-secrets set \"OpenAI:ApiKey\" \"<your-api-key>\" --project samples/AIToolkit.Tools.Sample");
-    return;
-}
+var chatProviderName = GetOptionalSetting(configuration, "Chat:Provider") ?? "OpenAI";
 
 var workspaceDirectory = Path.Combine(AppContext.BaseDirectory, "sample-workspace");
 await SeedSampleWorkspaceAsync(workspaceDirectory);
@@ -32,6 +29,7 @@ var workspaceTools = WorkspaceTools.CreateFunctions(
         DefaultCommandTimeoutSeconds = 20,
         MaxCommandTimeoutSeconds = 120,
         MaxTaskOutputCharacters = 32_000,
+        FileHandlers = [PdfWorkspaceTools.CreateFileHandler()],
     },
     taskStore);
 var taskTools = TaskTools.CreateFunctions(taskStore: taskStore);
@@ -40,7 +38,18 @@ IReadOnlyList<AIFunction> tools = [.. workspaceTools, .. taskTools];
 var services = new ServiceCollection()
     .AddLogging(builder => builder.AddConsole());
 
-IChatClient agent = new ChatClientBuilder(CreateChatClient(configuration))
+IChatClient chatClient;
+try
+{
+    chatClient = CreateChatClient(configuration, chatProviderName);
+}
+catch (InvalidOperationException exception)
+{
+    Console.Error.WriteLine(exception.Message);
+    return;
+}
+
+IChatClient agent = new ChatClientBuilder(chatClient)
     .UseFunctionInvocation()
     .Build(services.BuildServiceProvider());
 
@@ -55,6 +64,7 @@ var systemPrompt = WorkspaceTools.GetSystemPromptGuidance(
     When a question is asked or a goal is provided, use your tools to interact with the workspace files, understand the needed details beforehand, and complete tasks.
     The workspace root is {workspaceDirectory}.
     This sample runs on Windows using PowerShell.
+    The configured chat provider is {chatProviderName}.
 
     # Communicating with the user
     When sending user-facing text, you're writing for a person, not logging to a console. Assume users can't see most tool calls or thinking - only your text output. Before your first tool call, briefly state what you're about to do. While working, give short updates at key moments: when you find something load-bearing (a bug, a root cause), when changing direction, when you've made progress without an update.
@@ -82,6 +92,7 @@ List<ChatMessage> chatHistory =
 
 Console.WriteLine("AIToolkit.Tools sample agent");
 Console.WriteLine($"Workspace ready: {workspaceDirectory}");
+Console.WriteLine($"Configured chat provider: {chatProviderName}");
 Console.WriteLine("Available tools:");
 foreach (var tool in tools.OrderBy(static tool => tool.Name, StringComparer.Ordinal))
 {
@@ -92,6 +103,11 @@ Console.WriteLine();
 Console.WriteLine("Try prompts like:");
 Console.WriteLine("- List the markdown, JSON, and notebook files in the workspace.");
 Console.WriteLine("- Read docs/overview.md and summarize what this sample workspace contains.");
+Console.WriteLine("- Read media/image.png and tell me what text appears in the image.");
+Console.WriteLine("- Read media/document.pdf and summarize the PDF text plus any extracted images.");
+Console.WriteLine("- Read docs/supported-files.md and tell me which default file types are seeded in the workspace.");
+Console.WriteLine("- Read config/preferences.yaml, config/preferences-alt.yml, data/catalog.xml, and docs/table.csv.");
+Console.WriteLine("- Read media/vector.svg, media/image.png, media/document.pdf, media/audio.mp3 and media/video.webm and explain the contents.");
 Console.WriteLine("- Create notes/release-summary.txt with a short summary of the workspace.");
 Console.WriteLine("- Append a checklist item to notes/todo.txt that says review prompt coverage.");
 Console.WriteLine("- Search the workspace for the word telemetry in markdown and C# files.");
@@ -139,7 +155,17 @@ while (true)
     Console.WriteLine();
 }
 
-static IChatClient CreateChatClient(IConfiguration configuration)
+static IChatClient CreateChatClient(IConfiguration configuration, string providerName)
+{
+    return NormalizeChatProvider(providerName) switch
+    {
+        "openai" => CreateOpenAIChatClient(configuration),
+        "google" => CreateGoogleGenAIChatClient(configuration),
+        _ => throw new InvalidOperationException("Chat:Provider must be one of OpenAI, Google, GoogleGenAI, or Gemini."),
+    };
+}
+
+static IChatClient CreateOpenAIChatClient(IConfiguration configuration)
 {
     var model = GetSetting(configuration, "OpenAI:Model");
     var endpoint = GetSetting(configuration, "OpenAI:Endpoint");
@@ -155,6 +181,48 @@ static IChatClient CreateChatClient(IConfiguration configuration)
         .AsIChatClient();
 }
 
+static IChatClient CreateGoogleGenAIChatClient(IConfiguration configuration)
+{
+    var model = GetSetting(configuration, "GoogleGenAI:Model");
+    var useVertexAi = GetBool(configuration, "GoogleGenAI:UseVertexAI", defaultValue: false);
+    var vertexBaseUrl = GetOptionalSetting(configuration, "GoogleGenAI:VertexBaseUrl");
+    var geminiBaseUrl = GetOptionalSetting(configuration, "GoogleGenAI:GeminiBaseUrl");
+    var apiVersion = GetOptionalSetting(configuration, "GoogleGenAI:ApiVersion");
+
+    if (geminiBaseUrl is not null || vertexBaseUrl is not null)
+    {
+        GoogleGenAIClient.setDefaultBaseUrl(vertexBaseUrl: vertexBaseUrl, geminiBaseUrl: geminiBaseUrl);
+    }
+
+    GoogleGenAIHttpOptions? httpOptions = null;
+    if (!string.IsNullOrWhiteSpace(apiVersion))
+    {
+        httpOptions = new GoogleGenAIHttpOptions
+        {
+            ApiVersion = apiVersion,
+        };
+    }
+
+    GoogleGenAIClient client;
+    if (useVertexAi)
+    {
+        client = new GoogleGenAIClient(
+            vertexAI: true,
+            project: GetSetting(configuration, "GoogleGenAI:Project"),
+            location: GetSetting(configuration, "GoogleGenAI:Location"),
+            httpOptions: httpOptions);
+    }
+    else
+    {
+        client = new GoogleGenAIClient(
+            vertexAI: false,
+            apiKey: GetSetting(configuration, "GoogleGenAI:ApiKey"),
+            httpOptions: httpOptions);
+    }
+
+    return client.AsIChatClient(model);
+}
+
 static string GetSetting(IConfiguration configuration, string key)
 {
     var value = configuration[key];
@@ -167,24 +235,129 @@ static string GetSetting(IConfiguration configuration, string key)
         $"Configuration value '{key}' is required. Set it in appsettings.json or dotnet user-secrets.");
 }
 
+static string? GetOptionalSetting(IConfiguration configuration, string key)
+{
+    var value = configuration[key];
+    return string.IsNullOrWhiteSpace(value) ? null : value;
+}
+
+static bool GetBool(IConfiguration configuration, string key, bool defaultValue)
+{
+    var value = configuration[key];
+    return bool.TryParse(value, out var parsed) ? parsed : defaultValue;
+}
+
+static string NormalizeChatProvider(string providerName)
+{
+    var normalized = providerName.Trim().ToLowerInvariant();
+    return normalized switch
+    {
+        "openai" => "openai",
+        "google" => "google",
+        "googlegenai" => "google",
+        "gemini" => "google",
+        _ => normalized,
+    };
+}
+
 static async Task SeedSampleWorkspaceAsync(string workspaceDirectory)
 {
     Directory.CreateDirectory(workspaceDirectory);
 
-    var files = new Dictionary<string, string>
+    var textFiles = new Dictionary<string, string>
     {
         [Path.Combine(workspaceDirectory, "docs", "overview.md")] = """
             # AIToolkit.Tools Sample Workspace
 
             This workspace is seeded so an agent can exercise every workspace and task tool.
+            It includes representative files for the built-in default file handlers.
 
             ## Contents
 
             - docs/overview.md explains the workspace.
+            - docs/supported-files.md lists the default-supported file examples.
+            - docs/page.html and docs/legacy.htm provide HTML text fixtures.
+            - docs/table.csv provides a CSV text fixture.
             - notes/todo.txt holds an editable checklist.
             - src/reporting/telemetry.cs contains telemetry-related code for grep samples.
-            - config/settings.json gives the sample a JSON file to inspect.
+            - config/settings.json, config/preferences.yaml, and config/preferences-alt.yml provide structured text files.
+            - data/catalog.xml provides an XML text fixture.
             - notebooks/analysis.ipynb gives the notebook tool a valid file to edit.
+            - media/ contains checked-in sample media fixtures copied from the sample project.
+            - PDFs are handled by the configured AIToolkit.Tools.PDF handler, which extracts page text and embedded images.
+
+            Most media fixtures exercise the built-in media handler, which returns `DataContent` rather than parsing those formats.
+            The PDF fixture exercises the configured PDF handler instead.
+            """,
+        [Path.Combine(workspaceDirectory, "docs", "supported-files.md")] = """
+            # Default-Supported Sample Files
+
+            This workspace includes examples for the built-in `workspace_read_file` handlers plus the configured PDF handler from `AIToolkit.Tools.PDF`.
+
+            ## Text files
+
+            - notes/todo.txt
+            - docs/overview.md
+            - docs/page.html
+            - docs/legacy.htm
+            - docs/table.csv
+            - config/settings.json
+            - config/preferences.yaml
+            - config/preferences-alt.yml
+            - data/catalog.xml
+            - src/reporting/telemetry.cs
+
+            ## Notebook files
+
+            - notebooks/analysis.ipynb
+
+            ## Media files
+
+            - media/vector.svg
+            - media/image.png
+            - media/photo.jpg
+            - media/photo.jpeg
+            - media/banner.gif
+            - media/bitmap.bmp
+            - media/clip.webp
+            - media/document.pdf
+            - media/audio.wav
+            - media/audio.mp3
+            - media/video.mp4
+            - media/video.webm
+
+            ## PDF handler
+
+            - media/document.pdf
+
+            The sample registers `PdfWorkspaceTools.CreateFileHandler()`, so PDF files return extracted page text and embedded images instead of raw `application/pdf` bytes.
+            """,
+        [Path.Combine(workspaceDirectory, "docs", "page.html")] = """
+            <!doctype html>
+            <html>
+            <head>
+              <title>AIToolkit Sample Page</title>
+            </head>
+            <body>
+              <main>
+                <h1>AIToolkit.Tools Sample</h1>
+                <p>This HTML file exists so the text handler can read a common web document format.</p>
+              </main>
+            </body>
+            </html>
+            """,
+        [Path.Combine(workspaceDirectory, "docs", "legacy.htm")] = """
+            <html>
+            <body>
+              <p>Legacy .htm fixture for the default text handler.</p>
+            </body>
+            </html>
+            """,
+        [Path.Combine(workspaceDirectory, "docs", "table.csv")] = """
+            file,type,purpose
+            overview.md,markdown,workspace summary
+            settings.json,json,configuration sample
+            analysis.ipynb,notebook,notebook edit target
             """,
         [Path.Combine(workspaceDirectory, "notes", "todo.txt")] = """
             - inspect docs
@@ -207,6 +380,25 @@ static async Task SeedSampleWorkspaceAsync(string workspaceDirectory)
               "telemetry": true,
               "logLevel": "Information"
             }
+            """,
+        [Path.Combine(workspaceDirectory, "config", "preferences.yaml")] = """
+            workspace: AIToolkit.Tools.Sample
+            telemetry: true
+            reviewers:
+              - docs
+              - tools
+            """,
+        [Path.Combine(workspaceDirectory, "config", "preferences-alt.yml")] = """
+            workspace: AIToolkit.Tools.Sample
+            notebook: analysis.ipynb
+            preferredShell: pwsh
+            """,
+        [Path.Combine(workspaceDirectory, "data", "catalog.xml")] = """
+            <catalog>
+              <file path="docs/overview.md" kind="markdown" />
+              <file path="config/settings.json" kind="json" />
+              <file path="notebooks/analysis.ipynb" kind="notebook" />
+            </catalog>
             """,
         [Path.Combine(workspaceDirectory, "notebooks", "analysis.ipynb")] = """
             {
@@ -239,7 +431,10 @@ static async Task SeedSampleWorkspaceAsync(string workspaceDirectory)
             """,
     };
 
-    foreach (var file in files)
+    var sourceMediaDirectory = Path.Combine(AppContext.BaseDirectory, "media");
+    var destinationMediaDirectory = Path.Combine(workspaceDirectory, "media");
+
+    foreach (var file in textFiles)
     {
         var directory = Path.GetDirectoryName(file.Key);
         if (!string.IsNullOrWhiteSpace(directory))
@@ -248,5 +443,32 @@ static async Task SeedSampleWorkspaceAsync(string workspaceDirectory)
         }
 
         await File.WriteAllTextAsync(file.Key, file.Value).ConfigureAwait(false);
+    }
+
+    await CopyDirectoryAsync(sourceMediaDirectory, destinationMediaDirectory).ConfigureAwait(false);
+}
+
+static async Task CopyDirectoryAsync(string sourceDirectory, string destinationDirectory)
+{
+    if (!Directory.Exists(sourceDirectory))
+    {
+        throw new DirectoryNotFoundException($"Sample media directory '{sourceDirectory}' was not found.");
+    }
+
+    Directory.CreateDirectory(destinationDirectory);
+
+    foreach (var sourcePath in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+    {
+        var relativePath = Path.GetRelativePath(sourceDirectory, sourcePath);
+        var destinationPath = Path.Combine(destinationDirectory, relativePath);
+        var destinationSubdirectory = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrWhiteSpace(destinationSubdirectory))
+        {
+            Directory.CreateDirectory(destinationSubdirectory);
+        }
+
+        await using var sourceStream = File.OpenRead(sourcePath);
+        await using var destinationStream = File.Create(destinationPath);
+        await sourceStream.CopyToAsync(destinationStream).ConfigureAwait(false);
     }
 }

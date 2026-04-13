@@ -98,8 +98,11 @@ public sealed record WorkspaceReadFileToolResult(
 public sealed record WorkspaceWriteFileToolResult(
     bool Success,
     string Path,
-    bool Overwritten,
+    string ChangeType,
     int CharacterCount,
+    string? OriginalContent,
+    string? Content,
+    string? Patch,
     string? Message = null)
     : WorkspaceToolResult(Success, Message);
 
@@ -109,9 +112,11 @@ public sealed record WorkspaceWriteFileToolResult(
 public sealed record WorkspaceEditFileToolResult(
     bool Success,
     string Path,
-    WorkspaceFileEditOperation Operation,
     int ChangesApplied,
     int CharacterCount,
+    string? OriginalContent,
+    string? UpdatedContent,
+    string? Patch,
     string? Message = null)
     : WorkspaceToolResult(Success, Message);
 

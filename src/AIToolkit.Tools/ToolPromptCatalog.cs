@@ -32,13 +32,47 @@ internal static class ToolPromptCatalog
         "Executes a PowerShell command and returns its output. Use this for terminal operations via PowerShell, including cmdlets and Windows-oriented shell workflows. Do not use it for reading, writing, editing, or searching files when a dedicated workspace_* tool can do the job. If commands are independent, make separate tool calls in parallel. If commands depend on each other, run them sequentially.";
 
     public static string WorkspaceReadFileDescription =>
-        "Reads a file from the local filesystem. Use this to inspect text files, optionally by line range. It can also read Jupyter notebook files as structured notebook content. Use shell commands only when you need directory or process operations rather than file reading.";
+        """
+        Reads a file from the local filesystem. You can access any file directly by using this tool.
+
+        Assume this tool is able to read all files on the machine. If the user provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error-like message will be returned.
+
+        Usage:
+        - The file_path parameter must be an absolute path, not a relative path.
+        - By default, it reads up to 2000 lines starting from the beginning of the file.
+        - You can optionally specify a line offset and limit, but it is recommended to read the whole file when it is reasonably small.
+        - Results are returned using line number + tab format, with line numbers starting at 1.
+        - This tool allows multimodal reads. Built-in handlers support text files, common image formats, raw media files, and Jupyter notebooks.
+        - This tool can read Jupyter notebooks (.ipynb files) and returns cells with their outputs, combining code, text, and visualizations when present.
+        - Additional file types can be supported by registering IWorkspaceFileHandler implementations, for example from a future PDF package.
+        - This tool can only read files, not directories. To inspect a directory, use workspace_run_bash or workspace_run_powershell.
+        - If you read a file that exists but has empty contents you will receive a reminder instead of file contents.
+        """;
 
     public static string WorkspaceWriteFileDescription =>
-        "Writes a file to the local filesystem. It can create a new file or overwrite an existing one. Prefer workspace_edit_file for targeted modifications to an existing file, and use this tool for new files or full rewrites.";
+        """
+        Writes a file to the local filesystem.
+
+        Usage:
+        - This tool will overwrite the existing file if there is one at the provided path.
+        - If this is an existing file, you MUST use the workspace_read_file tool first to read the file's contents. This tool will fail if you did not read the file first.
+        - Prefer workspace_edit_file for modifying existing files because it only sends the diff. Only use this tool to create new files or for complete rewrites.
+        - NEVER create documentation files (*.md) or README files unless explicitly requested by the user.
+        - Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
+        """;
 
     public static string WorkspaceEditFileDescription =>
-        "Performs deterministic text edits in a file. Prefer editing existing files instead of rewriting them. Use the smallest clearly unique target text when replacing or inserting content, and preserve the file's exact indentation and surrounding formatting.";
+        """
+        Performs exact string replacements in files.
+
+        Usage:
+        - You must use your workspace_read_file tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file.
+        - When editing text from workspace_read_file output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: line number + tab. Everything after that is the actual file content to match. Never include any part of the line number prefix in old_string or new_string.
+        - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
+        - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+        - The edit will FAIL if old_string is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use replace_all to change every instance of old_string.
+        - Use replace_all for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.
+        """;
 
     public static string WorkspaceGlobSearchDescription =>
         "Fast file pattern matching tool for workspace searches. Use it to find files by name patterns such as **/*.cs or src/**/*.ts. Prefer this tool over shell-based find or recursive directory listing when you are looking for files by path pattern.";

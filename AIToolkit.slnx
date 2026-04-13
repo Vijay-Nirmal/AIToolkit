@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AIToolkit.Tools/AIToolkit.Tools.csproj" />
+    <Project Path="src/AIToolkit.Tools.PDF/AIToolkit.Tools.PDF.csproj" />
     <Project Path="src/AIToolkit.Tools.Web/AIToolkit.Tools.Web.csproj" />
     <Project Path="src/AIToolkit.Tools.Web.DuckDuckGo/AIToolkit.Tools.Web.DuckDuckGo.csproj" />
     <Project Path="src/AIToolkit.Tools.Web.Google/AIToolkit.Tools.Web.Google.csproj" />
@@ -23,6 +24,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AIToolkit.Tools.Tests/AIToolkit.Tools.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Tools.PDF.Tests/AIToolkit.Tools.PDF.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Web.Tests/AIToolkit.Tools.Web.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Web.DuckDuckGo.Tests/AIToolkit.Tools.Web.DuckDuckGo.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Web.Google.Tests/AIToolkit.Tools.Web.Google.Tests.csproj" />

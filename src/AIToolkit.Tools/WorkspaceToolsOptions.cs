@@ -26,7 +26,17 @@ public sealed class WorkspaceToolsOptions
     /// <summary>
     /// Gets or sets the maximum number of lines returned by file reads when no explicit range is provided.
     /// </summary>
-    public int MaxReadLines { get; init; } = 400;
+    public int MaxReadLines { get; init; } = 2_000;
+
+    /// <summary>
+    /// Gets or sets the maximum number of bytes returned by non-text file handlers.
+    /// </summary>
+    public int MaxReadBytes { get; init; } = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// Gets or sets the maximum file size allowed for exact string edits.
+    /// </summary>
+    public long MaxEditFileBytes { get; init; } = 1024L * 1024 * 1024;
 
     /// <summary>
     /// Gets or sets the maximum number of results returned by glob and grep searches.
@@ -42,4 +52,9 @@ public sealed class WorkspaceToolsOptions
     /// Gets or sets the maximum number of characters retained for shell task output.
     /// </summary>
     public int MaxTaskOutputCharacters { get; init; } = 64_000;
+
+    /// <summary>
+    /// Gets or sets custom file handlers that extend <c>workspace_read_file</c>.
+    /// </summary>
+    public IEnumerable<IWorkspaceFileHandler>? FileHandlers { get; init; }
 }

@@ -8,9 +8,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AIToolkit.Tools\AIToolkit.Tools.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.PDF\AIToolkit.Tools.PDF.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.GenAI" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
@@ -21,6 +23,9 @@
 
   <ItemGroup>
     <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="media\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

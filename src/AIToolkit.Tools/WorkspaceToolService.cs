@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -23,6 +24,8 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
     private readonly WorkspaceToolsOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly ITaskToolStore _taskStore = taskStore ?? throw new ArgumentNullException(nameof(taskStore));
     private readonly string _defaultWorkingDirectory = NormalizeDirectory(options.WorkingDirectory);
+    private readonly WorkspaceFileHandlerPipeline _fileHandlerPipeline = new(options);
+    private readonly WorkspaceFileReadStateStore _readState = new();
     private static readonly JsonSerializerOptions LogJsonOptions = ToolJsonSerializerOptions.CreateWeb();
 
     public async Task<WorkspaceCommandToolResult> RunBashAsync(
@@ -87,11 +90,11 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<WorkspaceReadFileToolResult> ReadFileAsync(
-        string path,
-        int? startLine = null,
-        int? endLine = null,
-        string? workingDirectory = null,
+    public async Task<IEnumerable<AIContent>> ReadFileAsync(
+        string file_path,
+        int? offset = null,
+        int? limit = null,
+        string? pages = null,
         IServiceProvider? serviceProvider = null,
         CancellationToken cancellationToken = default)
     {
@@ -100,62 +103,76 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             "workspace_read_file",
             new Dictionary<string, object?>
             {
-                ["path"] = path,
-                ["startLine"] = startLine,
-                ["endLine"] = endLine,
-                ["workingDirectory"] = workingDirectory,
+                ["file_path"] = file_path,
+                ["offset"] = offset,
+                ["limit"] = limit,
+                ["pages"] = pages,
             });
 
         try
         {
-            var resolvedPath = ResolvePath(path, workingDirectory);
+            var resolvedPath = ResolvePath(file_path, null);
+            if (Directory.Exists(resolvedPath))
+            {
+                return
+                [
+                    new TextContent("The path refers to a directory. This tool can only read files, not directories."),
+                ];
+            }
+
             if (!File.Exists(resolvedPath))
             {
-                return new WorkspaceReadFileToolResult(false, resolvedPath, string.Empty, 0, 0, 0, false, "File not found.");
+                return
+                [
+                    new TextContent("File not found."),
+                ];
             }
 
-            if (LooksBinary(resolvedPath))
-            {
-                return new WorkspaceReadFileToolResult(false, resolvedPath, string.Empty, 0, 0, 0, false, "Binary files are not supported by workspace_read_file.");
-            }
-
-            var lines = await File.ReadAllLinesAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
-            if (lines.Length == 0)
-            {
-                return new WorkspaceReadFileToolResult(true, resolvedPath, string.Empty, 0, 0, 0, false);
-            }
-
-            var actualStartLine = Math.Max(1, startLine ?? 1);
-            var actualEndLine = endLine ?? Math.Min(lines.Length, actualStartLine + _options.MaxReadLines - 1);
-            actualEndLine = Math.Min(lines.Length, actualEndLine);
-
-            if (actualStartLine > actualEndLine)
-            {
-                return new WorkspaceReadFileToolResult(false, resolvedPath, string.Empty, 0, 0, lines.Length, false, "The requested line range is invalid.");
-            }
-
-            var selectedLines = lines[(actualStartLine - 1)..actualEndLine];
-            var truncated = endLine is null && actualEndLine < lines.Length;
-            return new WorkspaceReadFileToolResult(
-                true,
+            var isBinary = LooksBinary(resolvedPath);
+            byte[]? fileBytes = null;
+            TextFileSnapshot? textSnapshot = null;
+            var request = new WorkspaceFileReadRequest(resolvedPath, offset, limit, pages);
+            var context = _fileHandlerPipeline.CreateContext(
                 resolvedPath,
-                string.Join("\n", selectedLines),
-                actualStartLine,
-                actualEndLine,
-                lines.Length,
-                truncated);
+                request,
+                isBinary,
+                serviceProvider,
+                async cancellation =>
+                {
+                    fileBytes ??= await File.ReadAllBytesAsync(resolvedPath, cancellation).ConfigureAwait(false);
+                    return fileBytes;
+                },
+                async cancellation =>
+                {
+                    textSnapshot ??= await ReadTextSnapshotAsync(resolvedPath, cancellation).ConfigureAwait(false);
+                    return textSnapshot.RawContent;
+                });
+
+            var handler = _fileHandlerPipeline.ResolveHandler(context, serviceProvider);
+            if (handler is null)
+            {
+                return
+                [
+                    new TextContent("The file type is not supported by any registered IWorkspaceFileHandler."),
+                ];
+            }
+
+            var result = await handler.ReadAsync(context, cancellationToken).ConfigureAwait(false);
+            await TrackTextReadAsync(resolvedPath, isBinary, offset, limit, textSnapshot, cancellationToken).ConfigureAwait(false);
+            return result;
         }
         catch (Exception exception)
         {
-            return new WorkspaceReadFileToolResult(false, path, string.Empty, 0, 0, 0, false, exception.Message);
+            return
+            [
+                new TextContent(exception.Message),
+            ];
         }
     }
 
     public async Task<WorkspaceWriteFileToolResult> WriteFileAsync(
-        string path,
+        string file_path,
         string content,
-        bool overwrite = true,
-        string? workingDirectory = null,
         IServiceProvider? serviceProvider = null,
         CancellationToken cancellationToken = default)
     {
@@ -164,18 +181,37 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             "workspace_write_file",
             new Dictionary<string, object?>
             {
-                ["path"] = path,
-                ["overwrite"] = overwrite,
-                ["workingDirectory"] = workingDirectory,
+                ["file_path"] = file_path,
             });
 
         try
         {
-            var resolvedPath = ResolvePath(path, workingDirectory);
-            var exists = File.Exists(resolvedPath);
-            if (exists && !overwrite)
+            var resolvedPath = ResolvePath(file_path, null);
+            if (Directory.Exists(resolvedPath))
             {
-                return new WorkspaceWriteFileToolResult(false, resolvedPath, true, 0, "File already exists and overwrite is disabled.");
+                return new WorkspaceWriteFileToolResult(false, resolvedPath, "update", 0, null, null, null, "The target path refers to a directory.");
+            }
+
+            var exists = File.Exists(resolvedPath);
+            if (exists && LooksBinary(resolvedPath))
+            {
+                return new WorkspaceWriteFileToolResult(false, resolvedPath, "update", 0, null, null, null, "Binary files are not supported by workspace_write_file.");
+            }
+
+            TextFileSnapshot? originalSnapshot = null;
+            if (exists)
+            {
+                var readState = _readState.Get(resolvedPath);
+                if (readState is null || readState.IsPartialView)
+                {
+                    return new WorkspaceWriteFileToolResult(false, resolvedPath, "update", 0, null, null, null, "File has not been read yet. Read it first before writing to it.");
+                }
+
+                originalSnapshot = await ReadTextSnapshotAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
+                if (HasUnexpectedModification(originalSnapshot, readState))
+                {
+                    return new WorkspaceWriteFileToolResult(false, resolvedPath, "update", 0, originalSnapshot.NormalizedContent, null, null, "File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.");
+                }
             }
 
             var directory = Path.GetDirectoryName(resolvedPath);
@@ -184,23 +220,38 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
                 Directory.CreateDirectory(directory);
             }
 
-            await File.WriteAllTextAsync(resolvedPath, content, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-            return new WorkspaceWriteFileToolResult(true, resolvedPath, exists, content.Length);
+            await WriteTextFileAsync(
+                resolvedPath,
+                content,
+                originalSnapshot?.Encoding,
+                originalSnapshot?.HasBom ?? false,
+                cancellationToken).ConfigureAwait(false);
+
+            var updatedSnapshot = await ReadTextSnapshotAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
+            _readState.Set(
+                resolvedPath,
+                new WorkspaceFileReadStateEntry(updatedSnapshot.LastWriteUtcTicks, updatedSnapshot.NormalizedContent, false, null, null));
+
+            return new WorkspaceWriteFileToolResult(
+                true,
+                resolvedPath,
+                exists ? "update" : "create",
+                content.Length,
+                originalSnapshot?.NormalizedContent,
+                content,
+                CreatePatch(originalSnapshot?.NormalizedContent, updatedSnapshot.NormalizedContent, resolvedPath));
         }
         catch (Exception exception)
         {
-            return new WorkspaceWriteFileToolResult(false, path, false, 0, exception.Message);
+            return new WorkspaceWriteFileToolResult(false, file_path, "update", 0, null, null, null, exception.Message);
         }
     }
 
     public async Task<WorkspaceEditFileToolResult> EditFileAsync(
-        string path,
-        WorkspaceFileEditOperation operation,
-        string? oldText = null,
-        string? newText = null,
-        string? anchorText = null,
-        string? content = null,
-        string? workingDirectory = null,
+        string file_path,
+        string old_string,
+        string new_string,
+        bool replace_all = false,
         IServiceProvider? serviceProvider = null,
         CancellationToken cancellationToken = default)
     {
@@ -209,119 +260,146 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             "workspace_edit_file",
             new Dictionary<string, object?>
             {
-                ["path"] = path,
-                ["operation"] = operation,
-                ["workingDirectory"] = workingDirectory,
+                ["file_path"] = file_path,
+                ["replace_all"] = replace_all,
             });
 
         try
         {
-            var resolvedPath = ResolvePath(path, workingDirectory);
+            var resolvedPath = ResolvePath(file_path, null);
+            if (string.Equals(Path.GetExtension(resolvedPath), ".ipynb", StringComparison.OrdinalIgnoreCase))
+            {
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, null, null, null, "File is a Jupyter notebook. Use the workspace_edit_notebook tool to edit this file.");
+            }
+
+            if (string.Equals(old_string, new_string, StringComparison.Ordinal))
+            {
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, null, null, null, "No changes to make: old_string and new_string are exactly the same.");
+            }
+
             if (!File.Exists(resolvedPath))
             {
-                return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, 0, "File not found.");
+                if (old_string.Length == 0)
+                {
+                    var directory = Path.GetDirectoryName(resolvedPath);
+                    if (!string.IsNullOrWhiteSpace(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    await WriteTextFileAsync(resolvedPath, new_string, null, false, cancellationToken).ConfigureAwait(false);
+                    var createdSnapshot = await ReadTextSnapshotAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
+                    _readState.Set(
+                        resolvedPath,
+                        new WorkspaceFileReadStateEntry(createdSnapshot.LastWriteUtcTicks, createdSnapshot.NormalizedContent, false, null, null));
+
+                    return new WorkspaceEditFileToolResult(
+                        true,
+                        resolvedPath,
+                        1,
+                        new_string.Length,
+                        null,
+                        createdSnapshot.NormalizedContent,
+                        CreatePatch(null, createdSnapshot.NormalizedContent, resolvedPath));
+                }
+
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, null, null, null, "File not found.");
             }
 
             if (LooksBinary(resolvedPath))
             {
-                return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, 0, "Binary files are not supported by workspace_edit_file.");
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, null, null, null, "Binary files are not supported by workspace_edit_file.");
             }
 
-            var original = await File.ReadAllTextAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
-            var updated = original;
-            var changesApplied = 0;
-
-            switch (operation)
+            var fileInfo = new FileInfo(resolvedPath);
+            if (fileInfo.Length > _options.MaxEditFileBytes)
             {
-                case WorkspaceFileEditOperation.ReplaceOnce:
-                    if (string.IsNullOrEmpty(oldText))
-                    {
-                        return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "oldText is required for ReplaceOnce.");
-                    }
-
-                    {
-                        var index = updated.IndexOf(oldText, StringComparison.Ordinal);
-                        if (index < 0)
-                        {
-                            return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "oldText was not found.");
-                        }
-
-                        updated = updated.Remove(index, oldText.Length).Insert(index, newText ?? string.Empty);
-                        changesApplied = 1;
-                    }
-
-                    break;
-
-                case WorkspaceFileEditOperation.ReplaceAll:
-                    if (string.IsNullOrEmpty(oldText))
-                    {
-                        return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "oldText is required for ReplaceAll.");
-                    }
-
-                    changesApplied = CountOccurrences(updated, oldText);
-                    if (changesApplied == 0)
-                    {
-                        return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "oldText was not found.");
-                    }
-
-                    updated = updated.Replace(oldText, newText ?? string.Empty, StringComparison.Ordinal);
-                    break;
-
-                case WorkspaceFileEditOperation.InsertBefore:
-                    if (string.IsNullOrEmpty(anchorText))
-                    {
-                        return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "anchorText is required for InsertBefore.");
-                    }
-
-                    {
-                        var index = updated.IndexOf(anchorText, StringComparison.Ordinal);
-                        if (index < 0)
-                        {
-                            return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "anchorText was not found.");
-                        }
-
-                        updated = updated.Insert(index, content ?? string.Empty);
-                        changesApplied = 1;
-                    }
-
-                    break;
-
-                case WorkspaceFileEditOperation.InsertAfter:
-                    if (string.IsNullOrEmpty(anchorText))
-                    {
-                        return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "anchorText is required for InsertAfter.");
-                    }
-
-                    {
-                        var index = updated.IndexOf(anchorText, StringComparison.Ordinal);
-                        if (index < 0)
-                        {
-                            return new WorkspaceEditFileToolResult(false, resolvedPath, operation, 0, original.Length, "anchorText was not found.");
-                        }
-
-                        updated = updated.Insert(index + anchorText.Length, content ?? string.Empty);
-                        changesApplied = 1;
-                    }
-
-                    break;
-
-                case WorkspaceFileEditOperation.Prepend:
-                    updated = (content ?? string.Empty) + updated;
-                    changesApplied = 1;
-                    break;
-
-                case WorkspaceFileEditOperation.Append:
-                    updated += content ?? string.Empty;
-                    changesApplied = 1;
-                    break;
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, null, null, null, $"File is too large to edit ({fileInfo.Length.ToString(CultureInfo.InvariantCulture)} bytes). Maximum editable file size is {_options.MaxEditFileBytes.ToString(CultureInfo.InvariantCulture)} bytes.");
             }
 
-            await File.WriteAllTextAsync(resolvedPath, updated, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-            return new WorkspaceEditFileToolResult(true, resolvedPath, operation, changesApplied, updated.Length);
+            var readState = _readState.Get(resolvedPath);
+            if (readState is null || readState.IsPartialView)
+            {
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, null, null, null, "File has not been read yet. Read it first before writing to it.");
+            }
+
+            var snapshot = await ReadTextSnapshotAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
+            if (HasUnexpectedModification(snapshot, readState))
+            {
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, 0, snapshot.NormalizedContent, null, null, "File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.");
+            }
+
+            if (old_string.Length == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(snapshot.NormalizedContent))
+                {
+                    return new WorkspaceEditFileToolResult(false, resolvedPath, 0, snapshot.NormalizedContent.Length, snapshot.NormalizedContent, null, null, "Cannot create new file - file already exists.");
+                }
+
+                var createdNormalized = WorkspaceFileHandlerPipeline.NormalizeLineEndings(new_string);
+                await WriteTextFileAsync(
+                    resolvedPath,
+                    ConvertLineEndings(createdNormalized, snapshot.LineEnding),
+                    snapshot.Encoding,
+                    snapshot.HasBom,
+                    cancellationToken).ConfigureAwait(false);
+
+                var createdSnapshot = await ReadTextSnapshotAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
+                _readState.Set(
+                    resolvedPath,
+                    new WorkspaceFileReadStateEntry(createdSnapshot.LastWriteUtcTicks, createdSnapshot.NormalizedContent, false, null, null));
+
+                return new WorkspaceEditFileToolResult(
+                    true,
+                    resolvedPath,
+                    1,
+                    createdSnapshot.NormalizedContent.Length,
+                    snapshot.NormalizedContent,
+                    createdSnapshot.NormalizedContent,
+                    CreatePatch(snapshot.NormalizedContent, createdSnapshot.NormalizedContent, resolvedPath));
+            }
+
+            var normalizedOld = WorkspaceFileHandlerPipeline.NormalizeLineEndings(old_string);
+            var normalizedNew = WorkspaceFileHandlerPipeline.NormalizeLineEndings(new_string);
+            var matches = CountOccurrences(snapshot.NormalizedContent, normalizedOld);
+            if (matches == 0)
+            {
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, snapshot.NormalizedContent.Length, snapshot.NormalizedContent, null, null, $"String to replace not found in file.{Environment.NewLine}String: {old_string}");
+            }
+
+            if (matches > 1 && !replace_all)
+            {
+                return new WorkspaceEditFileToolResult(false, resolvedPath, 0, snapshot.NormalizedContent.Length, snapshot.NormalizedContent, null, null, $"Found {matches.ToString(CultureInfo.InvariantCulture)} matches of the string to replace, but replace_all is false. To replace all occurrences, set replace_all to true. To replace only one occurrence, provide more surrounding context to uniquely identify the instance.{Environment.NewLine}String: {old_string}");
+            }
+
+            var updatedNormalized = replace_all
+                ? snapshot.NormalizedContent.Replace(normalizedOld, normalizedNew, StringComparison.Ordinal)
+                : ReplaceFirst(snapshot.NormalizedContent, normalizedOld, normalizedNew);
+
+            await WriteTextFileAsync(
+                resolvedPath,
+                ConvertLineEndings(updatedNormalized, snapshot.LineEnding),
+                snapshot.Encoding,
+                snapshot.HasBom,
+                cancellationToken).ConfigureAwait(false);
+
+            var updatedSnapshot = await ReadTextSnapshotAsync(resolvedPath, cancellationToken).ConfigureAwait(false);
+            _readState.Set(
+                resolvedPath,
+                new WorkspaceFileReadStateEntry(updatedSnapshot.LastWriteUtcTicks, updatedSnapshot.NormalizedContent, false, null, null));
+
+            return new WorkspaceEditFileToolResult(
+                true,
+                resolvedPath,
+                replace_all ? matches : 1,
+                updatedSnapshot.NormalizedContent.Length,
+                snapshot.NormalizedContent,
+                updatedSnapshot.NormalizedContent,
+                CreatePatch(snapshot.NormalizedContent, updatedSnapshot.NormalizedContent, resolvedPath));
         }
         catch (Exception exception)
         {
-            return new WorkspaceEditFileToolResult(false, path, operation, 0, 0, exception.Message);
+            return new WorkspaceEditFileToolResult(false, file_path, 0, 0, null, null, null, exception.Message);
         }
     }
 
@@ -604,6 +682,169 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         {
             return new WorkspaceNotebookEditToolResult(false, path, operation, 0, null, exception.Message);
         }
+    }
+
+    private async Task TrackTextReadAsync(
+        string path,
+        bool isBinary,
+        int? offset,
+        int? limit,
+        TextFileSnapshot? snapshot,
+        CancellationToken cancellationToken)
+    {
+        if (isBinary || string.Equals(Path.GetExtension(path), ".ipynb", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        snapshot ??= await ReadTextSnapshotAsync(path, cancellationToken).ConfigureAwait(false);
+        var lineCount = snapshot.NormalizedContent.Length == 0
+            ? 0
+            : snapshot.NormalizedContent.Split('\n').Length;
+        var startLine = Math.Max(1, offset.GetValueOrDefault(1));
+        var effectiveLimit = Math.Clamp(limit ?? _options.MaxReadLines, 1, Math.Max(1, _options.MaxReadLines));
+        var endLine = lineCount == 0 ? 0 : Math.Min(lineCount, startLine + effectiveLimit - 1);
+        var isFullView = lineCount == 0 || startLine <= 1 && endLine >= lineCount;
+
+        _readState.Set(
+            path,
+            new WorkspaceFileReadStateEntry(snapshot.LastWriteUtcTicks, snapshot.NormalizedContent, !isFullView, offset, limit));
+    }
+
+    private static async Task<TextFileSnapshot> ReadTextSnapshotAsync(string path, CancellationToken cancellationToken)
+    {
+        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        var lastWriteUtcTicks = File.GetLastWriteTimeUtc(path).Ticks;
+
+        Encoding encoding;
+        var preambleLength = 0;
+        var hasBom = false;
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+        {
+            encoding = new UTF8Encoding(true);
+            preambleLength = 3;
+            hasBom = true;
+        }
+        else if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+        {
+            encoding = Encoding.Unicode;
+            preambleLength = 2;
+            hasBom = true;
+        }
+        else if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF)
+        {
+            encoding = Encoding.BigEndianUnicode;
+            preambleLength = 2;
+            hasBom = true;
+        }
+        else
+        {
+            encoding = new UTF8Encoding(false);
+        }
+
+        var rawContent = encoding.GetString(bytes, preambleLength, bytes.Length - preambleLength);
+        var normalized = WorkspaceFileHandlerPipeline.NormalizeLineEndings(rawContent);
+        var lineEnding = rawContent.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        return new TextFileSnapshot(normalized, rawContent, encoding, hasBom, lineEnding, lastWriteUtcTicks);
+    }
+
+    private static async Task WriteTextFileAsync(
+        string path,
+        string content,
+        Encoding? encoding,
+        bool hasBom,
+        CancellationToken cancellationToken)
+    {
+        var effectiveEncoding = encoding switch
+        {
+            UTF8Encoding => new UTF8Encoding(hasBom),
+            null => new UTF8Encoding(false),
+            _ => encoding,
+        };
+
+        await using var stream = File.Create(path);
+        var preamble = hasBom ? effectiveEncoding.GetPreamble() : [];
+        if (preamble.Length > 0)
+        {
+            await stream.WriteAsync(preamble, cancellationToken).ConfigureAwait(false);
+        }
+
+        var bytes = effectiveEncoding.GetBytes(content);
+        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool HasUnexpectedModification(TextFileSnapshot snapshot, WorkspaceFileReadStateEntry readState) =>
+        snapshot.LastWriteUtcTicks > readState.LastWriteUtcTicks
+        && !string.Equals(snapshot.NormalizedContent, readState.NormalizedContent, StringComparison.Ordinal);
+
+    private static string ReplaceFirst(string content, string oldValue, string newValue)
+    {
+        var index = content.IndexOf(oldValue, StringComparison.Ordinal);
+        return index < 0
+            ? content
+            : string.Concat(content.AsSpan(0, index), newValue, content.AsSpan(index + oldValue.Length));
+    }
+
+    private static string ConvertLineEndings(string content, string lineEnding) =>
+        string.Equals(lineEnding, "\r\n", StringComparison.Ordinal)
+            ? content.Replace("\n", "\r\n", StringComparison.Ordinal)
+            : content;
+
+    private static string CreatePatch(string? originalContent, string updatedContent, string path)
+    {
+        var normalizedOriginal = originalContent ?? string.Empty;
+        if (string.Equals(normalizedOriginal, updatedContent, StringComparison.Ordinal))
+        {
+            return $"--- {path}{Environment.NewLine}+++ {path}{Environment.NewLine}";
+        }
+
+        var oldLines = normalizedOriginal.Split('\n');
+        var newLines = updatedContent.Split('\n');
+
+        var prefix = 0;
+        while (prefix < oldLines.Length && prefix < newLines.Length && string.Equals(oldLines[prefix], newLines[prefix], StringComparison.Ordinal))
+        {
+            prefix++;
+        }
+
+        var oldSuffix = oldLines.Length - 1;
+        var newSuffix = newLines.Length - 1;
+        while (oldSuffix >= prefix && newSuffix >= prefix && string.Equals(oldLines[oldSuffix], newLines[newSuffix], StringComparison.Ordinal))
+        {
+            oldSuffix--;
+            newSuffix--;
+        }
+
+        var builder = new StringBuilder();
+    builder.Append("--- ");
+    builder.Append(path);
+    builder.AppendLine();
+    builder.Append("+++ ");
+    builder.Append(path);
+    builder.AppendLine();
+        builder.Append("@@ -");
+        builder.Append((prefix + 1).ToString(CultureInfo.InvariantCulture));
+        builder.Append(',');
+        builder.Append(Math.Max(0, oldSuffix - prefix + 1).ToString(CultureInfo.InvariantCulture));
+        builder.Append(" +");
+        builder.Append((prefix + 1).ToString(CultureInfo.InvariantCulture));
+        builder.Append(',');
+        builder.Append(Math.Max(0, newSuffix - prefix + 1).ToString(CultureInfo.InvariantCulture));
+        builder.AppendLine(" @@");
+
+        for (var index = prefix; index <= oldSuffix; index++)
+        {
+            builder.Append('-');
+            builder.AppendLine(oldLines[index]);
+        }
+
+        for (var index = prefix; index <= newSuffix; index++)
+        {
+            builder.Append('+');
+            builder.AppendLine(newLines[index]);
+        }
+
+        return builder.ToString().TrimEnd();
     }
 
     private async Task<WorkspaceCommandToolResult> RunShellAsync(

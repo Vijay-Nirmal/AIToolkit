@@ -26,6 +26,7 @@ In practical terms, you can:
 | `AIToolkit.Tools.Sql.MySql` | You need MySQL `mysql_*` tools |
 | `AIToolkit.Tools.Sql.Sqlite` | You need SQLite `sqlite_*` tools |
 | `AIToolkit.Tools` | You need generic `workspace_*` and `task_*` tools for shell, files, search, notebooks, and shared task tracking |
+| `AIToolkit.Tools.PDF` | You want first-party PDF extraction that plugs into `workspace_read_file` and returns page text plus embedded images |
 | `AIToolkit.Tools.Web` | You need generic `web_fetch` and `web_search` tools plus the base web abstractions |
 | `AIToolkit.Tools.Web.DuckDuckGo` | You want DuckDuckGo HTML search as the `web_search` backend |
 | `AIToolkit.Tools.Web.Google` | You want Google Custom Search as the `web_search` backend |
@@ -49,6 +50,7 @@ Example package install commands:
 dotnet add package AIToolkit.Tools.Sql
 dotnet add package AIToolkit.Tools.Sql.SqlServer
 dotnet add package AIToolkit.Tools
+dotnet add package AIToolkit.Tools.PDF
 dotnet add package AIToolkit.Tools.Web
 dotnet add package AIToolkit.Tools.Web.DuckDuckGo
 dotnet add package AIToolkit.Tools.Web.Brave
@@ -75,6 +77,8 @@ The same pattern applies to PostgreSQL, MySQL, and SQLite. The main thing that c
 
 For generic workspace operations, use `WorkspaceTools.CreateFunctions(...)` from `AIToolkit.Tools`. Add `TaskTools.CreateFunctions(...)` when you also want the separate `task_*` toolset.
 
+For PDF extraction in `workspace_read_file`, add `AIToolkit.Tools.PDF` and register `PdfWorkspaceTools.CreateFileHandler()` in `WorkspaceToolsOptions.FileHandlers`.
+
 For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.Tools.Web` and supply an `IWebSearchProvider` from one of the web provider packages.
 
 ## Documentation
@@ -85,6 +89,7 @@ For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.
 - Package-specific usage: `src/AIToolkit.Tools.Sql.MySql/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Sql.Sqlite/README.md`
 - Package-specific usage: `src/AIToolkit.Tools/README.md`
+- Package-specific usage: `src/AIToolkit.Tools.PDF/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Web/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Web.DuckDuckGo/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Web.Google/README.md`
@@ -96,6 +101,7 @@ For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.
 - End-user MySQL guide: `docs/AIToolkit.Tools.Sql.MySql.md`
 - End-user SQLite guide: `docs/AIToolkit.Tools.Sql.Sqlite.md`
 - End-user workspace tools guide: `docs/AIToolkit.Tools.md`
+- End-user PDF workspace guide: `docs/AIToolkit.Tools.PDF.md`
 - End-user web tools guide: `docs/AIToolkit.Tools.Web.md`
 - End-user DuckDuckGo web-search guide: `docs/AIToolkit.Tools.Web.DuckDuckGo.md`
 - End-user Google web-search guide: `docs/AIToolkit.Tools.Web.Google.md`
@@ -111,4 +117,5 @@ For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.
 - `samples/AIToolkit.Tools.Sql.MySql.Sample` shows the same pattern for MySQL.
 - `samples/AIToolkit.Tools.Sql.Sqlite.Sample` shows the same pattern for SQLite.
 - `samples/AIToolkit.Tools.Sample` shows an interactive agent built on a real `IChatClient` with the combined `workspace_*` and `task_*` toolsets.
+- `samples/AIToolkit.Tools.Sample` also demonstrates wiring in `AIToolkit.Tools.PDF` so `workspace_read_file` can extract text and images from PDFs.
 - `samples/AIToolkit.Tools.Web.Sample` shows an interactive agent that can switch between DuckDuckGo, Google, Bing, Brave, and Tavily for the `web_search` backend.

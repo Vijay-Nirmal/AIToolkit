@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>PDF extraction support for AIToolkit workspace file tools, including page text and embedded image extraction.</Description>
+    <PackageTags>$(PackageTags);pdf;workspace;files;document-extraction;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PdfPig" />
+    <ProjectReference Include="..\AIToolkit.Tools\AIToolkit.Tools.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -50,6 +50,18 @@ internal static class FunctionTestUtilities
         };
     }
 
+    public static async Task<IReadOnlyList<AIContent>> InvokeContentAsync(IReadOnlyList<AIFunction> functions, string name, AIFunctionArguments? arguments = null)
+    {
+        var function = functions.Single(candidate => candidate.Name == name);
+        var invocationResult = await function.InvokeAsync(arguments);
+        return invocationResult switch
+        {
+            IEnumerable<AIContent> parts => parts.ToArray(),
+            AIContent part => [part],
+            _ => throw new InvalidOperationException($"Unexpected result type '{invocationResult?.GetType().FullName ?? "null"}' for {name}.'"),
+        };
+    }
+
     public static AIFunctionArguments CreateArguments(object values, IServiceProvider? services = null)
     {
         var arguments = new AIFunctionArguments
