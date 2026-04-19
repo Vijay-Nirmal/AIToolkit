@@ -4,6 +4,11 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Azure.Core" Version="1.44.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.2" />
+    <PackageVersion Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <PackageVersion Include="Google.Apis.Auth" Version="1.73.0" />
+    <PackageVersion Include="Google.Apis.Drive.v3" Version="1.73.0.4112" />
     <PackageVersion Include="Google.GenAI" Version="1.6.1" />
     <PackageVersion Include="PdfPig" Version="0.1.14" />
     <PackageVersion Include="coverlet.collector" Version="8.0.1" />
@@ -17,6 +22,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Graph" Version="5.58.0" />
     <PackageVersion Include="MSTest" Version="4.2.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.201" />

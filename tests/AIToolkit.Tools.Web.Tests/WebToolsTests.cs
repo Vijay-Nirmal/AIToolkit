@@ -22,7 +22,7 @@ public class WebToolsTests
         var prompt = WebTools.GetSystemPromptGuidance("Base prompt");
 
         StringAssert.Contains(prompt, "Base prompt");
-        StringAssert.Contains(prompt, "Sources:");
+        StringAssert.Contains(prompt, "# Using web tools");
         StringAssert.Contains(prompt, DateTimeOffset.Now.Year.ToString(System.Globalization.CultureInfo.InvariantCulture));
         StringAssert.Contains(prompt, "web_fetch");
         StringAssert.Contains(prompt, "web_search");

@@ -21,6 +21,9 @@ dotnet pack src/AIToolkit.Tools.Sql.MySql/AIToolkit.Tools.Sql.MySql.csproj -c Re
 dotnet pack src/AIToolkit.Tools.Sql.SqlServer/AIToolkit.Tools.Sql.SqlServer.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Sql.Sqlite/AIToolkit.Tools.Sql.Sqlite.csproj -c Release
 dotnet pack src/AIToolkit.Tools/AIToolkit.Tools.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Document/AIToolkit.Tools.Document.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Document.GoogleDocs/AIToolkit.Tools.Document.GoogleDocs.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Document.Word/AIToolkit.Tools.Document.Word.csproj -c Release
 dotnet pack src/AIToolkit.Tools.PDF/AIToolkit.Tools.PDF.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Web/AIToolkit.Tools.Web.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Web.DuckDuckGo/AIToolkit.Tools.Web.DuckDuckGo.csproj -c Release
@@ -39,6 +42,9 @@ NuGet packages are emitted to `artifacts/packages/`.
 - `AIToolkit.Tools.Sql.MySql`: see `docs/AIToolkit.Tools.Sql.MySql.md`
 - `AIToolkit.Tools.Sql.Sqlite`: see `docs/AIToolkit.Tools.Sql.Sqlite.md`
 - `AIToolkit.Tools`: see `docs/AIToolkit.Tools.md`
+- `AIToolkit.Tools.Document`: see `docs/AIToolkit.Tools.Document.md`
+- `AIToolkit.Tools.Document.GoogleDocs`: see `docs/AIToolkit.Tools.Document.GoogleDocs.md`
+- `AIToolkit.Tools.Document.Word`: see `docs/AIToolkit.Tools.Document.Word.md`
 - `AIToolkit.Tools.PDF`: see `docs/AIToolkit.Tools.PDF.md`
 - `AIToolkit.Tools.Web`: see `docs/AIToolkit.Tools.Web.md`
 - `AIToolkit.Tools.Web.DuckDuckGo`: see `docs/AIToolkit.Tools.Web.DuckDuckGo.md`

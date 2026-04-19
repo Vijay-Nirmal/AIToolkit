@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Microsoft Office Word document support for AIToolkit document tools, with canonical AsciiDoc round-tripping for Open XML Word formats.</Description>
+    <PackageTags>$(PackageTags);document;word;docx;asciidoc;openxml;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Core" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="Microsoft.Graph" />
+    <ProjectReference Include="..\AIToolkit.Tools.Document\AIToolkit.Tools.Document.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Document\AIToolkit.Tools.Document.csproj" />
+    <ProjectReference Include="..\..\src\AIToolkit.Tools.Document.Word\AIToolkit.Tools.Document.Word.csproj" />
+  </ItemGroup>
+
+</Project>

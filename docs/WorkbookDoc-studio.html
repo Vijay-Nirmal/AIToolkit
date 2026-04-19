@@ -1,0 +1,4415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WorkbookDoc Studio</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --panel-2: #f8fafc;
+            --border: #d8dee9;
+            --text: #17212f;
+            --muted: #5f6b7a;
+            --accent: #2563eb;
+            --accent-2: #dbeafe;
+            --success: #166534;
+            --danger: #b91c1c;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            --grid-header: #f1f5f9;
+            --formula: #0f766e;
+            --comment: #f59e0b;
+            --sheet-tab: #e2e8f0;
+            --sheet-active: #ffffff;
+            --font-sans: "Segoe UI", Arial, sans-serif;
+            --font-mono: Consolas, "Cascadia Code", Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+        }
+
+        body {
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .hero,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 20px 24px;
+            margin-bottom: 18px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(420px, 1fr) minmax(520px, 1.3fr);
+            gap: 18px;
+        }
+
+        .panel {
+            min-height: 720px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #ffffff, #fbfdff);
+        }
+
+        .panel-header h2 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .panel-header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .panel-body {
+            padding: 16px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .toolbar,
+        .import-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button,
+        input[type="file"]::file-selector-button {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: 0.15s ease;
+        }
+
+        button:hover,
+        input[type="file"]::file-selector-button:hover {
+            border-color: #b8c2d1;
+            background: #f8fafc;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        button.primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+
+        button.subtle {
+            background: var(--panel-2);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 420px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font: 14px/1.5 var(--font-mono);
+            padding: 14px 16px;
+            tab-size: 4;
+        }
+
+        .status {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: var(--panel-2);
+            color: var(--muted);
+            font-size: 13px;
+            border: 1px solid var(--border);
+            white-space: pre-wrap;
+        }
+
+        .status.ok {
+            background: #f0fdf4;
+            color: var(--success);
+            border-color: #bbf7d0;
+        }
+
+        .status.error {
+            background: #fef2f2;
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .meta-card {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .meta-card .label {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .meta-card .value {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .sheet-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 18px;
+            margin-top: 6px;
+        }
+
+        .sheet-tab {
+            border: 1px solid var(--border);
+            background: var(--sheet-tab);
+            border-radius: 10px 10px 0 0;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sheet-tab.active {
+            background: var(--sheet-active);
+            border-bottom-color: var(--sheet-active);
+            font-weight: 600;
+        }
+
+        .sheet-tab.hidden {
+            opacity: 0.7;
+        }
+
+        .preview-scroll {
+            min-height: 0;
+            overflow: auto;
+            padding: 0 18px 18px;
+        }
+
+        .sheet-panel {
+            display: none;
+            padding-top: 10px;
+        }
+
+        .sheet-panel.active {
+            display: block;
+        }
+
+        .sheet-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin: 0 0 12px;
+        }
+
+        .sheet-header h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--accent-2);
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .sheet-note {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .sheet-grid-wrap {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: white;
+        }
+
+        table.excel {
+            border-collapse: collapse;
+            width: max-content;
+            min-width: 100%;
+            table-layout: fixed;
+            font-size: 13px;
+        }
+
+        table.excel thead th,
+        table.excel tbody th {
+            position: sticky;
+            background: var(--grid-header);
+            color: var(--muted);
+            font-weight: 600;
+            text-align: center;
+            z-index: 1;
+        }
+
+        table.excel thead th {
+            top: 0;
+        }
+
+        table.excel tbody th {
+            left: 0;
+            z-index: 2;
+            min-width: 46px;
+        }
+
+        table.excel th,
+        table.excel td {
+            border: 1px solid #dfe4ea;
+            min-width: 88px;
+            height: 28px;
+            padding: 6px 8px;
+            vertical-align: middle;
+            background: white;
+        }
+
+        table.excel td.empty {
+            background: #fcfdff;
+        }
+
+        table.excel td.formula {
+            color: var(--formula);
+            font-family: var(--font-mono);
+        }
+
+        table.excel td .cell-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 16px;
+            position: relative;
+        }
+
+        .cell-main {
+            min-width: 0;
+            word-break: break-word;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cf-bar {
+            position: absolute;
+            left: 2px;
+            top: 3px;
+            bottom: 3px;
+            border-radius: 4px;
+            opacity: 0.2;
+            z-index: 0;
+        }
+
+        .fx {
+            color: var(--formula);
+            font: 11px var(--font-mono);
+            background: #ecfeff;
+            border: 1px solid #99f6e4;
+            border-radius: 999px;
+            padding: 1px 6px;
+            flex: 0 0 auto;
+        }
+
+        .cell-indicators {
+            display: flex;
+            gap: 4px;
+            flex: 0 0 auto;
+        }
+
+        .indicator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .indicator.comment {
+            background: #fde68a;
+            color: #92400e;
+        }
+
+        .indicator.note {
+            background: #e0f2fe;
+            color: #075985;
+        }
+
+        .sheet-section {
+            margin-top: 16px;
+        }
+
+        .sheet-section h4 {
+            margin: 0 0 10px;
+            font-size: 15px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .feature-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel-2);
+            padding: 12px;
+        }
+
+        .feature-card h5 {
+            margin: 0 0 8px;
+            font-size: 14px;
+        }
+
+        .feature-card pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font: 12px/1.45 var(--font-mono);
+            color: var(--muted);
+        }
+
+        .chart-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: white;
+            padding: 14px;
+        }
+
+        .chart-card h5 {
+            margin: 0 0 10px;
+            font-size: 15px;
+        }
+
+        .chart-card .meta {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .chart-svg {
+            width: 100%;
+            max-width: 460px;
+            height: auto;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+        }
+
+        .sparkline {
+            display: inline-block;
+            width: 64px;
+            height: 18px;
+            vertical-align: middle;
+        }
+
+        .footer-note {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1180px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>WorkbookDoc Studio</h1>
+            <p>
+                Render WorkbookDoc into an Excel-like visual preview, or upload an Excel workbook and convert it into WorkbookDoc.
+                WorkbookDoc rendering works fully offline in the browser. Excel import uses the SheetJS browser library loaded from a CDN.
+            </p>
+        </section>
+
+        <div class="layout">
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>WorkbookDoc</h2>
+                    <p>Paste or edit WorkbookDoc text, then render it into the workbook preview.</p>
+                </div>
+                <div class="panel-body">
+                    <div class="toolbar">
+                        <button class="primary" id="renderButton">Render WorkbookDoc</button>
+                        <button class="subtle" id="exampleButton">Load Example</button>
+                        <button class="subtle" id="downloadButton">Download WorkbookDoc</button>
+                    </div>
+
+                    <textarea id="workbookdocInput" spellcheck="false"></textarea>
+
+                    <div class="import-toolbar">
+                        <input type="file" id="excelInput" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" />
+                        <button id="importButton">Convert Excel to WorkbookDoc</button>
+                    </div>
+
+                    <div class="status" id="statusBox">Ready.</div>
+                    <div class="footer-note">
+                        Tips: compact WorkbookDoc uses anchored row lines like <code>@B5 | a | b | c</code>, <code>[used ...]</code> preserves sheet extent,
+                        and explicit <code>[cell ...]</code> lines are only needed for exceptions such as rich overrides or exact cell-level details.
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Workbook Preview</h2>
+                    <p>An Excel-like visual derived from the current WorkbookDoc text.</p>
+                </div>
+                <div class="meta-grid" id="metaGrid" style="padding: 16px 18px 0;"></div>
+                <div class="sheet-tabs" id="sheetTabs"></div>
+                <div class="preview-scroll" id="previewRoot"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script>
+        const SAMPLE_WORKBOOKDOC = `= Quarterly Operations
+:wbdoc: 4
+:locale: en-US
+:date-system: 1900
+:recalc: auto
+:active: Summary
+
+[style title bold fg=#FFFFFF bg=#4472C4 align=center/middle]
+[style hdr bold bg=#D9E2F3]
+[style currency fmt="$#,##0" align=right/middle]
+[name TaxRate = Inputs!B2]
+
+== Summary
+[view freeze=1,1 zoom=90 grid]
+[used A1:G6]
+
+@A1 [.title] | "Quarterly Operations"
+[merge A1:D1]
+@A3 [.hdr] | Month | Revenue | Margin % | Trend
+@A4 | January | [.currency] =SUM(Data!B2:B5) | [fmt="0.0%"] =B4/SUM(Data!C2:C5) | blank
+@A5 | February | [.currency] =SUM(Data!B6:B9) | [fmt="0.0%"] =B5/SUM(Data!C6:C9) | blank
+@A6 | March | [.currency] =SUM(Data!B10:B13) | [fmt="0.0%"] =B6/SUM(Data!C10:C13) | blank
+
+[validate A4:A14 list("January","February","March") reject dropdown]
+[cf C4:C14 when cell < 0.25 fill=#FFC7CE fg=#9C0006]
+[spark D4 source=B4:C4 type=line color=#4472C4]
+[spark D5 source=B5:C5 type=line color=#4472C4]
+[spark D6 source=B6:C6 type=line color=#4472C4]
+[chart "Revenue Trend" type=combo at=F2 size=720x360px]
+- series column "Revenue" cat=A4:A6 val=B4:B6 color=#4472C4
+- series line "Margin %" cat=A4:A6 val=C4:C6 axis=secondary color=#C00000 labels
+[end]
+
+== Inputs
+[used A1:B2]
+@A1 | Parameter | Value
+@A2 | "Tax Rate" | [fmt="0.0%"] 0.18
+`;
+
+        const workbookdocInput = document.getElementById("workbookdocInput");
+        const statusBox = document.getElementById("statusBox");
+        const renderButton = document.getElementById("renderButton");
+        const exampleButton = document.getElementById("exampleButton");
+        const downloadButton = document.getElementById("downloadButton");
+        const importButton = document.getElementById("importButton");
+        const excelInput = document.getElementById("excelInput");
+        const metaGrid = document.getElementById("metaGrid");
+        const sheetTabs = document.getElementById("sheetTabs");
+        const previewRoot = document.getElementById("previewRoot");
+
+        workbookdocInput.value = SAMPLE_WORKBOOKDOC;
+
+        function setStatus(message, mode = "") {
+            statusBox.className = mode ? `status ${mode}` : "status";
+            statusBox.textContent = message;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function tokenizeDirective(content) {
+            const tokens = [];
+            let current = "";
+            let inQuotes = false;
+            let escaping = false;
+
+            for (let i = 0; i < content.length; i++) {
+                const ch = content[i];
+                if (escaping) {
+                    current += ch;
+                    escaping = false;
+                    continue;
+                }
+
+                if (ch === "\\") {
+                    current += ch;
+                    escaping = true;
+                    continue;
+                }
+
+                if (ch === '"') {
+                    current += ch;
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes && /\s/.test(ch)) {
+                    if (current) {
+                        tokens.push(current);
+                        current = "";
+                    }
+                    continue;
+                }
+
+                current += ch;
+            }
+
+            if (current) {
+                tokens.push(current);
+            }
+
+            return tokens;
+        }
+
+        function splitTopLevel(input, separator) {
+            const parts = [];
+            let current = "";
+            let depth = 0;
+            let inQuotes = false;
+            let escaping = false;
+
+            for (let i = 0; i < input.length; i++) {
+                const ch = input[i];
+                if (escaping) {
+                    current += ch;
+                    escaping = false;
+                    continue;
+                }
+
+                if (ch === "\\") {
+                    current += ch;
+                    escaping = true;
+                    continue;
+                }
+
+                if (ch === '"') {
+                    current += ch;
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes) {
+                    if (ch === "(" || ch === "[" || ch === "{") {
+                        depth++;
+                    } else if (ch === ")" || ch === "]" || ch === "}") {
+                        depth = Math.max(0, depth - 1);
+                    } else if (ch === separator && depth === 0) {
+                        parts.push(current.trim());
+                        current = "";
+                        continue;
+                    }
+                }
+
+                current += ch;
+            }
+
+            if (current.trim() || input.endsWith(separator)) {
+                parts.push(current.trim());
+            }
+
+            return parts;
+        }
+
+        function stripQuotes(value) {
+            if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+                return unescapeQuoted(value.slice(1, -1));
+            }
+            return value;
+        }
+
+        function unescapeQuoted(value) {
+            return value
+                .replace(/\\"/g, '"')
+                .replace(/\\n/g, "\n")
+                .replace(/\\t/g, "\t")
+                .replace(/\\\|/g, "|")
+                .replace(/\\\\/g, "\\");
+        }
+
+        function needsQuoting(value) {
+            return value === "" ||
+                /^\s|\s$/.test(value) ||
+                value.includes("|") ||
+                value.startsWith("=") ||
+                value === "blank" ||
+                value === "true" ||
+                value === "false" ||
+                /^#.+!$/.test(value) ||
+                value.includes("\n") ||
+                value.includes('"');
+        }
+
+        function quoteWorkbookDoc(value) {
+            const escaped = String(value)
+                .replace(/\\/g, "\\\\")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, "\\n")
+                .replace(/\t/g, "\\t")
+                .replace(/\|/g, "\\|");
+            return `"${escaped}"`;
+        }
+
+        function maybeQuoteWorkbookDoc(value) {
+            return needsQuoting(value) ? quoteWorkbookDoc(value) : value;
+        }
+
+        function colToIndex(columnText) {
+            let value = 0;
+            const text = columnText.toUpperCase();
+            for (let i = 0; i < text.length; i++) {
+                value = value * 26 + (text.charCodeAt(i) - 64);
+            }
+            return value - 1;
+        }
+
+        function indexToCol(index) {
+            let value = index + 1;
+            let result = "";
+            while (value > 0) {
+                const remainder = (value - 1) % 26;
+                result = String.fromCharCode(65 + remainder) + result;
+                value = Math.floor((value - 1) / 26);
+            }
+            return result;
+        }
+
+        function stripSheetPrefix(referenceText) {
+            const text = String(referenceText || "").trim().replace(/^=/, "");
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                if (ch === "'") {
+                    if (inQuotes && text[i + 1] === "'") {
+                        i++;
+                        continue;
+                    }
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+                if (ch === "!" && !inQuotes) {
+                    return text.slice(i + 1);
+                }
+            }
+            return text;
+        }
+
+        function parseCellAddress(text) {
+            const normalized = stripSheetPrefix(text).replace(/\$/g, "");
+            const match = /^([A-Z]+)(\d+)$/i.exec(normalized.trim());
+            if (!match) {
+                return null;
+            }
+            return {
+                col: colToIndex(match[1]),
+                row: Number.parseInt(match[2], 10) - 1,
+            };
+        }
+
+        function encodeCellAddress(cell) {
+            return `${indexToCol(cell.col)}${cell.row + 1}`;
+        }
+
+        function parseRange(rangeText) {
+            const text = stripSheetPrefix(rangeText).replace(/\$/g, "").trim();
+            const parts = text.split(":");
+            if (parts.length === 1) {
+                const single = parseCellAddress(parts[0]);
+                if (!single) {
+                    return null;
+                }
+                return { s: single, e: single };
+            }
+
+            const start = parseCellAddress(parts[0]);
+            const end = parseCellAddress(parts[1]);
+            if (!start || !end) {
+                return null;
+            }
+
+            return {
+                s: {
+                    row: Math.min(start.row, end.row),
+                    col: Math.min(start.col, end.col),
+                },
+                e: {
+                    row: Math.max(start.row, end.row),
+                    col: Math.max(start.col, end.col),
+                },
+            };
+        }
+
+        function rangeContains(range, row, col) {
+            return row >= range.s.row &&
+                row <= range.e.row &&
+                col >= range.s.col &&
+                col <= range.e.col;
+        }
+
+        function parseBracketedLine(text) {
+            const trimmed = text.trim();
+            if (!trimmed.startsWith("[")) {
+                return null;
+            }
+
+            let inQuotes = false;
+            let escaping = false;
+            let endIndex = -1;
+            for (let i = 1; i < trimmed.length; i++) {
+                const ch = trimmed[i];
+                if (escaping) {
+                    escaping = false;
+                    continue;
+                }
+                if (ch === "\\") {
+                    escaping = true;
+                    continue;
+                }
+                if (ch === '"') {
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+                if (!inQuotes && ch === "]") {
+                    endIndex = i;
+                    break;
+                }
+            }
+
+            if (endIndex < 0) {
+                return null;
+            }
+
+            return {
+                inner: trimmed.slice(1, endIndex).trim(),
+                tail: trimmed.slice(endIndex + 1).trim(),
+                raw: trimmed,
+            };
+        }
+
+        function splitRowCells(text) {
+            const cells = [];
+            let current = "";
+            let inQuotes = false;
+            let escaping = false;
+            const source = text.trimStart();
+
+            for (let i = source.startsWith("|") ? 1 : 0; i < source.length; i++) {
+                const ch = source[i];
+                if (escaping) {
+                    current += ch;
+                    escaping = false;
+                    continue;
+                }
+                if (ch === "\\") {
+                    current += ch;
+                    escaping = true;
+                    continue;
+                }
+                if (ch === '"') {
+                    current += ch;
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+                if (!inQuotes && ch === "|") {
+                    cells.push(current.trim());
+                    current = "";
+                    continue;
+                }
+                current += ch;
+            }
+
+            cells.push(current.trim());
+            return cells;
+        }
+
+        function parseAttrlistPrefix(text) {
+            const trimmed = text.trimStart();
+            if (!trimmed.startsWith("[")) {
+                return { attr: null, content: text.trim() };
+            }
+
+            let inQuotes = false;
+            let escaping = false;
+            let endIndex = -1;
+            for (let i = 1; i < trimmed.length; i++) {
+                const ch = trimmed[i];
+                if (escaping) {
+                    escaping = false;
+                    continue;
+                }
+                if (ch === "\\") {
+                    escaping = true;
+                    continue;
+                }
+                if (ch === '"') {
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+                if (!inQuotes && ch === "]") {
+                    endIndex = i;
+                    break;
+                }
+            }
+
+            if (endIndex < 0) {
+                return { attr: null, content: text.trim() };
+            }
+
+            const inner = trimmed.slice(1, endIndex);
+            const rest = trimmed.slice(endIndex + 1).trim();
+            const parts = splitTopLevel(inner, ",").flatMap((part) => tokenizeDirective(part));
+            const attr = {
+                raw: inner,
+                roles: [],
+                flags: new Set(),
+                map: {},
+            };
+
+            for (const part of parts) {
+                if (!part) {
+                    continue;
+                }
+                if (part.startsWith(".")) {
+                    attr.roles.push(part.slice(1));
+                    continue;
+                }
+                const eq = part.indexOf("=");
+                if (eq >= 0) {
+                    const key = part.slice(0, eq).trim();
+                    const value = stripQuotes(part.slice(eq + 1).trim());
+                    attr.map[key] = value;
+                    continue;
+                }
+                attr.flags.add(part.trim());
+            }
+
+            return { attr, content: rest };
+        }
+
+        function parseCellToken(rawText) {
+            const { attr, content } = parseAttrlistPrefix(rawText);
+            return {
+                raw: rawText,
+                attr,
+                content,
+            };
+        }
+
+        function mergeCellAttrs(baseAttr, cellAttr) {
+            if (!baseAttr && !cellAttr) {
+                return null;
+            }
+
+            const merged = {
+                raw: "",
+                roles: [],
+                flags: new Set(),
+                map: {},
+            };
+
+            for (const source of [baseAttr, cellAttr]) {
+                if (!source) {
+                    continue;
+                }
+                for (const role of source.roles || []) {
+                    if (!merged.roles.includes(role)) {
+                        merged.roles.push(role);
+                    }
+                }
+                for (const flag of source.flags || []) {
+                    merged.flags.add(flag);
+                }
+                Object.assign(merged.map, source.map || {});
+            }
+
+            return merged;
+        }
+
+        function parseAnchoredRowLine(rawLine) {
+            const trimmed = rawLine.trim();
+            let index = 1;
+            while (index < trimmed.length && !/\s|\|/.test(trimmed[index])) {
+                index++;
+            }
+
+            const address = trimmed.slice(1, index);
+            const anchor = parseCellAddress(address);
+            let rest = trimmed.slice(index).trimStart();
+            let rowAttr = null;
+
+            if (rest.startsWith("[")) {
+                const parsed = parseAttrlistPrefix(rest);
+                rowAttr = parsed.attr;
+                rest = parsed.content;
+            }
+
+            if (!rest.startsWith("|")) {
+                return {
+                    raw: trimmed,
+                    address,
+                    anchor,
+                    rowAttr,
+                    rawCells: [],
+                    invalid: true,
+                };
+            }
+
+            return {
+                raw: trimmed,
+                address,
+                anchor,
+                rowAttr,
+                rawCells: splitRowCells(rest),
+                invalid: false,
+            };
+        }
+
+        function parseStyleDirective(directive) {
+            const tokens = tokenizeDirective(directive.inner);
+            const name = tokens[1] || "";
+            const entries = parseLooseEntries(tokens.slice(2));
+            return { name, entries };
+        }
+
+        function parseLooseEntries(tokens) {
+            const result = {
+                flags: new Set(),
+                map: {},
+            };
+
+            for (const token of tokens) {
+                const eq = token.indexOf("=");
+                if (eq >= 0) {
+                    result.map[token.slice(0, eq)] = stripQuotes(token.slice(eq + 1));
+                } else {
+                    result.flags.add(token);
+                }
+            }
+
+            return result;
+        }
+
+        function parseKeyValueList(rawArgs) {
+            const entries = splitTopLevel(rawArgs, ",");
+            const result = [];
+            for (const entry of entries) {
+                if (!entry) {
+                    continue;
+                }
+                const eq = entry.indexOf("=");
+                if (eq < 0) {
+                    result.push({ left: entry.trim(), right: "" });
+                } else {
+                    result.push({
+                        left: entry.slice(0, eq).trim(),
+                        right: entry.slice(eq + 1).trim(),
+                    });
+                }
+            }
+            return result;
+        }
+
+        function expandColumnRange(rangeText) {
+            const parts = rangeText.split(":");
+            const start = colToIndex(parts[0]);
+            const end = parts[1] ? colToIndex(parts[1]) : start;
+            const values = [];
+            for (let col = Math.min(start, end); col <= Math.max(start, end); col++) {
+                values.push(col);
+            }
+            return values;
+        }
+
+        function expandRowRange(rangeText) {
+            const parts = rangeText.split(":");
+            const start = Number.parseInt(parts[0], 10) - 1;
+            const end = parts[1] ? Number.parseInt(parts[1], 10) - 1 : start;
+            const values = [];
+            for (let row = Math.min(start, end); row <= Math.max(start, end); row++) {
+                values.push(row);
+            }
+            return values;
+        }
+
+        function parseNoteDirective(inner) {
+            const tokens = tokenizeDirective(inner);
+            return {
+                cell: tokens[1],
+                text: stripQuotes(tokens.slice(2).join(" ")),
+                raw: `[${inner}]`,
+            };
+        }
+
+        function parseCommentDirective(inner) {
+            const tokens = tokenizeDirective(inner);
+            const cell = tokens[1];
+            let author = "";
+            let text = "";
+            for (let i = 2; i < tokens.length; i++) {
+                const token = tokens[i];
+                if (token.startsWith("by=")) {
+                    author = stripQuotes(token.slice(3));
+                } else {
+                    text = stripQuotes(tokens.slice(i).join(" "));
+                    break;
+                }
+            }
+            return {
+                cell,
+                author,
+                text,
+                raw: `[${inner}]`,
+            };
+        }
+
+        function parseCellDirective(inner, tail) {
+            const tokens = tokenizeDirective(inner);
+            const address = tokens[1] || "";
+            const point = parseCellAddress(address);
+            const entries = parseLooseEntries(tokens.slice(2));
+            const roles = entries.map.style
+                ? entries.map.style.split("+").map((part) => part.trim()).filter(Boolean)
+                : [];
+            delete entries.map.style;
+
+            const hasAttr = roles.length || entries.flags.size || Object.keys(entries.map).length;
+            return {
+                raw: tail ? `[${inner}] ${tail}` : `[${inner}]`,
+                address,
+                row: point?.row ?? -1,
+                col: point?.col ?? -1,
+                attr: hasAttr ? {
+                    raw: tokens.slice(2).join(" "),
+                    roles,
+                    flags: new Set(Array.from(entries.flags)),
+                    map: { ...entries.map },
+                } : null,
+                content: tail,
+            };
+        }
+
+        function parseDirectiveStyleEntries(tokens) {
+            const entries = {
+                raw: tokens.join(" "),
+                roles: [],
+                flags: new Set(),
+                map: {},
+            };
+
+            for (const token of tokens) {
+                if (!token) {
+                    continue;
+                }
+                if (token.startsWith(".")) {
+                    entries.roles.push(token.slice(1));
+                    continue;
+                }
+                const eq = token.indexOf("=");
+                if (eq >= 0) {
+                    entries.map[token.slice(0, eq)] = stripQuotes(token.slice(eq + 1));
+                    continue;
+                }
+                entries.flags.add(token);
+            }
+
+            return entries;
+        }
+
+        function parseMergeDirective(inner) {
+            const tokens = tokenizeDirective(inner);
+            return {
+                raw: `[${inner}]`,
+                range: tokens[1] || "",
+                attr: parseDirectiveStyleEntries(tokens.slice(2)),
+            };
+        }
+
+        function parseFormatDirective(inner) {
+            const tokens = tokenizeDirective(inner);
+            return {
+                raw: `[${inner}]`,
+                range: tokens[1] || "",
+                attr: parseDirectiveStyleEntries(tokens.slice(2)),
+            };
+        }
+
+        function parseTypeDirective(inner) {
+            const tokens = tokenizeDirective(inner);
+            return {
+                raw: `[${inner}]`,
+                range: tokens[1] || "",
+                type: (tokens[2] || "").toLowerCase(),
+            };
+        }
+
+        function parseChartBlock(block) {
+            const tokens = tokenizeDirective(block.inner);
+            const chart = {
+                raw: `[${block.inner}]`,
+                title: stripQuotes(tokens[1] || "Chart"),
+                type: "column",
+                at: "",
+                size: "",
+                series: [],
+                body: block.bodyLines.slice(),
+            };
+
+            for (let i = 2; i < tokens.length; i++) {
+                const token = tokens[i];
+                const eq = token.indexOf("=");
+                if (eq >= 0) {
+                    const key = token.slice(0, eq);
+                    const value = stripQuotes(token.slice(eq + 1));
+                    chart[key] = value;
+                }
+            }
+
+            for (const line of block.bodyLines) {
+                const trimmed = line.trim().replace(/^-+\s*/, "");
+                const seriesTokens = tokenizeDirective(trimmed);
+                if (seriesTokens[0] !== "series") {
+                    continue;
+                }
+
+                const entry = {
+                    type: seriesTokens[1] || "column",
+                    label: stripQuotes(seriesTokens[2] || "Series"),
+                    cat: "",
+                    val: "",
+                    axis: "primary",
+                    color: "#4472C4",
+                    labels: false,
+                    raw: line.trim(),
+                };
+
+                for (let i = 3; i < seriesTokens.length; i++) {
+                    const token = seriesTokens[i];
+                    if (token === "labels") {
+                        entry.labels = true;
+                        continue;
+                    }
+                    const eq = token.indexOf("=");
+                    if (eq >= 0) {
+                        entry[token.slice(0, eq)] = stripQuotes(token.slice(eq + 1));
+                    }
+                }
+
+                chart.series.push(entry);
+            }
+
+            return chart;
+        }
+
+        function parsePivotBlock(block) {
+            return {
+                raw: `[${block.inner}]`,
+                lines: block.bodyLines.slice(),
+            };
+        }
+
+        function parseWorkbookDoc(text) {
+            const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+            const workbook = {
+                title: "Workbook",
+                attrs: {},
+                shared: {
+                    styles: new Map(),
+                    names: [],
+                    directives: [],
+                },
+                sheets: [],
+                warnings: [],
+            };
+
+            let i = 0;
+            let currentSheet = null;
+            let openBlock = null;
+            let warnedLegacyGrid = false;
+
+            function ensureSheet() {
+                if (!currentSheet) {
+                    currentSheet = {
+                        name: "Sheet1",
+                        state: "visible",
+                        tabColor: "",
+                        view: [],
+                        usedRange: "",
+                        colsRaw: "",
+                        rowsRaw: "",
+                        pageRaw: "",
+                        rowsData: [],
+                        cells: [],
+                        merges: [],
+                        notes: [],
+                        comments: [],
+                        charts: [],
+                        pivots: [],
+                        sparks: [],
+                        formats: [],
+                        types: [],
+                        directives: [],
+                    };
+                    workbook.sheets.push(currentSheet);
+                }
+            }
+
+            while (i < lines.length) {
+                const rawLine = lines[i];
+                const line = rawLine.trim();
+
+                if (openBlock) {
+                    if (line === "[end]") {
+                        if (openBlock.name === "chart") {
+                            openBlock.sheet.charts.push(parseChartBlock(openBlock));
+                        } else if (openBlock.name === "pivot") {
+                            openBlock.sheet.pivots.push(parsePivotBlock(openBlock));
+                        } else {
+                            openBlock.sheet.directives.push({
+                                name: openBlock.name,
+                                raw: `[${openBlock.inner}]`,
+                                body: openBlock.bodyLines.slice(),
+                            });
+                        }
+                        openBlock = null;
+                        i++;
+                        continue;
+                    }
+                    if (line) {
+                        openBlock.bodyLines.push(rawLine);
+                    }
+                    i++;
+                    continue;
+                }
+
+                if (!line || line.startsWith("//")) {
+                    i++;
+                    continue;
+                }
+
+                if (/^=\s+/.test(line) && !/^==\s+/.test(line)) {
+                    workbook.title = line.slice(2).trim();
+                    i++;
+                    continue;
+                }
+
+                const attrMatch = /^:([a-zA-Z0-9-]+):\s*(.*)$/.exec(line);
+                if (attrMatch) {
+                    workbook.attrs[attrMatch[1]] = attrMatch[2];
+                    i++;
+                    continue;
+                }
+
+                if (/^==\s+/.test(line)) {
+                    currentSheet = {
+                        name: line.slice(3).trim(),
+                        state: "visible",
+                        tabColor: "",
+                        view: [],
+                        usedRange: "",
+                        colsRaw: "",
+                        rowsRaw: "",
+                        pageRaw: "",
+                        rowsData: [],
+                        cells: [],
+                        merges: [],
+                        notes: [],
+                        comments: [],
+                        charts: [],
+                        pivots: [],
+                        sparks: [],
+                        formats: [],
+                        types: [],
+                        directives: [],
+                    };
+                    workbook.sheets.push(currentSheet);
+                    i++;
+                    continue;
+                }
+
+                if (line.startsWith("@")) {
+                    ensureSheet();
+                    const rowData = parseAnchoredRowLine(rawLine);
+                    if (rowData.anchor && !rowData.invalid) {
+                        currentSheet.rowsData.push(rowData);
+                    } else {
+                        workbook.warnings.push(`Could not parse anchored row: ${line}`);
+                    }
+                    i++;
+                    continue;
+                }
+
+                if (line === "|===" || line.startsWith("|")) {
+                    if (!warnedLegacyGrid) {
+                        workbook.warnings.push("WorkbookDoc 4 no longer uses grid fences. Rewrite sheet content as anchored row lines such as @B5 | a | b | c.");
+                        warnedLegacyGrid = true;
+                    }
+                    i++;
+                    continue;
+                }
+
+                const bracketed = parseBracketedLine(rawLine);
+                if (bracketed) {
+                    const { inner, tail } = bracketed;
+                    const tokens = tokenizeDirective(inner);
+                    const name = (tokens[0] || "").toLowerCase();
+
+                    if (name === "style") {
+                        const style = parseStyleDirective({ inner });
+                        workbook.shared.styles.set(style.name, style.entries);
+                        workbook.shared.directives.push({ name, raw: line });
+                        i++;
+                        continue;
+                    }
+
+                    if (name === "name") {
+                        workbook.shared.names.push({ raw: line, inner });
+                        i++;
+                        continue;
+                    }
+
+                    ensureSheet();
+
+                    let opensBlock = false;
+                    if ((name === "chart" || name === "pivot") && !tail) {
+                        opensBlock = true;
+                    } else if (name === "x" && !tail) {
+                        let lookahead = i + 1;
+                        while (lookahead < lines.length && !lines[lookahead].trim()) {
+                            lookahead++;
+                        }
+                        opensBlock = lookahead < lines.length && lines[lookahead].trim().startsWith("-");
+                    }
+
+                    if (opensBlock) {
+                        openBlock = {
+                            name,
+                            inner,
+                            bodyLines: [],
+                            sheet: currentSheet,
+                        };
+                        i++;
+                        continue;
+                    }
+
+                    switch (name) {
+                        case "state":
+                            currentSheet.state = (tokens[1] || "visible").toLowerCase();
+                            break;
+                        case "tab":
+                            for (const token of tokens.slice(1)) {
+                                if (token.startsWith("color=")) {
+                                    currentSheet.tabColor = stripQuotes(token.slice(6));
+                                }
+                            }
+                            break;
+                        case "view":
+                            currentSheet.view = tokens.slice(1);
+                            break;
+                        case "used":
+                            currentSheet.usedRange = tokens[1] || "";
+                            break;
+                        case "cols":
+                            currentSheet.colsRaw = inner.slice(4).trim();
+                            break;
+                        case "rows":
+                            currentSheet.rowsRaw = inner.slice(4).trim();
+                            break;
+                        case "page":
+                            currentSheet.pageRaw = inner.slice(4).trim();
+                            break;
+                        case "merge":
+                            currentSheet.merges.push(parseMergeDirective(inner));
+                            break;
+                        case "fmt":
+                            currentSheet.formats.push(parseFormatDirective(inner));
+                            break;
+                        case "type":
+                            currentSheet.types.push(parseTypeDirective(inner));
+                            break;
+                        case "note":
+                            currentSheet.notes.push(parseNoteDirective(inner));
+                            break;
+                        case "comment":
+                            currentSheet.comments.push(parseCommentDirective(inner));
+                            break;
+                        case "spark":
+                            currentSheet.sparks.push({ raw: line, tokens, inner });
+                            break;
+                        case "cell":
+                            currentSheet.cells.push(parseCellDirective(inner, tail));
+                            break;
+                        default:
+                            currentSheet.directives.push({ name, raw: tail ? `[${inner}] ${tail}` : `[${inner}]`, inner, tail });
+                            break;
+                    }
+
+                    i++;
+                    continue;
+                }
+
+                i++;
+            }
+
+            return workbook;
+        }
+
+        function parseColsSpec(raw) {
+            const map = new Map();
+            if (!raw) {
+                return map;
+            }
+
+            for (const entry of parseKeyValueList(raw)) {
+                const columns = expandColumnRange(entry.left);
+                for (const col of columns) {
+                    map.set(col, {
+                        width: entry.right && entry.right !== "hidden" ? entry.right : "",
+                        hidden: entry.right === "hidden",
+                    });
+                }
+            }
+            return map;
+        }
+
+        function parseRowsSpec(raw) {
+            const map = new Map();
+            if (!raw) {
+                return map;
+            }
+
+            for (const entry of parseKeyValueList(raw)) {
+                const rows = expandRowRange(entry.left);
+                for (const row of rows) {
+                    map.set(row, {
+                        height: entry.right && entry.right !== "hidden" ? entry.right : "",
+                        hidden: entry.right === "hidden",
+                    });
+                }
+            }
+            return map;
+        }
+
+        function buildSheetModel(workbook, sheet) {
+            const cellMap = new Map();
+            const commentsByCell = new Map();
+            const notesByCell = new Map();
+            const cols = parseColsSpec(sheet.colsRaw);
+            const rows = parseRowsSpec(sheet.rowsRaw);
+            const usedRange = sheet.usedRange ? parseRange(sheet.usedRange) : null;
+
+            let minRow = Number.POSITIVE_INFINITY;
+            let minCol = Number.POSITIVE_INFINITY;
+            let maxRow = Number.NEGATIVE_INFINITY;
+            let maxCol = Number.NEGATIVE_INFINITY;
+
+            function key(row, col) {
+                return `${row}:${col}`;
+            }
+
+            function ensureCell(row, col) {
+                const k = key(row, col);
+                if (!cellMap.has(k)) {
+                    cellMap.set(k, {
+                        row,
+                        col,
+                        rowSpan: 1,
+                        colSpan: 1,
+                        hidden: false,
+                        raw: "blank",
+                        attr: null,
+                        content: "blank",
+                    });
+                }
+                return cellMap.get(k);
+            }
+
+            for (const rowData of sheet.rowsData || []) {
+                if (!rowData.anchor) {
+                    continue;
+                }
+
+                let currentCol = rowData.anchor.col;
+                for (const rawCell of rowData.rawCells) {
+                    const token = parseCellToken(rawCell);
+                    const attr = mergeCellAttrs(rowData.rowAttr, token.attr);
+                    const span = Math.max(1, Number.parseInt(attr?.map?.span || "1", 10) || 1);
+                    const entry = {
+                        row: rowData.anchor.row,
+                        col: currentCol,
+                        rowSpan: 1,
+                        colSpan: span,
+                        hidden: false,
+                        raw: rawCell,
+                        attr,
+                        content: token.content,
+                    };
+                    cellMap.set(key(entry.row, entry.col), entry);
+                    minRow = Math.min(minRow, entry.row);
+                    minCol = Math.min(minCol, entry.col);
+                    maxRow = Math.max(maxRow, entry.row);
+                    maxCol = Math.max(maxCol, entry.col + span - 1);
+
+                    for (let offset = 1; offset < span; offset++) {
+                        cellMap.set(key(entry.row, entry.col + offset), {
+                            covered: true,
+                            hidden: true,
+                            master: key(entry.row, entry.col),
+                        });
+                    }
+
+                    currentCol += span;
+                }
+            }
+
+            for (const cell of sheet.cells) {
+                if (!Number.isInteger(cell.row) || !Number.isInteger(cell.col) || cell.row < 0 || cell.col < 0) {
+                    continue;
+                }
+                const entry = {
+                    ...cell,
+                    rowSpan: 1,
+                    colSpan: 1,
+                    hidden: false,
+                };
+                cellMap.set(key(cell.row, cell.col), entry);
+                minRow = Math.min(minRow, cell.row);
+                minCol = Math.min(minCol, cell.col);
+                maxRow = Math.max(maxRow, cell.row);
+                maxCol = Math.max(maxCol, cell.col);
+            }
+
+            for (const merge of sheet.merges) {
+                const range = parseRange(merge.range);
+                if (!range) {
+                    continue;
+                }
+                const topLeft = ensureCell(range.s.row, range.s.col);
+                if (merge.attr && (merge.attr.roles.length || merge.attr.flags.size || Object.keys(merge.attr.map).length)) {
+                    topLeft.attr = mergeCellAttrs(merge.attr, topLeft.attr);
+                }
+                topLeft.rowSpan = range.e.row - range.s.row + 1;
+                topLeft.colSpan = range.e.col - range.s.col + 1;
+                minRow = Math.min(minRow, range.s.row);
+                minCol = Math.min(minCol, range.s.col);
+                maxRow = Math.max(maxRow, range.e.row);
+                maxCol = Math.max(maxCol, range.e.col);
+                for (let row = range.s.row; row <= range.e.row; row++) {
+                    for (let col = range.s.col; col <= range.e.col; col++) {
+                        if (row === range.s.row && col === range.s.col) {
+                            continue;
+                        }
+                        cellMap.set(key(row, col), {
+                            covered: true,
+                            hidden: true,
+                            master: key(range.s.row, range.s.col),
+                        });
+                    }
+                }
+            }
+
+            for (const note of sheet.notes) {
+                const cell = parseCellAddress(note.cell);
+                if (!cell) {
+                    continue;
+                }
+                ensureCell(cell.row, cell.col);
+                notesByCell.set(key(cell.row, cell.col), note);
+                minRow = Math.min(minRow, cell.row);
+                minCol = Math.min(minCol, cell.col);
+                maxRow = Math.max(maxRow, cell.row);
+                maxCol = Math.max(maxCol, cell.col);
+            }
+
+            for (const comment of sheet.comments) {
+                const cell = parseCellAddress(comment.cell);
+                if (!cell) {
+                    continue;
+                }
+                ensureCell(cell.row, cell.col);
+                commentsByCell.set(key(cell.row, cell.col), comment);
+                minRow = Math.min(minRow, cell.row);
+                minCol = Math.min(minCol, cell.col);
+                maxRow = Math.max(maxRow, cell.row);
+                maxCol = Math.max(maxCol, cell.col);
+            }
+
+            if (usedRange) {
+                minRow = Math.min(minRow, usedRange.s.row);
+                minCol = Math.min(minCol, usedRange.s.col);
+                maxRow = Math.max(maxRow, usedRange.e.row);
+                maxCol = Math.max(maxCol, usedRange.e.col);
+            }
+
+            if (!Number.isFinite(minRow)) {
+                minRow = 0;
+                minCol = 0;
+                maxRow = 0;
+                maxCol = 0;
+            }
+
+            return {
+                workbook,
+                sheet,
+                cellMap,
+                notesByCell,
+                commentsByCell,
+                cols,
+                rows,
+                formats: sheet.formats || [],
+                types: sheet.types || [],
+                minRow,
+                minCol,
+                maxRow,
+                maxCol,
+                key,
+            };
+        }
+
+        function getRangeTypeAtCell(sheetModel, row, col) {
+            const match = (sheetModel.types || []).find((entry) => {
+                const range = parseRange(entry.range);
+                return range && rangeContains(range, row, col);
+            });
+            return match?.type || "";
+        }
+
+        function parseDisplayValue(cell, rangeType = "") {
+            const content = cell.content || "";
+            const explicitFormula = cell.attr?.map?.formula;
+            const formulaResult = cell.attr?.map?.result;
+            if (explicitFormula) {
+                const formulaText = explicitFormula.startsWith("=") ? explicitFormula : `=${explicitFormula}`;
+                let displayText = formulaText;
+                if (formulaResult) {
+                    displayText = parseDisplayValue({ content: formulaResult, attr: null }, "").text;
+                } else if (content && content !== "blank") {
+                    displayText = /^".*"$/.test(content) ? stripQuotes(content) : content;
+                }
+                return {
+                    type: "formula",
+                    text: displayText,
+                    formula: formulaText,
+                };
+            }
+
+            if (content.startsWith("=")) {
+                const displayText = formulaResult
+                    ? parseDisplayValue({ content: formulaResult, attr: null }, "").text
+                    : content;
+                return { type: "formula", text: displayText, formula: content };
+            }
+
+            let base;
+            if (content === "" || content === "blank") {
+                base = { type: "blank", text: "" };
+            } else if (rangeType === "datetime") {
+                base = { type: "datetime", text: content };
+            } else if (rangeType === "date") {
+                base = { type: "date", text: content };
+            } else if (rangeType === "time") {
+                base = { type: "time", text: content };
+            } else if (/^rich\(".*"\)$/.test(content)) {
+                base = { type: "rich", text: content.slice(6, -2) };
+            } else if (/^".*"$/.test(content)) {
+                base = { type: "text", text: stripQuotes(content) };
+            } else if (/^datetime\(".*"\)$/.test(content)) {
+                base = { type: "datetime", text: content.slice(10, -2) };
+            } else if (/^date\(".*"\)$/.test(content)) {
+                base = { type: "date", text: content.slice(6, -2) };
+            } else if (/^time\(".*"\)$/.test(content)) {
+                base = { type: "time", text: content.slice(6, -2) };
+            } else if (content === "true" || content === "false") {
+                base = { type: "boolean", text: content };
+            } else if (/^#.+!$/.test(content)) {
+                base = { type: "error", text: content };
+            } else {
+                base = { type: "text", text: content };
+            }
+
+            return base;
+        }
+
+        function shouldKeepInlineFormat(format) {
+            return typeof format === "string" &&
+                format !== "General" &&
+                !looksLikeDateFormat(format) &&
+                /[%$€£¥#0]/.test(format);
+        }
+
+        function renderRichText(raw) {
+            let html = escapeHtml(unescapeQuoted(raw));
+            const replacements = [
+                [/\[b\]/g, "<strong>"],
+                [/\[\/b\]/g, "</strong>"],
+                [/\[i\]/g, "<em>"],
+                [/\[\/i\]/g, "</em>"],
+                [/\[u\]/g, '<span style="text-decoration:underline;">'],
+                [/\[\/u\]/g, "</span>"],
+                [/\[strike\]/g, '<span style="text-decoration:line-through;">'],
+                [/\[\/strike\]/g, "</span>"],
+                [/\[color=([^\]]+)\]/g, '<span style="color:$1;">'],
+                [/\[\/color\]/g, "</span>"],
+                [/\[size=([^\]]+)\]/g, '<span style="font-size:$1pt;">'],
+                [/\[\/size\]/g, "</span>"],
+                [/\[font=&quot;([^&]+)&quot;\]/g, '<span style="font-family:$1;">'],
+                [/\[\/font\]/g, "</span>"],
+                [/\[link=&quot;([^&]+)&quot;\]/g, '<a href="$1" target="_blank" rel="noreferrer">'],
+                [/\[\/link\]/g, "</a>"],
+            ];
+            for (const [pattern, replacement] of replacements) {
+                html = html.replace(pattern, replacement);
+            }
+            return html;
+        }
+
+        function applyStyleEntries(style, entries) {
+            if (!entries) {
+                return;
+            }
+
+            if (entries.flags?.has("bold")) {
+                style.fontWeight = "700";
+            }
+            if (entries.flags?.has("italic")) {
+                style.fontStyle = "italic";
+            }
+            if (entries.flags?.has("underline")) {
+                style.textDecoration = style.textDecoration ? `${style.textDecoration} underline` : "underline";
+            }
+            if (entries.flags?.has("strike")) {
+                style.textDecoration = style.textDecoration ? `${style.textDecoration} line-through` : "line-through";
+            }
+            if (entries.flags?.has("wrap")) {
+                style.whiteSpace = "pre-wrap";
+            }
+            if (entries.flags?.has("clip")) {
+                style.whiteSpace = "nowrap";
+                style.overflow = "hidden";
+                style.textOverflow = "clip";
+            }
+            if (entries.flags?.has("overflow")) {
+                style.whiteSpace = "nowrap";
+            }
+
+            const map = entries.map || {};
+            if (map.fg) {
+                style.color = map.fg;
+            }
+            if (map.bg) {
+                style.background = map.bg;
+            }
+            if (map.font) {
+                style.fontFamily = map.font;
+            }
+            if (map.size) {
+                style.fontSize = `${map.size}px`;
+            }
+            if (map.align) {
+                const [h, v] = map.align.split("/");
+                if (h) {
+                    style.textAlign = h;
+                }
+                if (v) {
+                    style.verticalAlign = v === "middle" ? "middle" : v;
+                }
+            }
+            if (map.border) {
+                const parts = map.border.split(":");
+                if (parts.length === 3) {
+                    const [, line, color] = parts;
+                    const borderWidth = line === "medium" ? "2px" : line === "thick" ? "3px" : "1px";
+                    style.border = `${borderWidth} solid ${color}`;
+                }
+            }
+        }
+
+        function applyWorkbookDocAttrStyle(style, workbook, attr) {
+            if (!attr) {
+                return;
+            }
+            for (const role of attr.roles || []) {
+                const shared = workbook.shared.styles.get(role);
+                if (shared) {
+                    applyStyleEntries(style, shared);
+                }
+            }
+
+            applyStyleEntries(style, {
+                flags: new Set(Array.from(attr.flags || [])),
+                map: { ...(attr.map || {}) },
+            });
+        }
+
+        function resolveCellStyle(workbook, cell, inheritedAttrs = []) {
+            const style = {};
+            for (const attr of inheritedAttrs) {
+                applyWorkbookDocAttrStyle(style, workbook, attr);
+            }
+            if (cell.attr) {
+                applyWorkbookDocAttrStyle(style, workbook, cell.attr);
+            }
+            return style;
+        }
+
+        function getRangeFormatAttrsAtCell(sheetModel, row, col) {
+            return (sheetModel.formats || [])
+                .filter((format) => {
+                    const range = parseRange(format.range);
+                    return range && rangeContains(range, row, col);
+                })
+                .map((format) => format.attr)
+                .filter(Boolean);
+        }
+
+        function getLinearRangeValues(sheetModel, rangeText) {
+            const range = parseRange(rangeText);
+            if (!range) {
+                return [];
+            }
+            const values = [];
+            for (let row = range.s.row; row <= range.e.row; row++) {
+                for (let col = range.s.col; col <= range.e.col; col++) {
+                    const entry = sheetModel.cellMap.get(sheetModel.key(row, col));
+                    if (!entry || entry.covered) {
+                        values.push("");
+                        continue;
+                    }
+                    values.push(parseDisplayValue(entry, getRangeTypeAtCell(sheetModel, row, col)).text);
+                }
+            }
+            return values;
+        }
+
+        function getLinearNumericRangeValues(sheetModel, rangeText) {
+            return getLinearRangeValues(sheetModel, rangeText)
+                .map((value) => Number.parseFloat(value))
+                .filter((value) => Number.isFinite(value));
+        }
+
+        function buildSparklineSvg(values, color, negativeColor) {
+            const width = 64;
+            const height = 18;
+            if (!values.length) {
+                return `<svg class="sparkline" viewBox="0 0 ${width} ${height}"></svg>`;
+            }
+
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const range = max - min || 1;
+            const points = values.map((value, index) => {
+                const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * (width - 2) + 1;
+                const y = height - 1 - ((value - min) / range) * (height - 4) - 1;
+                return `${x},${y}`;
+            }).join(" ");
+
+            const axisY = min < 0 && max > 0 ? height - 1 - ((0 - min) / range) * (height - 4) - 1 : null;
+            return `
+                <svg class="sparkline" viewBox="0 0 ${width} ${height}">
+                    ${axisY === null ? "" : `<line x1="0" y1="${axisY}" x2="${width}" y2="${axisY}" stroke="#cbd5e1" stroke-width="1"></line>`}
+                    <polyline fill="none" stroke="${escapeHtml(color || "#4472C4")}" stroke-width="1.7" points="${points}"></polyline>
+                    ${values.map((value, index) => {
+                        const [x, y] = points.split(" ")[index].split(",");
+                        const fill = value < 0 ? (negativeColor || color || "#c00000") : (color || "#4472C4");
+                        return `<circle cx="${x}" cy="${y}" r="1.7" fill="${escapeHtml(fill)}"></circle>`;
+                    }).join("")}
+                </svg>
+            `;
+        }
+
+        function resolveSparklineAtCell(sheet, sheetModel, row, col) {
+            const address = encodeCellAddress({ row, col });
+            for (const spark of sheet.sparks) {
+                const tokens = tokenizeDirective(spark.inner);
+                if ((tokens[1] || "") !== address) {
+                    continue;
+                }
+
+                const config = { type: "line", source: "", color: "#4472C4", negative: "#c00000" };
+                for (let i = 2; i < tokens.length; i++) {
+                    const token = tokens[i];
+                    const eq = token.indexOf("=");
+                    if (eq >= 0) {
+                        config[token.slice(0, eq)] = stripQuotes(token.slice(eq + 1));
+                    }
+                }
+
+                const values = getLinearNumericRangeValues(sheetModel, config.source);
+                if (!values.length) {
+                    return `<span class="badge">spark</span>`;
+                }
+
+                if (config.type === "column") {
+                    const max = Math.max(...values.map((v) => Math.abs(v))) || 1;
+                    const width = 64;
+                    const height = 18;
+                    const barWidth = Math.max(3, Math.floor(width / Math.max(values.length, 1)) - 1);
+                    let x = 1;
+                    let bars = "";
+                    for (const value of values) {
+                        const barHeight = Math.max(1, (Math.abs(value) / max) * (height - 3));
+                        const y = height - barHeight;
+                        const fill = value < 0 ? (config.negative || "#c00000") : (config.color || "#4472C4");
+                        bars += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${escapeHtml(fill)}"></rect>`;
+                        x += barWidth + 1;
+                    }
+                    return `<svg class="sparkline" viewBox="0 0 ${width} ${height}">${bars}</svg>`;
+                }
+
+                return buildSparklineSvg(values, config.color, config.negative);
+            }
+            return "";
+        }
+
+        function parseHexColor(colorText) {
+            const hex = normalizeRgbColor(colorText);
+            if (!hex) {
+                return null;
+            }
+            return {
+                r: Number.parseInt(hex.slice(1, 3), 16),
+                g: Number.parseInt(hex.slice(3, 5), 16),
+                b: Number.parseInt(hex.slice(5, 7), 16),
+            };
+        }
+
+        function interpolateHexColor(startColor, endColor, progress) {
+            const start = parseHexColor(startColor);
+            const end = parseHexColor(endColor);
+            if (!start || !end) {
+                return startColor || endColor || "";
+            }
+            const t = Math.max(0, Math.min(1, progress));
+            const r = Math.round(start.r + ((end.r - start.r) * t));
+            const g = Math.round(start.g + ((end.g - start.g) * t));
+            const b = Math.round(start.b + ((end.b - start.b) * t));
+            return `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+        }
+
+        function parseLooseEntriesFromText(text) {
+            return parseLooseEntries(tokenizeDirective(text || ""));
+        }
+
+        function parseConditionalDirective(directive) {
+            if (!directive || directive.name !== "cf") {
+                return null;
+            }
+
+            const tokens = tokenizeDirective(directive.inner || "");
+            const rangeText = stripQuotes(tokens[1] || "");
+            const ruleText = (directive.inner || "").slice((tokens[0] || "").length + 1 + (tokens[1] || "").length).trim();
+            const range = parseRange(rangeText);
+            if (!range || !ruleText) {
+                return null;
+            }
+
+            let match = /^when\s+cell\s+(\S+)\s+(\S+)(?:\s+(.*))?$/i.exec(ruleText);
+            if (match) {
+                const entries = parseLooseEntriesFromText(match[3] || "");
+                return {
+                    kind: "when-cell",
+                    rangeText,
+                    range,
+                    operator: match[1],
+                    value: stripQuotes(match[2]),
+                    entries,
+                };
+            }
+
+            match = /^when\s+text\s+contains\s+("[^"]*"|\S+)(?:\s+(.*))?$/i.exec(ruleText);
+            if (match) {
+                const entries = parseLooseEntriesFromText(match[2] || "");
+                return {
+                    kind: "when-text",
+                    rangeText,
+                    range,
+                    value: stripQuotes(match[1]),
+                    entries,
+                };
+            }
+
+            match = /^when\s+formula\((.*)\)(?:\s+(.*))?$/i.exec(ruleText);
+            if (match) {
+                return {
+                    kind: "when-formula",
+                    rangeText,
+                    range,
+                    formula: match[1],
+                    entries: parseLooseEntriesFromText(match[2] || ""),
+                };
+            }
+
+            match = /^data-bar\((.*)\)(?:\s+(.*))?$/i.exec(ruleText);
+            if (match) {
+                const entries = parseKeyValueList(match[1]).reduce((map, entry) => {
+                    map[entry.left] = stripQuotes(entry.right);
+                    return map;
+                }, {});
+                return {
+                    kind: "data-bar",
+                    rangeText,
+                    range,
+                    color: entries.color || "#5B9BD5",
+                };
+            }
+
+            match = /^scale\((.*)\)(?:\s+(.*))?$/i.exec(ruleText);
+            if (match) {
+                const stops = splitTopLevel(match[1], ",")
+                    .map((part) => {
+                        const separator = part.lastIndexOf(":");
+                        return separator > 0
+                            ? {
+                                position: part.slice(0, separator).trim(),
+                                color: normalizeRgbColor(part.slice(separator + 1).trim()),
+                            }
+                            : null;
+                    })
+                    .filter((entry) => entry && entry.color);
+                return {
+                    kind: "scale",
+                    rangeText,
+                    range,
+                    stops,
+                };
+            }
+
+            match = /^icon-set\((.*)\)(?:\s+(.*))?$/i.exec(ruleText);
+            if (match) {
+                return {
+                    kind: "icon-set",
+                    rangeText,
+                    range,
+                    iconSet: match[1].trim() || "icons",
+                };
+            }
+
+            return null;
+        }
+
+        function applyConditionalEntries(style, entries) {
+            if (!entries) {
+                return;
+            }
+            if (entries.map.fill) {
+                style.backgroundColor = entries.map.fill;
+            }
+            if (entries.map.fg) {
+                style.color = entries.map.fg;
+            }
+            if (entries.flags.has("bold")) {
+                style.fontWeight = "700";
+            }
+            if (entries.flags.has("italic")) {
+                style.fontStyle = "italic";
+            }
+            if (entries.flags.has("underline")) {
+                style.textDecoration = "underline";
+            }
+        }
+
+        function parseCellNumericValue(display) {
+            const raw = String(display?.text || "").replace(/,/g, "").trim();
+            const numeric = Number.parseFloat(raw);
+            return Number.isFinite(numeric) ? numeric : null;
+        }
+
+        function getConditionalRangeStats(rule, sheetModel) {
+            if (!rule._stats) {
+                const values = getLinearNumericRangeValues(sheetModel, rule.rangeText);
+                rule._stats = values.length
+                    ? { min: Math.min(...values), max: Math.max(...values) }
+                    : { min: 0, max: 0 };
+            }
+            return rule._stats;
+        }
+
+        function evaluateConditionalMatch(rule, display) {
+            if (rule.kind === "when-text") {
+                return String(display?.text || "").includes(rule.value);
+            }
+            if (rule.kind === "when-formula") {
+                return false;
+            }
+            if (rule.kind !== "when-cell") {
+                return false;
+            }
+
+            const cellNumber = parseCellNumericValue(display);
+            const ruleNumber = Number.parseFloat(rule.value);
+            if (cellNumber !== null && Number.isFinite(ruleNumber)) {
+                switch (rule.operator) {
+                    case "<":
+                        return cellNumber < ruleNumber;
+                    case "<=":
+                        return cellNumber <= ruleNumber;
+                    case "=":
+                    case "==":
+                        return cellNumber === ruleNumber;
+                    case "!=":
+                    case "<>":
+                        return cellNumber !== ruleNumber;
+                    case ">":
+                        return cellNumber > ruleNumber;
+                    case ">=":
+                        return cellNumber >= ruleNumber;
+                    default:
+                        return false;
+                }
+            }
+
+            const text = String(display?.text || "");
+            switch (rule.operator) {
+                case "=":
+                case "==":
+                    return text === rule.value;
+                case "!=":
+                case "<>":
+                    return text !== rule.value;
+                default:
+                    return false;
+            }
+        }
+
+        function scaleStopPosition(stop, stats, index, total) {
+            if (stop.position === "min") {
+                return 0;
+            }
+            if (stop.position === "max") {
+                return 1;
+            }
+            if (/^-?\d+(?:\.\d+)?%$/.test(stop.position)) {
+                return Number.parseFloat(stop.position) / 100;
+            }
+            const numeric = Number.parseFloat(stop.position);
+            if (Number.isFinite(numeric) && stats.max !== stats.min) {
+                return (numeric - stats.min) / (stats.max - stats.min);
+            }
+            return total > 1 ? index / (total - 1) : 0;
+        }
+
+        function resolveConditionalFormattingAtCell(sheetModel, conditionalFormats, row, col, display) {
+            const resolved = {
+                style: {},
+                dataBar: null,
+                icon: "",
+            };
+
+            for (const rule of conditionalFormats) {
+                if (!rangeContains(rule.range, row, col)) {
+                    continue;
+                }
+
+                if (rule.kind === "data-bar") {
+                    const value = parseCellNumericValue(display);
+                    if (value === null) {
+                        continue;
+                    }
+                    const stats = getConditionalRangeStats(rule, sheetModel);
+                    const denominator = (stats.max - stats.min) || 1;
+                    const width = Math.max(0, Math.min(100, ((value - stats.min) / denominator) * 100));
+                    resolved.dataBar = { width, color: rule.color || "#5B9BD5" };
+                    continue;
+                }
+
+                if (rule.kind === "scale" && rule.stops.length >= 2) {
+                    const value = parseCellNumericValue(display);
+                    if (value === null) {
+                        continue;
+                    }
+                    const stats = getConditionalRangeStats(rule, sheetModel);
+                    const normalized = stats.max === stats.min ? 1 : (value - stats.min) / (stats.max - stats.min);
+                    const stops = rule.stops.map((stop, index) => ({
+                        ...stop,
+                        t: scaleStopPosition(stop, stats, index, rule.stops.length),
+                    })).sort((left, right) => left.t - right.t);
+                    let appliedColor = stops[stops.length - 1].color;
+                    for (let i = 1; i < stops.length; i++) {
+                        const left = stops[i - 1];
+                        const right = stops[i];
+                        if (normalized <= right.t) {
+                            const span = (right.t - left.t) || 1;
+                            appliedColor = interpolateHexColor(left.color, right.color, (normalized - left.t) / span);
+                            break;
+                        }
+                    }
+                    resolved.style.backgroundColor = appliedColor;
+                    continue;
+                }
+
+                if (rule.kind === "icon-set") {
+                    resolved.icon = "CF";
+                    continue;
+                }
+
+                if (evaluateConditionalMatch(rule, display)) {
+                    applyConditionalEntries(resolved.style, rule.entries);
+                }
+            }
+
+            return resolved;
+        }
+
+        function renderSheetTable(workbook, sheet, sheetModel) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "sheet-grid-wrap";
+
+            const table = document.createElement("table");
+            table.className = "excel";
+
+            const visibleCols = [];
+            for (let col = sheetModel.minCol; col <= sheetModel.maxCol; col++) {
+                if (sheetModel.cols.get(col)?.hidden) {
+                    continue;
+                }
+                visibleCols.push(col);
+            }
+
+            const visibleRows = [];
+            for (let row = sheetModel.minRow; row <= sheetModel.maxRow; row++) {
+                if (sheetModel.rows.get(row)?.hidden) {
+                    continue;
+                }
+                visibleRows.push(row);
+            }
+
+            const colgroup = document.createElement("colgroup");
+            const rowHeaderCol = document.createElement("col");
+            rowHeaderCol.style.width = "46px";
+            colgroup.appendChild(rowHeaderCol);
+            for (const col of visibleCols) {
+                const colElement = document.createElement("col");
+                const spec = sheetModel.cols.get(col);
+                if (spec?.width) {
+                    colElement.style.width = spec.width;
+                }
+                colgroup.appendChild(colElement);
+            }
+            table.appendChild(colgroup);
+
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+            const corner = document.createElement("th");
+            corner.textContent = "";
+            headerRow.appendChild(corner);
+            for (const col of visibleCols) {
+                const th = document.createElement("th");
+                th.textContent = indexToCol(col);
+                headerRow.appendChild(th);
+            }
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+            const conditionalFormats = (sheet.directives || [])
+                .filter((directive) => directive.name === "cf")
+                .map(parseConditionalDirective)
+                .filter(Boolean);
+            for (const row of visibleRows) {
+                const tr = document.createElement("tr");
+                const spec = sheetModel.rows.get(row);
+                if (spec?.height) {
+                    tr.style.height = spec.height;
+                }
+
+                const rowHeader = document.createElement("th");
+                rowHeader.textContent = String(row + 1);
+                tr.appendChild(rowHeader);
+
+                for (const col of visibleCols) {
+                    const entry = sheetModel.cellMap.get(sheetModel.key(row, col));
+                    if (entry?.covered) {
+                        continue;
+                    }
+
+                    const td = document.createElement("td");
+                    if (!entry) {
+                        td.className = "empty";
+                        tr.appendChild(td);
+                        continue;
+                    }
+
+                    if (entry.rowSpan > 1) {
+                        td.rowSpan = entry.rowSpan;
+                    }
+                    if (entry.colSpan > 1) {
+                        td.colSpan = entry.colSpan;
+                    }
+
+                    const display = parseDisplayValue(entry, getRangeTypeAtCell(sheetModel, row, col));
+                    const style = resolveCellStyle(workbook, entry, getRangeFormatAttrsAtCell(sheetModel, row, col));
+                    const conditional = resolveConditionalFormattingAtCell(sheetModel, conditionalFormats, row, col, display);
+                    Object.assign(td.style, style);
+                    Object.assign(td.style, conditional.style);
+
+                    if (display.type === "formula") {
+                        td.classList.add("formula");
+                    }
+
+                    const wrap = document.createElement("div");
+                    wrap.className = "cell-wrap";
+
+                    const main = document.createElement("div");
+                    main.className = "cell-main";
+
+                    if (conditional.dataBar) {
+                        const bar = document.createElement("div");
+                        bar.className = "cf-bar";
+                        bar.style.width = `${conditional.dataBar.width}%`;
+                        bar.style.background = conditional.dataBar.color;
+                        wrap.appendChild(bar);
+                    }
+
+                    const sparkHtml = resolveSparklineAtCell(sheet, sheetModel, row, col);
+                    if (sparkHtml) {
+                        main.innerHTML = sparkHtml;
+                    } else if (display.type === "rich") {
+                        main.innerHTML = renderRichText(display.text);
+                    } else {
+                        const link = entry.attr?.map?.link;
+                        const text = display.text;
+                        if (link) {
+                            main.innerHTML = `<a href="${escapeHtml(link)}" target="_blank" rel="noreferrer">${escapeHtml(text)}</a>`;
+                        } else {
+                            main.textContent = text;
+                        }
+                    }
+
+                    wrap.appendChild(main);
+
+                    const indicators = document.createElement("div");
+                    indicators.className = "cell-indicators";
+
+                    if (conditional.icon) {
+                        const indicator = document.createElement("span");
+                        indicator.className = "indicator";
+                        indicator.textContent = conditional.icon;
+                        indicator.title = "Conditional formatting icon set";
+                        indicators.appendChild(indicator);
+                    }
+
+                    if (display.type === "formula") {
+                        const fx = document.createElement("span");
+                        fx.className = "fx";
+                        fx.textContent = "fx";
+                        fx.title = display.formula || entry.attr?.map?.formula || "";
+                        indicators.appendChild(fx);
+                    }
+
+                    const note = sheetModel.notesByCell.get(sheetModel.key(row, col));
+                    if (note) {
+                        const indicator = document.createElement("span");
+                        indicator.className = "indicator note";
+                        indicator.textContent = "N";
+                        indicator.title = note.text;
+                        indicators.appendChild(indicator);
+                    }
+
+                    const comment = sheetModel.commentsByCell.get(sheetModel.key(row, col));
+                    if (comment) {
+                        const indicator = document.createElement("span");
+                        indicator.className = "indicator comment";
+                        indicator.textContent = "C";
+                        indicator.title = comment.author ? `${comment.author}: ${comment.text}` : comment.text;
+                        indicators.appendChild(indicator);
+                    }
+
+                    if (indicators.childNodes.length > 0) {
+                        wrap.appendChild(indicators);
+                    }
+
+                    td.appendChild(wrap);
+                    tr.appendChild(td);
+                }
+
+                tbody.appendChild(tr);
+            }
+
+            table.appendChild(tbody);
+            wrapper.appendChild(table);
+            return wrapper;
+        }
+
+        function buildChartSvg(sheetModel, chart) {
+            const width = 460;
+            const height = 240;
+            const margin = { top: 18, right: 18, bottom: 34, left: 40 };
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+            const palette = ["#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", "#5B9BD5", "#70AD47"];
+
+            if (!chart.series.length) {
+                return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}">
+                    <text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#64748b" font-size="14">No chart data</text>
+                </svg>`;
+            }
+
+            const seriesModels = chart.series.map((series) => ({
+                ...series,
+                categories: getLinearRangeValues(sheetModel, series.cat),
+                values: getLinearNumericRangeValues(sheetModel, series.val),
+                xValues: getLinearNumericRangeValues(sheetModel, series.cat),
+                sizeValues: getLinearNumericRangeValues(sheetModel, series.size),
+            }));
+
+            const maxPoints = Math.max(...seriesModels.map((s) => Math.max(s.categories.length, s.values.length)), 0);
+            if (!maxPoints) {
+                return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}">
+                    <text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#64748b" font-size="14">Chart ranges did not resolve to values</text>
+                </svg>`;
+            }
+
+            if (chart.type === "pie" || chart.type === "doughnut") {
+                const series = seriesModels[0];
+                const total = series.values.reduce((sum, value) => sum + Math.max(0, value), 0) || 1;
+                const centerX = width / 2;
+                const centerY = height / 2 + 4;
+                const radius = Math.min(plotWidth, plotHeight) / 2 - 12;
+                const innerRadius = chart.type === "doughnut" ? radius * 0.55 : 0;
+                let currentAngle = -Math.PI / 2;
+                let svg = `<svg class="chart-svg" viewBox="0 0 ${width} ${height}"><rect x="0" y="0" width="${width}" height="${height}" fill="white"></rect>`;
+                series.values.forEach((value, index) => {
+                    const slice = Math.max(0, value) / total;
+                    const nextAngle = currentAngle + (slice * Math.PI * 2);
+                    const largeArc = nextAngle - currentAngle > Math.PI ? 1 : 0;
+                    const x1 = centerX + Math.cos(currentAngle) * radius;
+                    const y1 = centerY + Math.sin(currentAngle) * radius;
+                    const x2 = centerX + Math.cos(nextAngle) * radius;
+                    const y2 = centerY + Math.sin(nextAngle) * radius;
+                    const color = series.color || palette[index % palette.length];
+                    let path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                    if (innerRadius > 0) {
+                        const ix2 = centerX + Math.cos(nextAngle) * innerRadius;
+                        const iy2 = centerY + Math.sin(nextAngle) * innerRadius;
+                        const ix1 = centerX + Math.cos(currentAngle) * innerRadius;
+                        const iy1 = centerY + Math.sin(currentAngle) * innerRadius;
+                        path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+                    }
+                    svg += `<path d="${path}" fill="${escapeHtml(color)}"></path>`;
+                    currentAngle = nextAngle;
+                });
+                svg += `</svg>`;
+                return svg;
+            }
+
+            if (chart.type === "scatter" || chart.type === "bubble") {
+                const xValues = seriesModels.flatMap((series) => series.xValues);
+                const yValues = seriesModels.flatMap((series) => series.values);
+                const sizeValues = seriesModels.flatMap((series) => series.sizeValues);
+                const xMin = Math.min(...(xValues.length ? xValues : [0]));
+                const xMax = Math.max(...(xValues.length ? xValues : [1]));
+                const yMin = Math.min(...(yValues.length ? yValues : [0]));
+                const yMax = Math.max(...(yValues.length ? yValues : [1]));
+                const sizeMax = Math.max(...(sizeValues.length ? sizeValues : [1]));
+                let svg = `
+                    <svg class="chart-svg" viewBox="0 0 ${width} ${height}">
+                        <rect x="0" y="0" width="${width}" height="${height}" fill="white"></rect>
+                        <line x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${margin.left + plotWidth}" y2="${margin.top + plotHeight}" stroke="#cbd5e1"></line>
+                        <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}" stroke="#cbd5e1"></line>
+                `;
+                seriesModels.forEach((series, seriesIndex) => {
+                    const color = series.color || palette[seriesIndex % palette.length];
+                    series.values.forEach((value, index) => {
+                        const xValue = series.xValues[index] ?? index;
+                        const x = margin.left + (((xValue - xMin) / ((xMax - xMin) || 1)) * plotWidth);
+                        const y = margin.top + plotHeight - (((value - yMin) / ((yMax - yMin) || 1)) * plotHeight);
+                        const radius = chart.type === "bubble"
+                            ? Math.max(4, (((series.sizeValues[index] || 1) / (sizeMax || 1)) * 18))
+                            : 4;
+                        svg += `<circle cx="${x}" cy="${y}" r="${radius}" fill="${escapeHtml(color)}" fill-opacity="${chart.type === "bubble" ? "0.45" : "0.9"}" stroke="${escapeHtml(color)}"></circle>`;
+                    });
+                });
+                svg += `</svg>`;
+                return svg;
+            }
+
+            const primaryValues = seriesModels.flatMap((s) => s.axis === "secondary" ? [] : s.values);
+            const secondaryValues = seriesModels.flatMap((s) => s.axis === "secondary" ? s.values : []);
+            const primaryMax = Math.max(...(primaryValues.length ? primaryValues : [1]));
+            const secondaryMax = Math.max(...(secondaryValues.length ? secondaryValues : [1]));
+
+            const xStep = maxPoints > 1 ? plotWidth / (maxPoints - 1) : plotWidth;
+            let svg = `
+                <svg class="chart-svg" viewBox="0 0 ${width} ${height}">
+                    <rect x="0" y="0" width="${width}" height="${height}" fill="white"></rect>
+                    <line x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${margin.left + plotWidth}" y2="${margin.top + plotHeight}" stroke="#cbd5e1"></line>
+                    <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}" stroke="#cbd5e1"></line>
+            `;
+
+            const columnSeries = seriesModels.filter((s) => s.type === "column" || (chart.type === "column" && s.type === "column"));
+            const barSeries = seriesModels.filter((s) => s.type === "bar" || (chart.type === "bar" && s.type === "bar"));
+            const lineSeries = seriesModels.filter((s) => s.type === "line" || s.type === "area" || chart.type === "line" || chart.type === "area" || chart.type === "combo");
+
+            if (barSeries.length) {
+                const categories = barSeries[0]?.categories || [];
+                const yStep = categories.length > 0 ? plotHeight / categories.length : plotHeight;
+                barSeries.forEach((series, seriesIndex) => {
+                    series.values.forEach((value, index) => {
+                        const scale = series.axis === "secondary" ? secondaryMax : primaryMax;
+                        const barWidth = (value / (scale || 1)) * plotWidth;
+                        const barHeight = Math.max(8, (yStep / Math.max(barSeries.length, 1)) - 6);
+                        const x = margin.left;
+                        const y = margin.top + (index * yStep) + (seriesIndex * (barHeight + 3)) + 2;
+                        svg += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${escapeHtml(series.color || palette[seriesIndex % palette.length])}" rx="2"></rect>`;
+                    });
+                });
+            }
+
+            if (columnSeries.length) {
+                const groupWidth = Math.max(16, xStep * 0.6);
+                const barWidth = Math.max(10, groupWidth / Math.max(columnSeries.length, 1) - 4);
+                columnSeries.forEach((series, seriesIndex) => {
+                    series.values.forEach((value, index) => {
+                        const x = margin.left + index * xStep - groupWidth / 2 + seriesIndex * barWidth + 2;
+                        const scale = series.axis === "secondary" ? secondaryMax : primaryMax;
+                        const barHeight = (value / (scale || 1)) * plotHeight;
+                        const y = margin.top + plotHeight - barHeight;
+                        svg += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${escapeHtml(series.color || "#4472C4")}" rx="2"></rect>`;
+                    });
+                });
+            }
+
+            lineSeries.forEach((series, seriesIndex) => {
+                if (!series.values.length) {
+                    return;
+                }
+                const scale = series.axis === "secondary" ? secondaryMax : primaryMax;
+                const points = series.values.map((value, index) => {
+                    const x = margin.left + index * xStep;
+                    const y = margin.top + plotHeight - ((value / (scale || 1)) * plotHeight);
+                    return `${x},${y}`;
+                }).join(" ");
+                const color = escapeHtml(series.color || palette[(seriesIndex + 1) % palette.length]);
+                if (series.type === "area" || chart.type === "area") {
+                    const areaPath = `${points} ${margin.left + ((series.values.length - 1) * xStep)},${margin.top + plotHeight} ${margin.left},${margin.top + plotHeight}`;
+                    svg += `<polygon points="${areaPath}" fill="${color}" fill-opacity="0.18"></polygon>`;
+                }
+                svg += `<polyline fill="none" stroke="${color}" stroke-width="2.2" points="${points}"></polyline>`;
+                svg += series.values.map((value, index) => {
+                    const x = margin.left + index * xStep;
+                    const y = margin.top + plotHeight - ((value / (scale || 1)) * plotHeight);
+                    return `<circle cx="${x}" cy="${y}" r="3" fill="${color}"></circle>`;
+                }).join("");
+            });
+
+            const categorySource = seriesModels.find((s) => s.categories.length)?.categories || [];
+            if (chart.type === "bar") {
+                categorySource.forEach((label, index) => {
+                    const y = margin.top + ((index + 0.5) * (plotHeight / Math.max(categorySource.length, 1)));
+                    svg += `<text x="${margin.left - 8}" y="${y + 4}" text-anchor="end" fill="#64748b" font-size="11">${escapeHtml(String(label))}</text>`;
+                });
+            } else {
+                categorySource.forEach((label, index) => {
+                    const x = margin.left + index * xStep;
+                    svg += `<text x="${x}" y="${height - 10}" text-anchor="middle" fill="#64748b" font-size="11">${escapeHtml(String(label))}</text>`;
+                });
+            }
+
+            svg += `</svg>`;
+            return svg;
+        }
+
+        function renderFeatureSections(sheet, sheetModel) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "sheet-section";
+
+            const featureCards = [];
+            for (const directive of sheet.directives) {
+                featureCards.push({ title: directive.name, body: directive.raw });
+            }
+            for (const format of sheet.formats || []) {
+                featureCards.push({ title: "fmt", body: format.raw });
+            }
+            for (const type of sheet.types || []) {
+                featureCards.push({ title: "type", body: type.raw });
+            }
+
+            for (const pivot of sheet.pivots) {
+                featureCards.push({
+                    title: "pivot",
+                    body: `${pivot.raw}\n${pivot.lines.join("\n")}\n[end]`,
+                });
+            }
+
+            if (featureCards.length) {
+                const title = document.createElement("h4");
+                title.textContent = "Built-in Features";
+                wrapper.appendChild(title);
+
+                const grid = document.createElement("div");
+                grid.className = "feature-grid";
+                for (const feature of featureCards) {
+                    const card = document.createElement("div");
+                    card.className = "feature-card";
+                    card.innerHTML = `<h5>${escapeHtml(feature.title)}</h5><pre>${escapeHtml(feature.body)}</pre>`;
+                    grid.appendChild(card);
+                }
+                wrapper.appendChild(grid);
+            }
+
+            if (sheet.charts.length) {
+                const title = document.createElement("h4");
+                title.textContent = "Charts";
+                title.style.marginTop = featureCards.length ? "18px" : "0";
+                wrapper.appendChild(title);
+
+                const grid = document.createElement("div");
+                grid.className = "feature-grid";
+                for (const chart of sheet.charts) {
+                    const card = document.createElement("div");
+                    card.className = "chart-card";
+                    card.innerHTML = `
+                        <h5>${escapeHtml(chart.title || "Chart")}</h5>
+                        <div class="meta">type=${escapeHtml(chart.type || "column")} at=${escapeHtml(chart.at || "")} size=${escapeHtml(chart.size || "")}</div>
+                        ${buildChartSvg(sheetModel, chart)}
+                    `;
+                    grid.appendChild(card);
+                }
+                wrapper.appendChild(grid);
+            }
+
+            return wrapper;
+        }
+
+        function renderWorkbook(workbook) {
+            metaGrid.innerHTML = "";
+            sheetTabs.innerHTML = "";
+            previewRoot.innerHTML = "";
+
+            const metaEntries = [
+                { label: "Workbook", value: workbook.title || "Workbook" },
+                { label: "Sheets", value: String(workbook.sheets.length) },
+                { label: "Locale", value: workbook.attrs.locale || "—" },
+                { label: "Date System", value: workbook.attrs["date-system"] || "—" },
+                { label: "Recalc", value: workbook.attrs.recalc || "—" },
+                { label: "Active Sheet", value: workbook.attrs.active || workbook.sheets[0]?.name || "—" },
+            ];
+
+            for (const entry of metaEntries) {
+                const card = document.createElement("div");
+                card.className = "meta-card";
+                card.innerHTML = `<span class="label">${escapeHtml(entry.label)}</span><span class="value">${escapeHtml(entry.value)}</span>`;
+                metaGrid.appendChild(card);
+            }
+
+            const panels = [];
+            workbook.sheets.forEach((sheet, index) => {
+                const tab = document.createElement("div");
+                tab.className = `sheet-tab${index === 0 ? " active" : ""}${sheet.state === "hidden" ? " hidden" : ""}`;
+                tab.textContent = sheet.name;
+                if (sheet.tabColor) {
+                    tab.style.borderTop = `4px solid ${sheet.tabColor}`;
+                    tab.style.paddingTop = "5px";
+                }
+                sheetTabs.appendChild(tab);
+
+                const panel = document.createElement("div");
+                panel.className = `sheet-panel${index === 0 ? " active" : ""}`;
+
+                const header = document.createElement("div");
+                header.className = "sheet-header";
+                header.innerHTML = `<h3>${escapeHtml(sheet.name)}</h3>`;
+                if (sheet.state === "hidden") {
+                    const badge = document.createElement("span");
+                    badge.className = "badge";
+                    badge.textContent = "hidden";
+                    header.appendChild(badge);
+                }
+                panel.appendChild(header);
+
+                const notes = [];
+                if (sheet.view.length) {
+                    notes.push(`view: ${sheet.view.join(" ")}`);
+                }
+                if (sheet.usedRange) {
+                    notes.push(`used: ${sheet.usedRange}`);
+                }
+                if (sheet.colsRaw) {
+                    notes.push(`cols: ${sheet.colsRaw}`);
+                }
+                if (sheet.rowsRaw) {
+                    notes.push(`rows: ${sheet.rowsRaw}`);
+                }
+                if (sheet.pageRaw) {
+                    notes.push(`page: ${sheet.pageRaw}`);
+                }
+                if (notes.length) {
+                    const noteBlock = document.createElement("div");
+                    noteBlock.className = "sheet-note";
+                    noteBlock.textContent = notes.join("  •  ");
+                    panel.appendChild(noteBlock);
+                }
+
+                const sheetModel = buildSheetModel(workbook, sheet);
+                panel.appendChild(renderSheetTable(workbook, sheet, sheetModel));
+                panel.appendChild(renderFeatureSections(sheet, sheetModel));
+
+                previewRoot.appendChild(panel);
+                panels.push(panel);
+
+                tab.addEventListener("click", () => {
+                    document.querySelectorAll(".sheet-tab").forEach((item) => item.classList.remove("active"));
+                    document.querySelectorAll(".sheet-panel").forEach((item) => item.classList.remove("active"));
+                    tab.classList.add("active");
+                    panel.classList.add("active");
+                });
+            });
+
+            if (!workbook.sheets.length) {
+                previewRoot.innerHTML = `<div class="sheet-note">No sheets found in the WorkbookDoc text.</div>`;
+            }
+        }
+
+        function serializeAttributeMap(map) {
+            return Object.entries(map)
+                .filter(([, value]) => value)
+                .map(([key, value]) => `${key}=${value}`)
+                .join(", ");
+        }
+
+        function looksLikeDateFormat(format) {
+            return typeof format === "string" && /[dmyhs]/i.test(format) && !/[#0]/.test(format.replace(/\[[^\]]+\]/g, ""));
+        }
+
+        function formatDateLiteral(date) {
+            const pad = (value) => String(value).padStart(2, "0");
+            const hasTime = date.getHours() || date.getMinutes() || date.getSeconds() || date.getMilliseconds();
+            if (hasTime) {
+                return `datetime("${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}")`;
+            }
+            return `date("${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}")`;
+        }
+
+        function getTemporalCellValue(cell) {
+            if (!cell) {
+                return null;
+            }
+
+            let dateValue = null;
+            if (cell.t === "d") {
+                dateValue = new Date(cell.v);
+            } else if (cell.t === "n" && looksLikeDateFormat(cell.z) && typeof XLSX !== "undefined" && XLSX.SSF && typeof XLSX.SSF.parse_date_code === "function") {
+                const parsed = XLSX.SSF.parse_date_code(cell.v);
+                if (parsed) {
+                    dateValue = new Date(parsed.y, parsed.m - 1, parsed.d, parsed.H || 0, parsed.M || 0, parsed.S || 0);
+                }
+            }
+
+            if (!dateValue || Number.isNaN(dateValue.getTime())) {
+                return null;
+            }
+
+            const pad = (value) => String(value).padStart(2, "0");
+            const format = String(cell.z || "");
+            const isTimeOnly = /[hms]/i.test(format) && !/[dmy]/i.test(format);
+            const hasTime = dateValue.getHours() || dateValue.getMinutes() || dateValue.getSeconds() || dateValue.getMilliseconds();
+
+            if (isTimeOnly) {
+                return {
+                    type: "time",
+                    raw: `${pad(dateValue.getHours())}:${pad(dateValue.getMinutes())}:${pad(dateValue.getSeconds())}`,
+                    literal: `time("${pad(dateValue.getHours())}:${pad(dateValue.getMinutes())}:${pad(dateValue.getSeconds())}")`,
+                };
+            }
+
+            if (hasTime) {
+                const raw = `${dateValue.getFullYear()}-${pad(dateValue.getMonth() + 1)}-${pad(dateValue.getDate())}T${pad(dateValue.getHours())}:${pad(dateValue.getMinutes())}:${pad(dateValue.getSeconds())}`;
+                return {
+                    type: "datetime",
+                    raw,
+                    literal: `datetime("${raw}")`,
+                };
+            }
+
+            const raw = `${dateValue.getFullYear()}-${pad(dateValue.getMonth() + 1)}-${pad(dateValue.getDate())}`;
+            return {
+                type: "date",
+                raw,
+                literal: `date("${raw}")`,
+            };
+        }
+
+        function workbookDocLiteralFromExcelCell(cell, rangeType = "") {
+            if (!cell) {
+                return "";
+            }
+
+            const temporal = getTemporalCellValue(cell);
+            if (temporal) {
+                if (rangeType === "date") {
+                    return temporal.type === "datetime" ? temporal.raw.slice(0, 10) : temporal.raw;
+                }
+                if (rangeType === "time") {
+                    return temporal.type === "datetime" ? (temporal.raw.split("T")[1] || "00:00:00") : temporal.raw;
+                }
+                if (rangeType === "datetime") {
+                    if (temporal.type === "date") {
+                        return `${temporal.raw}T00:00:00`;
+                    }
+                    if (temporal.type === "time") {
+                        return `1970-01-01T${temporal.raw}`;
+                    }
+                    return temporal.raw;
+                }
+                return temporal.literal;
+            }
+            if (rangeType && cell.t === "n" && Number.isFinite(cell.v) && typeof XLSX !== "undefined" && XLSX.SSF && typeof XLSX.SSF.parse_date_code === "function") {
+                const parsed = XLSX.SSF.parse_date_code(cell.v);
+                if (parsed) {
+                    const pad = (value) => String(value).padStart(2, "0");
+                    if (rangeType === "time") {
+                        return `${pad(parsed.H || 0)}:${pad(parsed.M || 0)}:${pad(parsed.S || 0)}`;
+                    }
+                    if (rangeType === "datetime") {
+                        return `${parsed.y}-${pad(parsed.m)}-${pad(parsed.d)}T${pad(parsed.H || 0)}:${pad(parsed.M || 0)}:${pad(parsed.S || 0)}`;
+                    }
+                    if (rangeType === "date") {
+                        return `${parsed.y}-${pad(parsed.m)}-${pad(parsed.d)}`;
+                    }
+                }
+            }
+
+            switch (cell.t) {
+                case "b":
+                    return cell.v ? "true" : "false";
+                case "d":
+                case "n":
+                    return Number.isFinite(cell.v) ? String(cell.v) : "blank";
+                case "e":
+                    return cell.w || "#ERROR!";
+                case "s":
+                case "str":
+                case "inlineStr":
+                default:
+                    return maybeQuoteWorkbookDoc(String(cell.v ?? ""));
+            }
+        }
+
+        function hasMeaningfulExcelCell(cell) {
+            return !!(cell && (
+                typeof cell.f === "string" && cell.f ||
+                cell.v !== undefined && cell.v !== null && cell.v !== "" ||
+                (Array.isArray(cell.c) && cell.c.length) ||
+                cell.l?.Target
+            ));
+        }
+
+        function computeWorksheetContentBounds(ws, merges) {
+            let minRow = Number.POSITIVE_INFINITY;
+            let minCol = Number.POSITIVE_INFINITY;
+            let maxRow = Number.NEGATIVE_INFINITY;
+            let maxCol = Number.NEGATIVE_INFINITY;
+
+            for (const address of Object.keys(ws)) {
+                if (!/^[A-Z]+[0-9]+$/i.test(address)) {
+                    continue;
+                }
+                const cell = ws[address];
+                if (!hasMeaningfulExcelCell(cell)) {
+                    continue;
+                }
+                const parsed = parseCellAddress(address);
+                if (!parsed) {
+                    continue;
+                }
+                minRow = Math.min(minRow, parsed.row);
+                minCol = Math.min(minCol, parsed.col);
+                maxRow = Math.max(maxRow, parsed.row);
+                maxCol = Math.max(maxCol, parsed.col);
+            }
+
+            for (const merge of merges) {
+                minRow = Math.min(minRow, merge.s.r);
+                minCol = Math.min(minCol, merge.s.c);
+                maxRow = Math.max(maxRow, merge.e.r);
+                maxCol = Math.max(maxCol, merge.e.c);
+            }
+
+            if (!Number.isFinite(minRow)) {
+                const ref = ws["!ref"];
+                if (!ref) {
+                    return null;
+                }
+                const fallback = XLSX.utils.decode_range(ref);
+                return {
+                    s: { row: fallback.s.r, col: fallback.s.c },
+                    e: { row: fallback.e.r, col: fallback.e.c },
+                };
+            }
+
+            return {
+                s: { row: minRow, col: minCol },
+                e: { row: maxRow, col: maxCol },
+            };
+        }
+
+        function buildInlineAttrlist(parts) {
+            return parts.length ? `[${parts.join(" ")}] ` : "";
+        }
+
+        function normalizeExportedStyleAttrs(styleAttrs) {
+            if (!styleAttrs) {
+                return null;
+            }
+
+            const normalized = {
+                fg: styleAttrs.fg || "",
+                bg: styleAttrs.bg || "",
+                bold: !!styleAttrs.bold,
+                italic: !!styleAttrs.italic,
+                underline: !!styleAttrs.underline,
+                align: styleAttrs.align || "",
+            };
+
+            if (normalized.fg === "#000000" || normalized.fg === "#1F1F1F") {
+                normalized.fg = "";
+            }
+            if (normalized.bg === "#FFFFFF") {
+                normalized.bg = "";
+            }
+            if (normalized.align === "left/middle" || normalized.align === "left" || normalized.align === "middle") {
+                normalized.align = "";
+            }
+
+            return normalized.fg || normalized.bg || normalized.bold || normalized.italic || normalized.underline || normalized.align
+                ? normalized
+                : null;
+        }
+
+        function styleAttrKey(styleAttrs) {
+            const normalized = normalizeExportedStyleAttrs(styleAttrs);
+            if (!normalized) {
+                return "";
+            }
+            return [
+                normalized.fg,
+                normalized.bg,
+                normalized.bold ? "b" : "",
+                normalized.italic ? "i" : "",
+                normalized.underline ? "u" : "",
+                normalized.align,
+            ].join("|");
+        }
+
+        function cloneStyleAttrs(styleAttrs) {
+            return styleAttrs ? { ...styleAttrs } : null;
+        }
+
+        function styleAttrsToInlineParts(styleAttrs) {
+            const normalized = normalizeExportedStyleAttrs(styleAttrs);
+            if (!normalized) {
+                return [];
+            }
+
+            const parts = [];
+            if (normalized.fg) {
+                parts.push(`fg=${normalized.fg}`);
+            }
+            if (normalized.bg) {
+                parts.push(`bg=${normalized.bg}`);
+            }
+            if (normalized.align) {
+                parts.push(`align=${normalized.align}`);
+            }
+            if (normalized.bold) {
+                parts.push("bold");
+            }
+            if (normalized.italic) {
+                parts.push("italic");
+            }
+            if (normalized.underline) {
+                parts.push("underline");
+            }
+            return parts;
+        }
+
+        function styleAttrsToDirectiveText(styleAttrs) {
+            return styleAttrsToInlineParts(styleAttrs).join(" ");
+        }
+
+        function pushInlineStyleAttrs(attrParts, styleAttrs) {
+            attrParts.push(...styleAttrsToInlineParts(styleAttrs));
+        }
+
+        function workbookDocRowTokenFromExcelCell(cell, styleAttrs = null, rangeType = "") {
+            if (!cell) {
+                return "blank";
+            }
+
+            const hasDisplayedValue = !!(
+                typeof cell.f === "string" && cell.f ||
+                cell.v !== undefined && cell.v !== null && cell.v !== ""
+            );
+            if (!hasDisplayedValue) {
+                return "blank";
+            }
+
+            const attrParts = [];
+            if (cell?.l?.Target) {
+                attrParts.push(`link=${quoteWorkbookDoc(cell.l.Target)}`);
+            }
+            if (shouldKeepInlineFormat(cell?.z)) {
+                attrParts.push(`fmt=${quoteWorkbookDoc(cell.z)}`);
+            }
+            pushInlineStyleAttrs(attrParts, styleAttrs);
+
+            let content = workbookDocLiteralFromExcelCell(cell, rangeType);
+            if (cell?.f) {
+                const formulaText = cell.f.startsWith("=") ? cell.f : `=${cell.f}`;
+                const cached = workbookDocLiteralFromExcelCell(cell, "");
+                const hasCached = cached && cached !== "blank" && cached !== "";
+                if (hasCached) {
+                    attrParts.push(`result=${cached}`);
+                    content = formulaText;
+                } else {
+                    content = formulaText;
+                }
+            }
+
+            return `${buildInlineAttrlist(attrParts)}${content || "blank"}`.trim();
+        }
+
+        function workbookDocCellOverrideFromExcelCell(address, cell, styleAttrs = null, rangeType = "") {
+            const attrParts = [];
+            if (cell?.l?.Target) {
+                attrParts.push(`link=${quoteWorkbookDoc(cell.l.Target)}`);
+            }
+            pushInlineStyleAttrs(attrParts, styleAttrs);
+
+            const literal = workbookDocLiteralFromExcelCell(cell, rangeType);
+            const head = attrParts.length
+                ? `[cell ${address} ${attrParts.join(" ")}]`
+                : `[cell ${address}]`;
+            return literal && literal !== "blank" ? `${head} ${literal}` : head;
+        }
+
+        function xmlChildElements(node) {
+            return Array.from(node?.childNodes || []).filter((child) => child.nodeType === 1);
+        }
+
+        function xmlChildrenByLocalName(node, localName) {
+            return xmlChildElements(node).filter((child) => child.localName === localName);
+        }
+
+        function xmlFirstChildByLocalName(node, localName) {
+            return xmlChildrenByLocalName(node, localName)[0] || null;
+        }
+
+        function xmlDescendantsByLocalName(node, localName) {
+            if (!node) {
+                return [];
+            }
+            if (typeof node.getElementsByTagNameNS === "function") {
+                const matches = Array.from(node.getElementsByTagNameNS("*", localName));
+                if (matches.length) {
+                    return matches;
+                }
+            }
+            const matches = [];
+            const stack = [...xmlChildElements(node)];
+            while (stack.length) {
+                const current = stack.shift();
+                if (current.localName === localName) {
+                    matches.push(current);
+                }
+                stack.unshift(...xmlChildElements(current));
+            }
+            return matches;
+        }
+
+        function xmlAttr(node, ...names) {
+            for (const name of names) {
+                if (!name) {
+                    continue;
+                }
+                const value = node?.getAttribute?.(name);
+                if (value !== null && value !== undefined && value !== "") {
+                    return value;
+                }
+            }
+            return "";
+        }
+
+        function parseXmlDocument(xmlText) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlText, "application/xml");
+            if (doc.getElementsByTagName("parsererror").length) {
+                throw new Error("Failed to parse workbook XML.");
+            }
+            return doc;
+        }
+
+        function relsPathForPart(partPath) {
+            const segments = partPath.split("/");
+            const fileName = segments.pop();
+            return [...segments, "_rels", `${fileName}.rels`].join("/");
+        }
+
+        function resolveZipPath(basePath, target) {
+            if (!target) {
+                return "";
+            }
+            const source = target.replace(/\\/g, "/");
+            if (/^[A-Za-z]+:/.test(source)) {
+                return source;
+            }
+            const baseSegments = basePath.split("/");
+            baseSegments.pop();
+            const combined = source.startsWith("/")
+                ? source.slice(1).split("/")
+                : [...baseSegments, ...source.split("/")];
+            const normalized = [];
+            for (const segment of combined) {
+                if (!segment || segment === ".") {
+                    continue;
+                }
+                if (segment === "..") {
+                    normalized.pop();
+                    continue;
+                }
+                normalized.push(segment);
+            }
+            return normalized.join("/");
+        }
+
+        async function loadZipText(zip, path) {
+            const file = zip.file(path);
+            return file ? await file.async("text") : "";
+        }
+
+        async function loadZipXml(zip, path) {
+            const xmlText = await loadZipText(zip, path);
+            return xmlText ? parseXmlDocument(xmlText) : null;
+        }
+
+        async function loadRelationshipTargets(zip, ownerPath) {
+            const relsDoc = await loadZipXml(zip, relsPathForPart(ownerPath));
+            const targets = new Map();
+            if (!relsDoc) {
+                return targets;
+            }
+            for (const rel of xmlDescendantsByLocalName(relsDoc, "Relationship")) {
+                const id = xmlAttr(rel, "Id");
+                const target = xmlAttr(rel, "Target");
+                if (id && target) {
+                    targets.set(id, resolveZipPath(ownerPath, target));
+                }
+            }
+            return targets;
+        }
+
+        const EXCEL_INDEXED_COLORS = [
+            "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF",
+            "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF",
+            "#800000", "#008000", "#000080", "#808000", "#800080", "#008080", "#C0C0C0", "#808080",
+            "#9999FF", "#993366", "#FFFFCC", "#CCFFFF", "#660066", "#FF8080", "#0066CC", "#CCCCFF",
+            "#000080", "#FF00FF", "#FFFF00", "#00FFFF", "#800080", "#800000", "#008080", "#0000FF",
+            "#00CCFF", "#CCFFFF", "#CCFFCC", "#FFFF99", "#99CCFF", "#FF99CC", "#CC99FF", "#FFCC99",
+            "#3366FF", "#33CCCC", "#99CC00", "#FFCC00", "#FF9900", "#FF6600", "#666699", "#969696",
+            "#003366", "#339966", "#003300", "#333300", "#993300", "#993366", "#333399", "#333333",
+        ];
+
+        function normalizeRgbColor(colorText) {
+            const value = String(colorText || "").trim();
+            if (!value) {
+                return "";
+            }
+            let hex = value.replace(/^#/, "");
+            if (/^[0-9a-f]{8}$/i.test(hex)) {
+                hex = hex.slice(2);
+            }
+            if (/^[0-9a-f]{6}$/i.test(hex)) {
+                return `#${hex.toUpperCase()}`;
+            }
+            return "";
+        }
+
+        function applyTintToColor(hexColor, tintValue) {
+            const tint = Number.parseFloat(tintValue);
+            if (!Number.isFinite(tint) || !hexColor) {
+                return hexColor;
+            }
+
+            const channels = [1, 3, 5].map((offset) => Number.parseInt(hexColor.slice(offset, offset + 2), 16));
+            const adjusted = channels.map((channel) => {
+                if (tint < 0) {
+                    return Math.round(channel * (1 + tint));
+                }
+                return Math.round(channel + ((255 - channel) * tint));
+            });
+            return `#${adjusted.map((value) => Math.max(0, Math.min(255, value)).toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+        }
+
+        function parseThemeColors(themeDoc) {
+            const scheme = xmlDescendantsByLocalName(themeDoc, "clrScheme")[0];
+            if (!scheme) {
+                return [];
+            }
+
+            const orderedNames = ["lt1", "dk1", "lt2", "dk2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink"];
+            return orderedNames.map((name) => {
+                const node = xmlChildrenByLocalName(scheme, name)[0];
+                return extractOoxmlColor(xmlFirstChildByLocalName(node, "srgbClr") || xmlFirstChildByLocalName(node, "sysClr"));
+            });
+        }
+
+        function extractOoxmlColor(node, palette = {}) {
+            if (!node) {
+                return "";
+            }
+            const colorCandidates = [xmlAttr(node, "rgb"), xmlAttr(node, "lastClr"), xmlAttr(node, "val")];
+            for (const candidate of colorCandidates) {
+                const normalized = normalizeRgbColor(candidate);
+                if (normalized) {
+                    return normalized;
+                }
+            }
+            const themeIndex = Number.parseInt(xmlAttr(node, "theme"), 10);
+            if (Number.isInteger(themeIndex) && palette.themeColors?.[themeIndex]) {
+                return applyTintToColor(palette.themeColors[themeIndex], xmlAttr(node, "tint"));
+            }
+            const indexed = Number.parseInt(xmlAttr(node, "indexed"), 10);
+            if (Number.isInteger(indexed)) {
+                return palette.indexedColors?.[indexed] || EXCEL_INDEXED_COLORS[indexed] || "";
+            }
+            return "";
+        }
+
+        function parseDifferentialFormats(stylesDoc, palette = {}) {
+            const formats = [];
+            const dxfs = xmlFirstChildByLocalName(stylesDoc?.documentElement, "dxfs");
+            if (!dxfs) {
+                return formats;
+            }
+
+            for (const dxf of xmlChildrenByLocalName(dxfs, "dxf")) {
+                const entries = [];
+                const fill = xmlFirstChildByLocalName(dxf, "fill");
+                const patternFill = xmlFirstChildByLocalName(fill, "patternFill");
+                const fillColor = extractOoxmlColor(
+                    xmlFirstChildByLocalName(patternFill, "fgColor") ||
+                    xmlFirstChildByLocalName(patternFill, "bgColor"),
+                    palette
+                );
+                if (fillColor) {
+                    entries.push(`fill=${fillColor}`);
+                }
+
+                const font = xmlFirstChildByLocalName(dxf, "font");
+                if (font) {
+                    const fontColor = extractOoxmlColor(xmlFirstChildByLocalName(font, "color"), palette);
+                    if (fontColor) {
+                        entries.push(`fg=${fontColor}`);
+                    }
+                    if (xmlFirstChildByLocalName(font, "b")) {
+                        entries.push("bold");
+                    }
+                    if (xmlFirstChildByLocalName(font, "i")) {
+                        entries.push("italic");
+                    }
+                    if (xmlFirstChildByLocalName(font, "u")) {
+                        entries.push("underline");
+                    }
+                }
+
+                formats.push(entries);
+            }
+
+            return formats;
+        }
+
+        function parseDirectCellFormats(stylesDoc, palette = {}) {
+            function inferTemporalType(numFmtId, formatCode) {
+                const code = String(formatCode || "").toLowerCase();
+                const normalizedCode = code.replace(/\[[^\]]+\]/g, "");
+                const builtinDateIds = new Set([14, 15, 16, 17, 27, 28, 29, 30, 31, 34, 36, 50, 51, 52, 57, 58]);
+                const builtinTimeIds = new Set([18, 19, 20, 21, 32, 33, 45, 46, 47]);
+                const builtinDateTimeIds = new Set([22]);
+
+                if (builtinDateTimeIds.has(numFmtId)) {
+                    return "datetime";
+                }
+                if (builtinDateIds.has(numFmtId)) {
+                    return "date";
+                }
+                if (builtinTimeIds.has(numFmtId)) {
+                    return "time";
+                }
+                if (!normalizedCode) {
+                    return "";
+                }
+
+                const hasDate = /[dmy]/.test(normalizedCode);
+                const hasTime = /[hs]/.test(normalizedCode);
+                if (hasDate && hasTime) {
+                    return "datetime";
+                }
+                if (hasDate) {
+                    return "date";
+                }
+                if (hasTime) {
+                    return "time";
+                }
+                return "";
+            }
+
+            function normalizeAlignment(xf) {
+                const alignment = xmlFirstChildByLocalName(xf, "alignment");
+                if (!alignment) {
+                    return "";
+                }
+
+                const horizontal = xmlAttr(alignment, "horizontal");
+                const vertical = xmlAttr(alignment, "vertical");
+                const h = horizontal === "general" || !horizontal
+                    ? ""
+                    : horizontal === "centerContinuous"
+                        ? "center"
+                        : horizontal;
+                const v = vertical === "bottom" || !vertical
+                    ? ""
+                    : vertical === "center"
+                        ? "middle"
+                        : vertical;
+
+                if (h && v) {
+                    return `${h}/${v}`;
+                }
+                if (h) {
+                    return h;
+                }
+                if (v) {
+                    return `left/${v}`;
+                }
+                return "";
+            }
+
+            const customNumFmts = new Map(
+                xmlChildrenByLocalName(xmlFirstChildByLocalName(stylesDoc?.documentElement, "numFmts"), "numFmt")
+                    .map((numFmt) => [Number.parseInt(xmlAttr(numFmt, "numFmtId"), 10), xmlAttr(numFmt, "formatCode")])
+                    .filter(([id]) => Number.isInteger(id))
+            );
+
+            const fonts = xmlChildrenByLocalName(xmlFirstChildByLocalName(stylesDoc?.documentElement, "fonts"), "font")
+                .map((font) => ({
+                    fg: extractOoxmlColor(xmlFirstChildByLocalName(font, "color"), palette),
+                    bold: !!xmlFirstChildByLocalName(font, "b"),
+                    italic: !!xmlFirstChildByLocalName(font, "i"),
+                    underline: !!xmlFirstChildByLocalName(font, "u"),
+                }));
+
+            const fills = xmlChildrenByLocalName(xmlFirstChildByLocalName(stylesDoc?.documentElement, "fills"), "fill")
+                .map((fill) => {
+                    const patternFill = xmlFirstChildByLocalName(fill, "patternFill");
+                    const patternType = xmlAttr(patternFill, "patternType");
+                    if (!patternFill || patternType === "none" || patternType === "gray125") {
+                        return { bg: "" };
+                    }
+                    return {
+                        bg: extractOoxmlColor(
+                            xmlFirstChildByLocalName(patternFill, "fgColor") ||
+                            xmlFirstChildByLocalName(patternFill, "bgColor"),
+                            palette
+                        ),
+                    };
+                });
+
+            const rawFormats = xmlChildrenByLocalName(xmlFirstChildByLocalName(stylesDoc?.documentElement, "cellXfs"), "xf")
+                .map((xf) => {
+                    const fontId = Number.parseInt(xmlAttr(xf, "fontId"), 10);
+                    const fillId = Number.parseInt(xmlAttr(xf, "fillId"), 10);
+                    const numFmtId = Number.parseInt(xmlAttr(xf, "numFmtId"), 10);
+                    const font = Number.isInteger(fontId) ? fonts[fontId] : null;
+                    const fill = Number.isInteger(fillId) ? fills[fillId] : null;
+                    return {
+                        fg: font?.fg || "",
+                        bg: fill?.bg || "",
+                        bold: !!font?.bold,
+                        italic: !!font?.italic,
+                        underline: !!font?.underline,
+                        align: normalizeAlignment(xf),
+                        dataType: inferTemporalType(numFmtId, customNumFmts.get(numFmtId) || ""),
+                    };
+                });
+
+            const defaults = rawFormats[0] || { fg: "", bg: "", bold: false, italic: false, underline: false, align: "" };
+            return rawFormats.map((format) => normalizeExportedStyleAttrs({
+                fg: format.fg && format.fg !== defaults.fg ? format.fg : "",
+                bg: format.bg && format.bg !== defaults.bg ? format.bg : "",
+                bold: format.bold !== defaults.bold ? format.bold : false,
+                italic: format.italic !== defaults.italic ? format.italic : false,
+                underline: format.underline !== defaults.underline ? format.underline : false,
+                align: format.align && format.align !== defaults.align ? format.align : "",
+            }) ? { ...normalizeExportedStyleAttrs({
+                fg: format.fg && format.fg !== defaults.fg ? format.fg : "",
+                bg: format.bg && format.bg !== defaults.bg ? format.bg : "",
+                bold: format.bold !== defaults.bold ? format.bold : false,
+                italic: format.italic !== defaults.italic ? format.italic : false,
+                underline: format.underline !== defaults.underline ? format.underline : false,
+                align: format.align && format.align !== defaults.align ? format.align : "",
+            }), dataType: format.dataType || "" } : { fg: "", bg: "", bold: false, italic: false, underline: false, align: "", dataType: format.dataType || "" });
+        }
+
+        function extractCellStylesFromWorksheet(sheetDoc, directFormats) {
+            const styles = new Map();
+            for (const cellNode of xmlDescendantsByLocalName(sheetDoc, "c")) {
+                const address = xmlAttr(cellNode, "r");
+                const styleIndex = Number.parseInt(xmlAttr(cellNode, "s"), 10);
+                const format = Number.isInteger(styleIndex) ? directFormats[styleIndex] : null;
+                if (!address || !format) {
+                    continue;
+                }
+
+                if (format.fg || format.bg || format.bold || format.italic || format.underline || format.align) {
+                    styles.set(address, { ...format });
+                }
+            }
+            return styles;
+        }
+
+        function extractCellTypesFromWorksheet(sheetDoc, directFormats) {
+            const types = new Map();
+            for (const cellNode of xmlDescendantsByLocalName(sheetDoc, "c")) {
+                const address = xmlAttr(cellNode, "r");
+                const explicitType = xmlAttr(cellNode, "t");
+                const styleIndex = Number.parseInt(xmlAttr(cellNode, "s"), 10);
+                const format = Number.isInteger(styleIndex) ? directFormats[styleIndex] : null;
+                let type = format?.dataType || "";
+                if (!type && explicitType === "d") {
+                    const valueNode = xmlFirstChildByLocalName(cellNode, "v");
+                    type = valueNode?.textContent?.includes("T") ? "datetime" : "date";
+                }
+                if (address && type) {
+                    types.set(address, type);
+                }
+            }
+            return types;
+        }
+
+        function formatCfvoToken(cfvoNode) {
+            const type = xmlAttr(cfvoNode, "type");
+            const value = xmlAttr(cfvoNode, "val");
+            switch (type) {
+                case "min":
+                case "max":
+                    return type;
+                case "percent":
+                case "percentile":
+                    return `${value}%`;
+                case "num":
+                    return value || "0";
+                default:
+                    return value || type || "";
+            }
+        }
+
+        function operatorTokenFromExcel(operator) {
+            return {
+                lessThan: "<",
+                lessThanOrEqual: "<=",
+                equal: "=",
+                notEqual: "!=",
+                greaterThan: ">",
+                greaterThanOrEqual: ">=",
+            }[operator] || "";
+        }
+
+        function splitSheetReference(referenceText) {
+            const text = String(referenceText || "").trim().replace(/^=/, "");
+            let inSingleQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                if (ch === "'") {
+                    if (inSingleQuotes && text[i + 1] === "'") {
+                        i++;
+                        continue;
+                    }
+                    inSingleQuotes = !inSingleQuotes;
+                    continue;
+                }
+                if (ch === "!" && !inSingleQuotes) {
+                    let sheet = text.slice(0, i);
+                    if (sheet.startsWith("'") && sheet.endsWith("'")) {
+                        sheet = sheet.slice(1, -1).replace(/''/g, "'");
+                    }
+                    return {
+                        sheet,
+                        reference: text.slice(i + 1),
+                    };
+                }
+            }
+            return { sheet: "", reference: text };
+        }
+
+        function serializeWorkbookReference(referenceText, currentSheetName = "") {
+            const { sheet, reference } = splitSheetReference(referenceText);
+            const baseReference = reference.replace(/^=/, "").replace(/\$/g, "");
+            const minimized = sheet && sheet !== currentSheetName
+                ? `${sheet.includes(" ") ? `'${sheet.replace(/'/g, "''")}'` : sheet}!${baseReference}`
+                : baseReference;
+            return /\s/.test(minimized) ? quoteWorkbookDoc(minimized) : minimized;
+        }
+
+        function workbookDocCfLineFromRule(rangeText, ruleNode, dxfFormats, palette = {}) {
+            const type = xmlAttr(ruleNode, "type");
+            const formatEntries = [];
+            const priority = xmlAttr(ruleNode, "priority");
+            if (priority) {
+                formatEntries.push(`priority=${priority}`);
+            }
+            if (xmlAttr(ruleNode, "stopIfTrue") === "1") {
+                formatEntries.push("stop");
+            }
+
+            const dxfId = Number.parseInt(xmlAttr(ruleNode, "dxfId"), 10);
+            if (Number.isInteger(dxfId) && dxfFormats[dxfId]?.length) {
+                formatEntries.push(...dxfFormats[dxfId]);
+            }
+
+            let ruleText = "";
+            if (type === "dataBar") {
+                const dataBar = xmlFirstChildByLocalName(ruleNode, "dataBar");
+                const color = extractOoxmlColor(xmlFirstChildByLocalName(dataBar, "color"), palette);
+                ruleText = `data-bar(${color ? `color=${color}` : ""})`.replace(/\(\)$/, "()");
+            } else if (type === "colorScale") {
+                const colorScale = xmlFirstChildByLocalName(ruleNode, "colorScale");
+                const cfvos = xmlChildrenByLocalName(colorScale, "cfvo");
+                const colors = xmlChildrenByLocalName(colorScale, "color");
+                const stops = [];
+                for (let i = 0; i < Math.min(cfvos.length, colors.length); i++) {
+                    const stop = formatCfvoToken(cfvos[i]);
+                    const color = extractOoxmlColor(colors[i], palette);
+                    if (stop && color) {
+                        stops.push(`${stop}:${color}`);
+                    }
+                }
+                if (stops.length) {
+                    ruleText = `scale(${stops.join(",")})`;
+                }
+            } else if (type === "iconSet") {
+                const iconSet = xmlFirstChildByLocalName(ruleNode, "iconSet");
+                const iconName = xmlAttr(iconSet, "iconSet") || "icons";
+                ruleText = `icon-set(${iconName})`;
+            } else if (type === "cellIs") {
+                const operator = operatorTokenFromExcel(xmlAttr(ruleNode, "operator"));
+                const formula = xmlChildrenByLocalName(ruleNode, "formula")
+                    .map((node) => node.textContent.trim())
+                    .find(Boolean);
+                if (operator && formula) {
+                    ruleText = `when cell ${operator} ${formula}`;
+                }
+            } else if (type === "expression") {
+                const formula = xmlChildrenByLocalName(ruleNode, "formula")
+                    .map((node) => node.textContent.trim())
+                    .find(Boolean);
+                if (formula) {
+                    ruleText = `when formula(${formula.startsWith("=") ? formula : `=${formula}`})`;
+                }
+            } else if (type === "containsText") {
+                const text = xmlAttr(ruleNode, "text");
+                if (text) {
+                    ruleText = `when text contains ${quoteWorkbookDoc(text)}`;
+                }
+            }
+
+            if (!ruleText) {
+                return "";
+            }
+
+            const parts = ["cf", serializeWorkbookReference(rangeText), ruleText, ...formatEntries].filter(Boolean);
+            return `[${parts.join(" ")}]`;
+        }
+
+        function extractConditionalFormatsFromWorksheet(sheetDoc, dxfFormats, palette = {}) {
+            const lines = [];
+            for (const formattingNode of xmlDescendantsByLocalName(sheetDoc, "conditionalFormatting")) {
+                const ranges = xmlAttr(formattingNode, "sqref")
+                    .split(/\s+/)
+                    .map((part) => part.trim())
+                    .filter(Boolean);
+                const rules = xmlChildrenByLocalName(formattingNode, "cfRule");
+                for (const rangeText of ranges) {
+                    for (const ruleNode of rules) {
+                        const line = workbookDocCfLineFromRule(rangeText, ruleNode, dxfFormats, palette);
+                        if (line) {
+                            lines.push(line);
+                        }
+                    }
+                }
+            }
+            return lines;
+        }
+
+        function extractChartText(node) {
+            return xmlDescendantsByLocalName(node, "t")
+                .map((entry) => entry.textContent)
+                .join("")
+                .trim();
+        }
+
+        function extractChartFormula(node, pathName) {
+            const branch = xmlFirstChildByLocalName(node, pathName);
+            const refNode = xmlFirstChildByLocalName(branch, "strRef") ||
+                xmlFirstChildByLocalName(branch, "numRef") ||
+                xmlFirstChildByLocalName(branch, "multiLvlStrRef");
+            const formula = xmlFirstChildByLocalName(refNode, "f");
+            return formula?.textContent?.trim() || "";
+        }
+
+        function extractSeriesLabel(seriesNode, fallbackIndex) {
+            const titleBranch = xmlFirstChildByLocalName(seriesNode, "tx");
+            if (!titleBranch) {
+                return `Series ${fallbackIndex}`;
+            }
+
+            const cached = xmlDescendantsByLocalName(titleBranch, "v")
+                .map((node) => node.textContent.trim())
+                .find(Boolean);
+            if (cached) {
+                return cached;
+            }
+
+            const richText = extractChartText(titleBranch);
+            if (richText) {
+                return richText;
+            }
+
+            const formula = xmlFirstChildByLocalName(xmlFirstChildByLocalName(titleBranch, "strRef"), "f");
+            return formula?.textContent?.trim() || `Series ${fallbackIndex}`;
+        }
+
+        function extractSeriesColor(seriesNode, palette = {}) {
+            const solidFill = xmlFirstChildByLocalName(xmlFirstChildByLocalName(seriesNode, "spPr"), "solidFill");
+            const color = extractOoxmlColor(
+                xmlFirstChildByLocalName(solidFill, "srgbClr") ||
+                xmlFirstChildByLocalName(solidFill, "schemeClr"),
+                palette
+            );
+            return color;
+        }
+
+        function mapExcelChartType(chartNode) {
+            switch (chartNode?.localName) {
+                case "barChart": {
+                    const direction = xmlAttr(xmlFirstChildByLocalName(chartNode, "barDir"), "val");
+                    return direction === "bar" ? "bar" : "column";
+                }
+                case "lineChart":
+                    return "line";
+                case "areaChart":
+                    return "area";
+                case "pieChart":
+                    return "pie";
+                case "doughnutChart":
+                    return "doughnut";
+                case "scatterChart":
+                    return "scatter";
+                case "bubbleChart":
+                    return "bubble";
+                case "radarChart":
+                    return "radar";
+                default:
+                    return "";
+            }
+        }
+
+        function parseDrawingAnchor(anchorNode) {
+            const from = xmlFirstChildByLocalName(anchorNode, "from");
+            const row = Number.parseInt(xmlFirstChildByLocalName(from, "row")?.textContent || "", 10);
+            const col = Number.parseInt(xmlFirstChildByLocalName(from, "col")?.textContent || "", 10);
+            const at = Number.isInteger(row) && Number.isInteger(col)
+                ? encodeCellAddress({ row, col })
+                : "A1";
+
+            const extNode = xmlFirstChildByLocalName(anchorNode, "ext");
+            let widthPx = 480;
+            let heightPx = 280;
+            if (anchorNode.localName === "twoCellAnchor") {
+                const to = xmlFirstChildByLocalName(anchorNode, "to");
+                const toRow = Number.parseInt(xmlFirstChildByLocalName(to, "row")?.textContent || "", 10);
+                const toCol = Number.parseInt(xmlFirstChildByLocalName(to, "col")?.textContent || "", 10);
+                if (Number.isInteger(toRow) && Number.isInteger(toCol) && Number.isInteger(row) && Number.isInteger(col)) {
+                    widthPx = Math.max(180, (toCol - col + 1) * 88);
+                    heightPx = Math.max(140, (toRow - row + 1) * 28);
+                }
+            } else {
+                const emuWidth = Number.parseInt(xmlAttr(extNode, "cx"), 10);
+                const emuHeight = Number.parseInt(xmlAttr(extNode, "cy"), 10);
+                if (Number.isFinite(emuWidth) && Number.isFinite(emuHeight)) {
+                    widthPx = Math.max(180, Math.round(emuWidth / 9525));
+                    heightPx = Math.max(140, Math.round(emuHeight / 9525));
+                }
+            }
+
+            return { at, size: `${widthPx}x${heightPx}px` };
+        }
+
+        function parseChartXml(chartDoc, anchorInfo, currentSheetName, palette = {}) {
+            const chartRoot = xmlFirstChildByLocalName(chartDoc?.documentElement, "chart");
+            const plotArea = xmlFirstChildByLocalName(chartRoot, "plotArea");
+            if (!plotArea) {
+                return null;
+            }
+
+            const chartNodes = xmlChildElements(plotArea).filter((node) => /Chart$/.test(node.localName));
+            const parsedTypes = chartNodes.map(mapExcelChartType).filter(Boolean);
+            if (!parsedTypes.length) {
+                return null;
+            }
+
+            const headerType = parsedTypes.length > 1 ? "combo" : parsedTypes[0];
+            const chart = {
+                title: extractChartText(xmlFirstChildByLocalName(chartRoot, "title")) || "Chart",
+                type: headerType,
+                at: anchorInfo?.at || "A1",
+                size: anchorInfo?.size || "480x280px",
+                series: [],
+            };
+
+            chartNodes.forEach((chartNode, chartIndex) => {
+                const seriesType = mapExcelChartType(chartNode) || headerType;
+                const labelsEnabled = xmlDescendantsByLocalName(chartNode, "showVal")
+                    .some((node) => xmlAttr(node, "val") === "1");
+
+                xmlChildrenByLocalName(chartNode, "ser").forEach((seriesNode, seriesIndex) => {
+                    const catRef = extractChartFormula(seriesNode, "cat") || extractChartFormula(seriesNode, "xVal");
+                    const valRef = extractChartFormula(seriesNode, "val") || extractChartFormula(seriesNode, "yVal");
+                    const sizeRef = extractChartFormula(seriesNode, "bubbleSize");
+                    if (!catRef && !valRef) {
+                        return;
+                    }
+
+                    const entry = {
+                        type: chart.type === "combo" ? seriesType : chart.type,
+                        label: extractSeriesLabel(seriesNode, chart.series.length + 1 || seriesIndex + 1),
+                        cat: catRef ? serializeWorkbookReference(catRef, currentSheetName) : "",
+                        val: valRef ? serializeWorkbookReference(valRef, currentSheetName) : "",
+                        size: sizeRef ? serializeWorkbookReference(sizeRef, currentSheetName) : "",
+                        color: extractSeriesColor(seriesNode, palette),
+                        labels: labelsEnabled,
+                    };
+                    chart.series.push(entry);
+                });
+            });
+
+            return chart.series.length ? chart : null;
+        }
+
+        async function extractChartsFromWorksheet(zip, sheetPath, sheetDoc, currentSheetName, palette = {}) {
+            const sheetRelationships = await loadRelationshipTargets(zip, sheetPath);
+            const charts = [];
+
+            for (const drawingNode of xmlDescendantsByLocalName(sheetDoc, "drawing")) {
+                const drawingTarget = sheetRelationships.get(xmlAttr(drawingNode, "r:id", "id"));
+                if (!drawingTarget) {
+                    continue;
+                }
+
+                const drawingDoc = await loadZipXml(zip, drawingTarget);
+                if (!drawingDoc) {
+                    continue;
+                }
+                const drawingRelationships = await loadRelationshipTargets(zip, drawingTarget);
+
+                for (const anchorNode of xmlChildElements(drawingDoc.documentElement)) {
+                    if (!/(oneCellAnchor|twoCellAnchor|absoluteAnchor)/.test(anchorNode.localName || "")) {
+                        continue;
+                    }
+                    const chartRef = xmlDescendantsByLocalName(anchorNode, "chart")[0];
+                    const chartTarget = drawingRelationships.get(xmlAttr(chartRef, "r:id", "id"));
+                    if (!chartTarget) {
+                        continue;
+                    }
+
+                    const chartDoc = await loadZipXml(zip, chartTarget);
+                    const parsedChart = parseChartXml(chartDoc, parseDrawingAnchor(anchorNode), currentSheetName, palette);
+                    if (parsedChart) {
+                        charts.push(parsedChart);
+                    }
+                }
+            }
+
+            return charts;
+        }
+
+        async function extractWorkbookXmlArtifacts(buffer, workbook) {
+            if (typeof JSZip === "undefined") {
+                return { sheets: new Map(), warnings: ["JSZip did not load; conditional formatting and chart extraction is unavailable."] };
+            }
+
+            const zip = await JSZip.loadAsync(buffer);
+            const workbookDoc = await loadZipXml(zip, "xl/workbook.xml");
+            const workbookRelationships = await loadRelationshipTargets(zip, "xl/workbook.xml");
+            const styleDoc = await loadZipXml(zip, "xl/styles.xml");
+            const themeDoc = await loadZipXml(zip, "xl/theme/theme1.xml");
+            const palette = {
+                themeColors: parseThemeColors(themeDoc),
+                indexedColors: EXCEL_INDEXED_COLORS,
+            };
+            const dxfFormats = parseDifferentialFormats(styleDoc, palette);
+            const directFormats = parseDirectCellFormats(styleDoc, palette);
+            const sheetPaths = new Map();
+
+            for (const sheetNode of xmlDescendantsByLocalName(workbookDoc, "sheet")) {
+                const name = xmlAttr(sheetNode, "name");
+                const relationId = xmlAttr(sheetNode, "r:id", "id");
+                const target = workbookRelationships.get(relationId);
+                if (name && target) {
+                    sheetPaths.set(name, target);
+                }
+            }
+
+            const sheets = new Map();
+            for (const sheetName of workbook.SheetNames) {
+                const sheetPath = sheetPaths.get(sheetName);
+                if (!sheetPath) {
+                    continue;
+                }
+                const sheetDoc = await loadZipXml(zip, sheetPath);
+                if (!sheetDoc) {
+                    continue;
+                }
+
+                sheets.set(sheetName, {
+                    conditionalFormats: extractConditionalFormatsFromWorksheet(sheetDoc, dxfFormats, palette),
+                    charts: await extractChartsFromWorksheet(zip, sheetPath, sheetDoc, sheetName, palette),
+                    cellStyles: extractCellStylesFromWorksheet(sheetDoc, directFormats),
+                    cellTypes: extractCellTypesFromWorksheet(sheetDoc, directFormats),
+                });
+            }
+
+            return { sheets, warnings: [] };
+        }
+
+        function removeStyleAttrPart(styleAttrs, key) {
+            if (!styleAttrs) {
+                return null;
+            }
+            const next = { ...styleAttrs };
+            if (key === "bold" || key === "italic" || key === "underline") {
+                next[key] = false;
+            } else {
+                next[key] = "";
+            }
+            return normalizeExportedStyleAttrs(next);
+        }
+
+        function buildStyleCompactionPlan(bounds, entriesByAddress, coveredCells, cellStyles, merges) {
+            const rowAttrs = new Map();
+            const remainingStyles = new Map(Array.from(cellStyles.entries()).map(([address, style]) => [address, cloneStyleAttrs(style)]));
+            const mergeAttrs = new Map();
+            const rangeFormats = [];
+
+            for (const merge of merges) {
+                const topLeftAddress = encodeCellAddress({ row: merge.s.r, col: merge.s.c });
+                const style = remainingStyles.get(topLeftAddress);
+                if (style?.align) {
+                    mergeAttrs.set(XLSX.utils.encode_range(merge), { align: style.align });
+                    const stripped = removeStyleAttrPart(style, "align");
+                    if (stripped) {
+                        remainingStyles.set(topLeftAddress, stripped);
+                    } else {
+                        remainingStyles.delete(topLeftAddress);
+                    }
+                }
+            }
+
+            for (let row = bounds.s.row; row <= bounds.e.row; row++) {
+                let rowMinCol = Number.POSITIVE_INFINITY;
+                let rowMaxCol = Number.NEGATIVE_INFINITY;
+                const rowAddresses = [];
+                for (let col = bounds.s.col; col <= bounds.e.col; col++) {
+                    const address = encodeCellAddress({ row, col });
+                    if (entriesByAddress.has(address) || coveredCells.has(address)) {
+                        rowMinCol = Math.min(rowMinCol, col);
+                        rowMaxCol = Math.max(rowMaxCol, col);
+                    }
+                    if (entriesByAddress.has(address)) {
+                        rowAddresses.push(address);
+                    }
+                }
+
+                if (!rowAddresses.length || !Number.isFinite(rowMinCol) || !Number.isFinite(rowMaxCol)) {
+                    continue;
+                }
+
+                const styleKeys = rowAddresses.map((address) => styleAttrKey(remainingStyles.get(address))).filter(Boolean);
+                if (!styleKeys.length || styleKeys.length !== rowAddresses.length) {
+                    continue;
+                }
+                const firstKey = styleKeys[0];
+                if (styleKeys.every((key) => key === firstKey) && rowAddresses.length >= 2) {
+                    rowAttrs.set(row, cloneStyleAttrs(remainingStyles.get(rowAddresses[0])));
+                    for (const address of rowAddresses) {
+                        remainingStyles.delete(address);
+                    }
+                }
+            }
+
+            const sortedAddresses = () => Array.from(remainingStyles.keys())
+                .map((address) => ({ address, parsed: parseCellAddress(address) }))
+                .filter((entry) => entry.parsed)
+                .sort((left, right) => left.parsed.row - right.parsed.row || left.parsed.col - right.parsed.col);
+
+            while (true) {
+                const candidates = sortedAddresses();
+                if (!candidates.length) {
+                    break;
+                }
+                let extracted = false;
+
+                for (const start of candidates) {
+                    const style = remainingStyles.get(start.address);
+                    const key = styleAttrKey(style);
+                    if (!key) {
+                        continue;
+                    }
+
+                    let endCol = start.parsed.col;
+                    while (styleAttrKey(remainingStyles.get(encodeCellAddress({ row: start.parsed.row, col: endCol + 1 }))) === key) {
+                        endCol++;
+                    }
+
+                    let endRow = start.parsed.row;
+                    let canGrow = true;
+                    while (canGrow) {
+                        const nextRow = endRow + 1;
+                        for (let col = start.parsed.col; col <= endCol; col++) {
+                            const address = encodeCellAddress({ row: nextRow, col });
+                            if (styleAttrKey(remainingStyles.get(address)) !== key) {
+                                canGrow = false;
+                                break;
+                            }
+                        }
+                        if (canGrow) {
+                            endRow = nextRow;
+                        }
+                    }
+
+                    const width = endCol - start.parsed.col + 1;
+                    const height = endRow - start.parsed.row + 1;
+                    if ((width * height) >= 2) {
+                        const range = `${encodeCellAddress(start.parsed)}:${encodeCellAddress({ row: endRow, col: endCol })}`;
+                        rangeFormats.push({ range, style: cloneStyleAttrs(style) });
+                        for (let row = start.parsed.row; row <= endRow; row++) {
+                            for (let col = start.parsed.col; col <= endCol; col++) {
+                                remainingStyles.delete(encodeCellAddress({ row, col }));
+                            }
+                        }
+                        extracted = true;
+                        break;
+                    }
+                }
+
+                if (!extracted) {
+                    break;
+                }
+            }
+
+            return {
+                rowAttrs,
+                rangeFormats,
+                mergeAttrs,
+                remainingStyles,
+            };
+        }
+
+        function buildTypeCompactionPlan(entriesByAddress, cellTypes = new Map()) {
+            const rawTypes = new Map(cellTypes);
+            const remainingTypes = new Map(rawTypes);
+            const typeRanges = [];
+
+            const sortedAddresses = () => Array.from(remainingTypes.keys())
+                .map((address) => ({ address, parsed: parseCellAddress(address), type: remainingTypes.get(address) }))
+                .filter((entry) => entry.parsed && entry.type)
+                .sort((left, right) => left.parsed.row - right.parsed.row || left.parsed.col - right.parsed.col);
+
+            while (true) {
+                const candidates = sortedAddresses();
+                if (!candidates.length) {
+                    break;
+                }
+
+                let extracted = false;
+                for (const start of candidates) {
+                    const type = start.type;
+                    let endCol = start.parsed.col;
+                    while (remainingTypes.get(encodeCellAddress({ row: start.parsed.row, col: endCol + 1 })) === type) {
+                        endCol++;
+                    }
+
+                    let endRow = start.parsed.row;
+                    let canGrow = true;
+                    while (canGrow) {
+                        const nextRow = endRow + 1;
+                        for (let col = start.parsed.col; col <= endCol; col++) {
+                            if (remainingTypes.get(encodeCellAddress({ row: nextRow, col })) !== type) {
+                                canGrow = false;
+                                break;
+                            }
+                        }
+                        if (canGrow) {
+                            endRow = nextRow;
+                        }
+                    }
+
+                    const width = endCol - start.parsed.col + 1;
+                    const height = endRow - start.parsed.row + 1;
+                    if ((width * height) >= 2) {
+                        typeRanges.push({
+                            range: `${encodeCellAddress(start.parsed)}:${encodeCellAddress({ row: endRow, col: endCol })}`,
+                            type,
+                        });
+                        for (let row = start.parsed.row; row <= endRow; row++) {
+                            for (let col = start.parsed.col; col <= endCol; col++) {
+                                remainingTypes.delete(encodeCellAddress({ row, col }));
+                            }
+                        }
+                        extracted = true;
+                        break;
+                    }
+                }
+
+                if (!extracted) {
+                    break;
+                }
+            }
+
+            const hoistedTypes = new Map();
+            for (const typeRange of typeRanges) {
+                const range = parseRange(typeRange.range);
+                if (!range) {
+                    continue;
+                }
+                for (let row = range.s.row; row <= range.e.row; row++) {
+                    for (let col = range.s.col; col <= range.e.col; col++) {
+                        hoistedTypes.set(encodeCellAddress({ row, col }), typeRange.type);
+                    }
+                }
+            }
+
+            return {
+                typeRanges,
+                hoistedTypes,
+            };
+        }
+
+        function convertExcelWorkbookToWorkbookDoc(fileName, workbook, artifacts = { sheets: new Map(), warnings: [] }) {
+            const lines = [];
+            const title = fileName.replace(/\.[^.]+$/, "") || "Imported Workbook";
+            lines.push(`= ${title}`);
+            lines.push(":wbdoc: 4");
+
+            const activeTabIndex = workbook?.Workbook?.Views?.[0]?.activeTab;
+            if (typeof activeTabIndex === "number" && workbook.SheetNames[activeTabIndex]) {
+                lines.push(`:active: ${workbook.SheetNames[activeTabIndex]}`);
+            }
+
+            lines.push("");
+
+            workbook.SheetNames.forEach((sheetName, sheetIndex) => {
+                const ws = workbook.Sheets[sheetName];
+                const sheetMeta = workbook?.Workbook?.Sheets?.[sheetIndex];
+                const sheetArtifacts = artifacts?.sheets?.get(sheetName) || { conditionalFormats: [], charts: [], cellStyles: new Map(), cellTypes: new Map() };
+                lines.push(`== ${sheetName}`);
+
+                if (sheetMeta?.Hidden) {
+                    lines.push("[state hidden]");
+                    if (sheetMeta.Hidden === 2) {
+                        lines.push("[x excel very-hidden]");
+                    }
+                }
+
+                const merges = Array.isArray(ws["!merges"]) ? ws["!merges"] : [];
+                const bounds = computeWorksheetContentBounds(ws, merges);
+                if (bounds) {
+                    lines.push(`[used ${encodeCellAddress(bounds.s)}:${encodeCellAddress(bounds.e)}]`);
+                }
+
+                if (!bounds) {
+                    lines.push("");
+                    return;
+                }
+
+                const coveredCells = new Set();
+                for (const merge of merges) {
+                    for (let row = merge.s.r; row <= merge.e.r; row++) {
+                        for (let col = merge.s.c; col <= merge.e.c; col++) {
+                            if (row === merge.s.r && col === merge.s.c) {
+                                continue;
+                            }
+                            coveredCells.add(XLSX.utils.encode_cell({ r: row, c: col }));
+                        }
+                    }
+                }
+
+                const addresses = Object.keys(ws)
+                    .filter((key) => /^[A-Z]+[0-9]+$/i.test(key))
+                    .map((address) => ({
+                        address,
+                        cell: ws[address],
+                        parsed: parseCellAddress(address),
+                    }))
+                    .filter((entry) => entry.parsed && !coveredCells.has(entry.address) && hasMeaningfulExcelCell(entry.cell))
+                    .sort((left, right) => left.parsed.row - right.parsed.row || left.parsed.col - right.parsed.col);
+
+                const entriesByAddress = new Map(addresses.map((entry) => [entry.address, entry]));
+                const compaction = buildStyleCompactionPlan(bounds, entriesByAddress, coveredCells, sheetArtifacts.cellStyles || new Map(), merges);
+                const typeCompaction = buildTypeCompactionPlan(entriesByAddress, sheetArtifacts.cellTypes || new Map());
+
+                for (const typeRange of typeCompaction.typeRanges) {
+                    lines.push(`[type ${typeRange.range} ${typeRange.type}]`);
+                }
+                for (const format of compaction.rangeFormats) {
+                    const styleText = styleAttrsToDirectiveText(format.style);
+                    lines.push(styleText ? `[fmt ${format.range} ${styleText}]` : `[fmt ${format.range}]`);
+                }
+
+                for (let row = bounds.s.row; row <= bounds.e.row; row++) {
+                    let rowMinCol = Number.POSITIVE_INFINITY;
+                    let rowMaxCol = Number.NEGATIVE_INFINITY;
+
+                    for (let col = bounds.s.col; col <= bounds.e.col; col++) {
+                        const address = encodeCellAddress({ row, col });
+                        if (entriesByAddress.has(address) || coveredCells.has(address)) {
+                            rowMinCol = Math.min(rowMinCol, col);
+                            rowMaxCol = Math.max(rowMaxCol, col);
+                        }
+                    }
+
+                    if (!Number.isFinite(rowMinCol)) {
+                        continue;
+                    }
+
+                    const rowTokens = [];
+                    for (let col = rowMinCol; col <= rowMaxCol; col++) {
+                        const address = encodeCellAddress({ row, col });
+                        if (coveredCells.has(address)) {
+                            rowTokens.push("blank");
+                            continue;
+                        }
+                        const entry = entriesByAddress.get(address);
+                        rowTokens.push(entry ? workbookDocRowTokenFromExcelCell(entry.cell, compaction.remainingStyles.get(address) || null, typeCompaction.hoistedTypes.get(address) || "") : "blank");
+                    }
+
+                    while (rowTokens.length && rowTokens[rowTokens.length - 1] === "blank") {
+                        rowTokens.pop();
+                    }
+
+                    if (!rowTokens.length) {
+                        continue;
+                    }
+
+                    const rowAttr = styleAttrsToInlineParts(compaction.rowAttrs.get(row));
+                    const rowPrefix = rowAttr.length ? ` [${rowAttr.join(" ")}]` : "";
+                    lines.push(`@${encodeCellAddress({ row, col: rowMinCol })}${rowPrefix} | ${rowTokens.join(" | ")}`);
+                }
+
+                for (const merge of merges) {
+                    const mergeRange = XLSX.utils.encode_range(merge);
+                    const mergeAttr = styleAttrsToDirectiveText(compaction.mergeAttrs.get(mergeRange));
+                    lines.push(mergeAttr ? `[merge ${mergeRange} ${mergeAttr}]` : `[merge ${mergeRange}]`);
+                }
+
+                for (const conditionalFormat of sheetArtifacts.conditionalFormats || []) {
+                    lines.push(conditionalFormat);
+                }
+
+                for (const entry of addresses) {
+                    const hasDisplayedValue = !!(
+                        typeof entry.cell?.f === "string" && entry.cell.f ||
+                        entry.cell?.v !== undefined && entry.cell?.v !== null && entry.cell?.v !== ""
+                    );
+                    if (entry.cell?.l?.Target && !hasDisplayedValue) {
+                        lines.push(workbookDocCellOverrideFromExcelCell(entry.address, entry.cell, compaction.remainingStyles.get(entry.address) || null, typeCompaction.hoistedTypes.get(entry.address) || ""));
+                    }
+                    const comments = Array.isArray(entry.cell.c) ? entry.cell.c : [];
+                    if (comments.length) {
+                        const first = comments[0];
+                        const author = first.a ? ` by=${quoteWorkbookDoc(first.a)}` : "";
+                        const text = quoteWorkbookDoc(first.t || "");
+                        lines.push(`[x comment ${entry.address}${author} ${text}]`);
+                    }
+                }
+
+                for (const chart of sheetArtifacts.charts || []) {
+                    lines.push(`[chart ${quoteWorkbookDoc(chart.title || "Chart")} type=${chart.type || "column"} at=${chart.at || "A1"} size=${chart.size || "480x280px"}]`);
+                    for (const series of chart.series || []) {
+                        const seriesParts = [
+                            "- series",
+                            series.type || (chart.type === "combo" ? "column" : chart.type || "column"),
+                            quoteWorkbookDoc(series.label || "Series"),
+                            series.cat ? `cat=${series.cat}` : "",
+                            series.val ? `val=${series.val}` : "",
+                            series.size ? `size=${series.size}` : "",
+                            series.color ? `color=${series.color}` : "",
+                            series.labels ? "labels" : "",
+                        ].filter(Boolean);
+                        lines.push(seriesParts.join(" "));
+                    }
+                    lines.push("[end]");
+                }
+
+                lines.push("");
+            });
+
+            return lines.join("\n").trim() + "\n";
+        }
+
+        function downloadWorkbookDoc() {
+            const blob = new Blob([workbookdocInput.value], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "WorkbookDoc-output.wbdoc";
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function renderFromText() {
+            try {
+                const workbook = parseWorkbookDoc(workbookdocInput.value);
+                renderWorkbook(workbook);
+                const warningCount = workbook.warnings.length;
+                if (warningCount) {
+                    setStatus(`Rendered with ${warningCount} warning(s):\n- ${workbook.warnings.join("\n- ")}`, "error");
+                } else {
+                    setStatus(`Rendered workbook "${workbook.title}" with ${workbook.sheets.length} sheet(s).`, "ok");
+                }
+            } catch (error) {
+                setStatus(`Failed to render WorkbookDoc.\n${error.message}`, "error");
+            }
+        }
+
+        async function importExcelFile() {
+            const file = excelInput.files && excelInput.files[0];
+            if (!file) {
+                setStatus("Choose an Excel file first.", "error");
+                return;
+            }
+
+            if (typeof XLSX === "undefined") {
+                setStatus("SheetJS did not load. Excel import requires the CDN script.", "error");
+                return;
+            }
+
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, {
+                    type: "array",
+                    cellFormula: true,
+                    cellNF: true,
+                    cellStyles: true,
+                    cellDates: true,
+                    cellText: true,
+                });
+                const artifacts = await extractWorkbookXmlArtifacts(buffer, workbook);
+
+                workbookdocInput.value = convertExcelWorkbookToWorkbookDoc(file.name, workbook, artifacts);
+                renderFromText();
+                const warnings = artifacts?.warnings?.length ? `\n${artifacts.warnings.join("\n")}` : "";
+                setStatus(`Imported ${file.name} and converted it to WorkbookDoc.${warnings}`, "ok");
+            } catch (error) {
+                setStatus(`Failed to import Excel file.\n${error.message}`, "error");
+            }
+        }
+
+        renderButton.addEventListener("click", renderFromText);
+        exampleButton.addEventListener("click", () => {
+            workbookdocInput.value = SAMPLE_WORKBOOKDOC;
+            renderFromText();
+        });
+        downloadButton.addEventListener("click", downloadWorkbookDoc);
+        importButton.addEventListener("click", importExcelFile);
+
+        renderFromText();
+    </script>
+</body>
+</html>
