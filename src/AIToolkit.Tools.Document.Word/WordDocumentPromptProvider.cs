@@ -5,10 +5,19 @@ namespace AIToolkit.Tools.Document.Word;
 /// <summary>
 /// Supplies Word-specific prompt guidance based on the enabled local and hosted document features.
 /// </summary>
+/// <remarks>
+/// This provider explains which Word reference formats are available in the current tool configuration and documents the
+/// AsciiDoc constructs that the Word renderer and importer intentionally preserve. It is consumed indirectly by
+/// <see cref="WordDocumentTools"/> so callers can keep using the shared <c>document_*</c> tool names.
+/// </remarks>
 internal sealed class WordDocumentPromptProvider(WordDocumentHandlerOptions options) : IDocumentToolPromptProvider
 {
     private readonly WordDocumentHandlerOptions _options = options ?? throw new ArgumentNullException(nameof(options));
 
+    /// <summary>
+    /// Builds the Word-specific prompt contribution.
+    /// </summary>
+    /// <returns>A prompt contribution that documents supported references, edits, and Word-oriented AsciiDoc conventions.</returns>
     public DocumentToolPromptContribution GetPromptContribution()
     {
         var locationLines = CreateLocationLines();

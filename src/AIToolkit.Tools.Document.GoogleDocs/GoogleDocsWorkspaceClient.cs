@@ -12,26 +12,49 @@ namespace AIToolkit.Tools.Document.GoogleDocs;
 /// <summary>
 /// Encapsulates Google Drive operations for Google Docs references and their managed payload sidecars.
 /// </summary>
+/// <remarks>
+/// The document handler collaborates with this client for reference resolution, DOCX export/import of the visible Google
+/// Doc body, and management of the hidden canonical AsciiDoc payload stored in Drive appData for lossless round-trips.
+/// </remarks>
 internal interface IGoogleDocsWorkspaceClient
 {
+    /// <summary>
+    /// Resolves a Google Docs URL or <c>gdocs://</c> reference to a hosted document location.
+    /// </summary>
     ValueTask<GoogleDocsDocumentLocation?> ResolveAsync(
         string documentReference,
         DocumentToolOperation operation,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Tries to read the managed canonical AsciiDoc payload stored alongside a hosted Google Doc.
+    /// </summary>
     ValueTask<string?> TryReadManagedAsciiDocAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Opens a readable DOCX export stream for the hosted Google Doc body.
+    /// </summary>
     ValueTask<Stream> OpenExportReadAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Opens a writable stream whose disposal uploads a DOCX snapshot back to Google Drive.
+    /// </summary>
     ValueTask<Stream> OpenUploadWriteAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Describes a hosted Google Docs location after reference normalization.
+/// </summary>
+/// <remarks>
+/// The location captures existing Drive document identity as well as creation-target information for folder-and-title
+/// references that do not yet exist.
+/// </remarks>
 internal sealed record GoogleDocsDocumentLocation(
     string? DocumentId,
     string? FolderId,
@@ -42,8 +65,14 @@ internal sealed record GoogleDocsDocumentLocation(
     string? Version,
     long? Length);
 
+/// <summary>
+/// Creates the Google Docs workspace client that backs hosted-reference resolution and upload flows.
+/// </summary>
 internal static class GoogleDocsWorkspaceClientFactory
 {
+    /// <summary>
+    /// Creates the configured Google Docs workspace client.
+    /// </summary>
     public static IGoogleDocsWorkspaceClient Create(GoogleDocsWorkspaceOptions? options)
     {
         if (options?.Client is not null)
@@ -57,8 +86,18 @@ internal static class GoogleDocsWorkspaceClientFactory
     }
 }
 
+/// <summary>
+/// Rejects hosted Google Docs operations when no Drive client configuration has been supplied.
+/// </summary>
+/// <remarks>
+/// This placeholder allows local-only tool setups to exist without immediately failing, while still producing a clear
+/// error if a caller actually attempts to use docs.google.com URLs or <c>gdocs://</c> references.
+/// </remarks>
 internal sealed class UnconfiguredGoogleDocsWorkspaceClient : IGoogleDocsWorkspaceClient
 {
+    /// <summary>
+    /// Rejects recognizable hosted Google Docs references when the workspace is unconfigured.
+    /// </summary>
     public ValueTask<GoogleDocsDocumentLocation?> ResolveAsync(
         string documentReference,
         DocumentToolOperation operation,
@@ -75,18 +114,27 @@ internal sealed class UnconfiguredGoogleDocsWorkspaceClient : IGoogleDocsWorkspa
         return ValueTask.FromResult<GoogleDocsDocumentLocation?>(null);
     }
 
+    /// <summary>
+    /// Throws because managed payload access requires a configured Drive client.
+    /// </summary>
     public ValueTask<string?> TryReadManagedAsciiDocAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default) =>
         throw new InvalidOperationException(
             "Google Docs hosted document support is not configured. Set GoogleDocsDocumentHandlerOptions.Workspace with a caller-supplied GoogleCredential, HttpClientInitializer, or ApiKey before using Google Docs references.");
 
+    /// <summary>
+    /// Throws because DOCX export requires a configured Drive client.
+    /// </summary>
     public ValueTask<Stream> OpenExportReadAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default) =>
         throw new InvalidOperationException(
             "Google Docs hosted document support is not configured. Set GoogleDocsDocumentHandlerOptions.Workspace with a caller-supplied GoogleCredential, HttpClientInitializer, or ApiKey before using Google Docs references.");
 
+    /// <summary>
+    /// Throws because upload-on-dispose writes require a configured Drive client.
+    /// </summary>
     public ValueTask<Stream> OpenUploadWriteAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default) =>
@@ -98,6 +146,14 @@ internal sealed class UnconfiguredGoogleDocsWorkspaceClient : IGoogleDocsWorkspa
         || documentReference.StartsWith("https://docs.google.com/document/", StringComparison.OrdinalIgnoreCase);
 }
 
+/// <summary>
+/// Implements hosted Google Docs support by calling Google Drive APIs.
+/// </summary>
+/// <remarks>
+/// Reference resolution parses supported URLs and <c>gdocs://</c> aliases, reads export the current Google Doc body as
+/// DOCX, and writes upload a rendered DOCX snapshot that Drive converts back into Google Docs format. The client also
+/// maintains an appData sidecar containing the canonical AsciiDoc used for future lossless reads.
+/// </remarks>
 internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClient, IDisposable
 {
     private static readonly string[] DefaultScopes =
@@ -108,6 +164,9 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
 
     private readonly DriveService _driveService;
 
+    /// <summary>
+    /// Initializes a Drive-backed Google Docs workspace client.
+    /// </summary>
     public GoogleDriveDocsWorkspaceClient(GoogleDocsWorkspaceOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -130,6 +189,9 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
         });
     }
 
+    /// <summary>
+    /// Resolves a Google Docs URL or <c>gdocs://</c> reference into a hosted document location.
+    /// </summary>
     public async ValueTask<GoogleDocsDocumentLocation?> ResolveAsync(
         string documentReference,
         DocumentToolOperation operation,
@@ -163,6 +225,9 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
         return null;
     }
 
+    /// <summary>
+    /// Reads the managed AsciiDoc payload sidecar stored in Drive appData for the supplied document.
+    /// </summary>
     public async ValueTask<string?> TryReadManagedAsciiDocAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default)
@@ -187,6 +252,9 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
         return WordAsciiDocTextUtilities.NormalizeLineEndings(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
     }
 
+    /// <summary>
+    /// Exports the hosted Google Doc body as a DOCX stream.
+    /// </summary>
     public async ValueTask<Stream> OpenExportReadAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default)
@@ -203,6 +271,9 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
         return stream;
     }
 
+    /// <summary>
+    /// Opens a stream that uploads its buffered DOCX snapshot back to Google Drive when disposed.
+    /// </summary>
     public ValueTask<Stream> OpenUploadWriteAsync(
         GoogleDocsDocumentLocation location,
         CancellationToken cancellationToken = default) =>
@@ -210,6 +281,9 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
             (content, innerCancellationToken) => new ValueTask(PersistSnapshotAsync(location, content, innerCancellationToken)),
             cancellationToken));
 
+    /// <summary>
+    /// Disposes the underlying <see cref="DriveService"/>.
+    /// </summary>
     public void Dispose() =>
         _driveService.Dispose();
 
@@ -273,6 +347,8 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
         await content.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
         var snapshot = buffer.ToArray();
 
+        // Writes always flow through a DOCX snapshot so the Google Docs bridge can reuse the shared Word renderer while
+        // also extracting the canonical payload that will be stored in appData for future lossless reads.
         var asciiDoc = ExtractCanonicalAsciiDoc(snapshot);
         var title = location.Title ?? ExtractDocumentTitle(snapshot) ?? "AIToolkit Document";
 
@@ -544,6 +620,10 @@ internal sealed class GoogleDriveDocsWorkspaceClient : IGoogleDocsWorkspaceClien
 /// <summary>
 /// Buffers generated DOCX content until it can be uploaded and converted back to Google Docs on disposal.
 /// </summary>
+/// <remarks>
+/// <see cref="WordprocessingDocument"/> closes its target stream during synchronous disposal. This wrapper snapshots the
+/// buffered bytes, starts the upload once, and lets asynchronous disposal await the shared persistence task.
+/// </remarks>
 internal sealed class GoogleDocsUploadOnDisposeMemoryStream(
     Func<Stream, CancellationToken, ValueTask> persistAsync,
     CancellationToken cancellationToken) : MemoryStream
@@ -553,6 +633,9 @@ internal sealed class GoogleDocsUploadOnDisposeMemoryStream(
     private readonly object _persistLock = new();
     private Task? _persistTask;
 
+    /// <summary>
+    /// Flushes the buffered snapshot to Google Drive before disposing the stream asynchronously.
+    /// </summary>
     public override async ValueTask DisposeAsync()
     {
         await BeginPersistAsync().ConfigureAwait(false);

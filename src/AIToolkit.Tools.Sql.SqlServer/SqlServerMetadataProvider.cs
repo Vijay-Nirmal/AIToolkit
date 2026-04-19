@@ -11,10 +11,12 @@ namespace AIToolkit.Tools.Sql.SqlServer;
 /// <remarks>
 /// The shared package defines the metadata models, but the actual catalog queries and object-shape rules are provider-specific, so they stay here.
 /// </remarks>
+/// <param name="connectionResolver">Resolves named SQL Server profiles into open connections for metadata operations.</param>
 internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver connectionResolver) : ISqlMetadataProvider
 {
     private readonly SqlServerConnectionResolver _connectionResolver = connectionResolver ?? throw new ArgumentNullException(nameof(connectionResolver));
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlDatabaseInfo>> ListDatabasesAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)
@@ -25,6 +27,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         return items.Select(static name => new SqlDatabaseInfo(name)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)
@@ -35,6 +38,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         return items.Select(static name => new SqlSchemaInfo(name)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)
@@ -45,6 +49,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         return items.Select(static name => new SqlTableInfo(ParseObjectIdentifier(name))).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlViewInfo>> ListViewsAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)
@@ -55,6 +60,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         return items.Select(static name => new SqlViewInfo(ParseObjectIdentifier(name))).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlRoutineInfo>> ListFunctionsAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)
@@ -65,6 +71,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         return items.Select(static name => new SqlRoutineInfo(ParseObjectIdentifier(name), SqlRoutineKind.Function)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlRoutineInfo>> ListProceduresAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)
@@ -75,6 +82,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         return items.Select(static name => new SqlRoutineInfo(ParseObjectIdentifier(name), SqlRoutineKind.Procedure)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<SqlObjectDefinition> GetObjectDefinitionAsync(
         SqlConnectionTarget target,
         string? schemaName,
@@ -97,6 +105,7 @@ internal sealed class SqlServerMetadataProvider(SqlServerConnectionResolver conn
         };
     }
 
+    /// <inheritdoc />
     public async ValueTask<SqlSchemaOverview> GetSchemaOverviewAsync(
         SqlConnectionTarget target,
         CancellationToken cancellationToken = default)

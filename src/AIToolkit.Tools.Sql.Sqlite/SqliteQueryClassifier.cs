@@ -5,6 +5,11 @@ namespace AIToolkit.Tools.Sql.Sqlite;
 /// <summary>
 /// Applies a conservative SQLite-oriented safety classification to ad-hoc SQL text.
 /// </summary>
+/// <remarks>
+/// SQLite exposes powerful file-level and pragma operations that are easy to misuse from an autonomous tool. This classifier strips comments
+/// and quoted content, inspects the remaining tokens, and prefers blocking uncertain statements instead of allowing accidental mutation or
+/// administrative commands.
+/// </remarks>
 internal sealed partial class SqliteQueryClassifier : ISqlQueryClassifier
 {
     private static readonly string[] ApprovalKeywords =
@@ -36,6 +41,7 @@ internal sealed partial class SqliteQueryClassifier : ISqlQueryClassifier
         "WITH",
     ];
 
+    /// <inheritdoc />
     public SqlQueryClassification Classify(string query)
     {
         if (string.IsNullOrWhiteSpace(query))

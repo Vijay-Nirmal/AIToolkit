@@ -2,8 +2,18 @@ using System.Text;
 
 namespace AIToolkit.Tools.Document;
 
+/// <summary>
+/// Builds the shared and provider-specific prompt text for the generic document tools.
+/// </summary>
+/// <remarks>
+/// The catalog centralizes wording so AI function descriptions, system prompt guidance, and provider contributions stay
+/// aligned.
+/// </remarks>
 internal static class ToolPromptCatalog
 {
+    /// <summary>
+    /// Appends a document-guidance section to an existing system prompt when one is already present.
+    /// </summary>
     public static string AppendSystemPromptSection(string? currentSystemPrompt, string guidance)
     {
         if (string.IsNullOrWhiteSpace(currentSystemPrompt))
@@ -14,6 +24,9 @@ internal static class ToolPromptCatalog
         return string.Join("\n\n", currentSystemPrompt, guidance);
     }
 
+    /// <summary>
+    /// Builds the description for <c>document_read_file</c>.
+    /// </summary>
     public static string GetDocumentReadFileDescription(DocumentToolsOptions? options = null) =>
         BuildToolDescription(
             "Reads a supported document file and returns its canonical AsciiDoc representation.",
@@ -27,6 +40,9 @@ internal static class ToolPromptCatalog
             ],
             GetProviderLines(options, static contribution => contribution.ReadFileDescriptionLines));
 
+    /// <summary>
+    /// Builds the description for <c>document_write_file</c>.
+    /// </summary>
     public static string GetDocumentWriteFileDescription(DocumentToolsOptions? options = null) =>
         BuildToolDescription(
             "Writes a supported document file from canonical AsciiDoc.",
@@ -38,6 +54,9 @@ internal static class ToolPromptCatalog
             ],
             GetProviderLines(options, static contribution => contribution.WriteFileDescriptionLines));
 
+    /// <summary>
+    /// Builds the description for <c>document_edit_file</c>.
+    /// </summary>
     public static string GetDocumentEditFileDescription(DocumentToolsOptions? options = null) =>
         BuildToolDescription(
             "Performs exact string replacements against the canonical AsciiDoc representation of a supported document file.",
@@ -50,6 +69,9 @@ internal static class ToolPromptCatalog
             ],
             GetProviderLines(options, static contribution => contribution.EditFileDescriptionLines));
 
+    /// <summary>
+    /// Builds the description for <c>document_grep_search</c>.
+    /// </summary>
     public static string GetDocumentGrepSearchDescription(DocumentToolsOptions? options = null) =>
         BuildToolDescription(
             "Searches the canonical text content of supported document files.",
@@ -63,6 +85,9 @@ internal static class ToolPromptCatalog
             ],
             GetProviderLines(options, static contribution => contribution.GrepSearchDescriptionLines));
 
+    /// <summary>
+    /// Builds the merged system-prompt guidance for the generic document tools.
+    /// </summary>
     public static string GetDocumentSystemPromptGuidance(DocumentToolsOptions? options)
     {
         var lines = MergeUniqueLines(

@@ -12,8 +12,16 @@ using System.Xml.Linq;
 namespace AIToolkit.Tools.Web;
 
 /// <summary>
-/// Provides the default HTTP fetch and HTML normalization implementation for <c>web_fetch</c>.
+/// Provides the default HTTP fetch and normalization implementation behind <c>web_fetch</c>.
 /// </summary>
+/// <remarks>
+/// This fetcher is responsible for the transport-level behavior that the provider-specific search packages do not
+/// handle: validating public URLs, blocking localhost and private-network access, following only same-host redirects,
+/// converting HTML to markdown, formatting JSON and XML when possible, and caching normalized responses. It is created
+/// internally by <see cref="WebToolService"/> whenever a custom <see cref="IWebContentFetcher"/> is not supplied.
+/// </remarks>
+/// <seealso cref="IWebContentFetcher"/>
+/// <seealso cref="WebToolService"/>
 public sealed class DefaultWebContentFetcher : IWebContentFetcher
 {
     private static readonly ConcurrentDictionary<string, CacheEntry> Cache = new(StringComparer.OrdinalIgnoreCase);
@@ -33,6 +41,11 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
     /// Initializes a new instance of the <see cref="DefaultWebContentFetcher"/> class using the shared default HTTP client.
     /// </summary>
     /// <param name="options">The options controlling fetch and normalization behavior.</param>
+    /// <remarks>
+    /// Use this overload when the shared static <see cref="HttpClient"/> configuration is sufficient and you only need
+    /// to customize limits such as <see cref="WebToolsOptions.MaxFetchCharacters"/> or
+    /// <see cref="WebToolsOptions.RequestTimeoutSeconds"/>.
+    /// </remarks>
     public DefaultWebContentFetcher(WebToolsOptions? options = null)
         : this(SharedHttpClient, options)
     {
@@ -43,13 +56,38 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
     /// </summary>
     /// <param name="httpClient">The HTTP client to use.</param>
     /// <param name="options">The options controlling fetch and normalization behavior.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// Supplying an <see cref="HttpClient"/> is useful when tests need deterministic handlers or a host wants to reuse
+    /// centralized proxy, certificate, or telemetry configuration.
+    /// </remarks>
     public DefaultWebContentFetcher(HttpClient httpClient, WebToolsOptions? options = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options ?? new WebToolsOptions();
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Fetches a public URL and normalizes the response into a tool-friendly format.
+    /// </summary>
+    /// <param name="request">The fetch request describing the target URL and optional prompt hint.</param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>A normalized fetch response containing transport metadata and normalized content.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The URL is invalid or unsafe, the response exceeds configured limits, an unsupported media type is returned, or
+    /// redirect handling cannot proceed safely.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">
+    /// The operation is cancelled by <paramref name="cancellationToken"/> or by the configured request timeout.
+    /// </exception>
+    /// <example>
+    /// <code language="csharp"><![CDATA[
+    /// var fetcher = new DefaultWebContentFetcher(new WebToolsOptions { MaxFetchCharacters = 4000 });
+    /// var result = await fetcher.FetchAsync(
+    ///     new WebContentFetchRequest("https://learn.microsoft.com/dotnet", Prompt: "runtime changes"));
+    /// ]]></code>
+    /// </example>
     public async ValueTask<WebContentFetchResponse> FetchAsync(WebContentFetchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -88,6 +126,8 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
                 var redirectUri = ResolveRedirectUri(currentUrl, response.Headers.Location);
                 if (!IsPermittedRedirect(currentUrl, redirectUri))
                 {
+                    // Cross-host redirects are returned to the caller instead of being followed automatically so an
+                    // agent has to acknowledge the change in origin before new content is fetched.
                     return new WebContentFetchResponse(
                         Url: normalizedUrl,
                         EffectiveUrl: currentUrl,
@@ -115,6 +155,8 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
             var mediaType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
             var rawBytes = await ReadResponseBytesAsync(response, timeoutCts.Token).ConfigureAwait(false);
             var rawText = DecodeBytes(rawBytes, response.Content.Headers.ContentType?.CharSet);
+
+            // Normalization happens after the byte budget has been enforced so the parser never sees an unbounded body.
             var normalized = NormalizeContent(mediaType, rawText);
 
             var cached = new CacheEntry(
@@ -228,6 +270,8 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
 
     private static bool IsBlockedHost(string host)
     {
+        // This is the core SSRF guard for the shared fetcher: hostnames known to resolve to local resources and
+        // private or loopback IP ranges are rejected before any request is sent.
         if (string.IsNullOrWhiteSpace(host))
         {
             return true;
@@ -376,6 +420,8 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
         var document = new HtmlDocument();
         document.LoadHtml(html);
 
+        // Removing high-noise and interactive elements before markdown conversion keeps the output focused on the page's
+        // readable content instead of scripts, forms, and decorative markup.
         var removableNodes = document.DocumentNode.SelectNodes("//script|//style|//noscript|//svg|//canvas|//iframe|//form");
         foreach (var node in removableNodes ?? Enumerable.Empty<HtmlNode>())
         {
@@ -461,6 +507,8 @@ public sealed class DefaultWebContentFetcher : IWebContentFetcher
             return content;
         }
 
+        // Prompt selection is deliberately heuristic rather than semantic: it scores content chunks by keyword overlap
+        // so the fetcher can cheaply retain the most relevant sections without additional model calls.
         var sections = content
             .Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select((section, index) => new SectionScore(section, index, ScoreSection(section, queryTerms)))

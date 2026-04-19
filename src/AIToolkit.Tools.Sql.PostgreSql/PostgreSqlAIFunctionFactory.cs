@@ -6,10 +6,19 @@ namespace AIToolkit.Tools.Sql.PostgreSql;
 /// <summary>
 /// Maps the internal PostgreSQL tool service methods to the public <c>pgsql_*</c> AI function names.
 /// </summary>
+/// <remarks>
+/// Tool behavior lives in <see cref="PostgreSqlToolService"/>, while this factory owns the stable function names and descriptions presented to
+/// AI hosts. That separation keeps prompt contracts stable even when the implementation evolves.
+/// </remarks>
+/// <param name="toolService">The service instance whose public methods are exposed as AI functions.</param>
 internal sealed class PostgreSqlAIFunctionFactory(PostgreSqlToolService toolService)
 {
     private readonly PostgreSqlToolService _toolService = toolService ?? throw new ArgumentNullException(nameof(toolService));
 
+    /// <summary>
+    /// Creates the complete PostgreSQL AI function set.
+    /// </summary>
+    /// <returns>The <c>pgsql_*</c> functions backed by <see cref="PostgreSqlToolService"/>.</returns>
     public IReadOnlyList<AIFunction> CreateAll() =>
     [
         Create(nameof(PostgreSqlToolService.ListServersAsync), "pgsql_list_servers", "List all PostgreSQL connection profiles registered with the host."),

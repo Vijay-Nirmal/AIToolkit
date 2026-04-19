@@ -5,6 +5,11 @@ namespace AIToolkit.Tools.Sql.MySql;
 /// <summary>
 /// Applies a conservative MySQL-oriented safety classification to ad-hoc SQL text.
 /// </summary>
+/// <remarks>
+/// The classifier strips comments and quoted content before inspecting tokens so routine string literals do not accidentally trigger mutation
+/// or administrative classifications. MySQL-specific commands such as <c>INSTALL</c> and <c>UNINSTALL</c> are blocked outright because they
+/// affect server state beyond a single schema.
+/// </remarks>
 internal sealed partial class MySqlQueryClassifier : ISqlQueryClassifier
 {
     private static readonly string[] ApprovalKeywords =
@@ -44,6 +49,17 @@ internal sealed partial class MySqlQueryClassifier : ISqlQueryClassifier
         "WITH",
     ];
 
+    /// <summary>
+    /// Classifies ad-hoc MySQL SQL text as read-only, approval-required, or blocked.
+    /// </summary>
+    /// <param name="query">The SQL text to inspect.</param>
+    /// <returns>
+    /// A classification that records the detected statement types, the computed safety level, and a reason when the query is not a safe read.
+    /// </returns>
+    /// <remarks>
+    /// The classifier removes comments and quoted content before token inspection so keywords inside string literals, identifiers, and comments
+    /// do not trigger false positives.
+    /// </remarks>
     public SqlQueryClassification Classify(string query)
     {
         if (string.IsNullOrWhiteSpace(query))

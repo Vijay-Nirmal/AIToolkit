@@ -50,6 +50,7 @@ internal sealed partial class SqlServerQueryClassifier : ISqlQueryClassifier
         "WITH",
     ];
 
+    /// <inheritdoc />
     public SqlQueryClassification Classify(string query)
     {
         if (string.IsNullOrWhiteSpace(query))

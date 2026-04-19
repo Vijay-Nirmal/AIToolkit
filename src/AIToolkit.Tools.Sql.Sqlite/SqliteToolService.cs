@@ -7,6 +7,17 @@ namespace AIToolkit.Tools.Sql.Sqlite;
 /// <summary>
 /// Adapts the shared SQL abstractions into AI-callable SQLite tool methods.
 /// </summary>
+/// <remarks>
+/// This class is the SQLite-specific orchestration layer between the shared abstractions and the public <c>sqlite_*</c> tool names. It logs
+/// tool invocations, translates optional catalog selection into <see cref="SqlConnectionTarget"/> values, converts provider exceptions into
+/// stable tool result records, and handles SQLite-specific explain-plan parsing that does not fit the provider-neutral abstractions.
+/// </remarks>
+/// <param name="profileCatalog">Supplies the named SQLite profiles visible to the model.</param>
+/// <param name="metadataProvider">Reads catalog metadata such as attached databases, tables, and object definitions.</param>
+/// <param name="queryExecutor">Executes classified queries through the shared execution pipeline.</param>
+/// <param name="connectionOpener">Opens raw SQLite connections for operations that need provider-specific commands.</param>
+/// <param name="queryClassifier">Classifies SQLite SQL text before execution or analysis.</param>
+/// <param name="executionPolicy">Controls command timeout, mutation behavior, and result limits.</param>
 internal sealed class SqliteToolService(
     ISqlConnectionProfileCatalog profileCatalog,
     ISqlMetadataProvider metadataProvider,
@@ -25,6 +36,12 @@ internal sealed class SqliteToolService(
     private static readonly Action<ILogger, string, string, Exception?> ToolInvocationLog =
         LoggerMessage.Define<string, string>(LogLevel.Information, new EventId(1, "SqliteToolInvocation"), "AI tool call {ToolName} with parameters {Parameters}");
 
+    /// <summary>
+    /// Lists the SQLite connection profiles registered with the host.
+    /// </summary>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing connection names and file-oriented summaries.</returns>
     public async Task<SqliteListServersToolResult> ListServersAsync(IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_servers", new Dictionary<string, object?>());
@@ -40,6 +57,13 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the attached SQLite databases visible to the selected connection.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing attached catalog names such as <c>main</c> and <c>temp</c>.</returns>
     public async Task<SqliteListDatabasesToolResult> ListDatabasesAsync(string connectionName, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_databases", new Dictionary<string, object?> { ["connectionName"] = connectionName });
@@ -55,6 +79,14 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the schema-like namespaces available to the selected SQLite connection.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="database">An optional attached catalog name. When omitted, SQLite uses <c>main</c>.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing SQLite catalog names used as schema equivalents.</returns>
     public async Task<SqliteListSchemasToolResult> ListSchemasAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_schemas", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -70,6 +102,14 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the tables available in the selected SQLite catalog.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="database">An optional attached catalog name. When omitted, SQLite uses <c>main</c>.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified table names.</returns>
     public async Task<SqliteListTablesToolResult> ListTablesAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_tables", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -85,6 +125,14 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the views available in the selected SQLite catalog.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="database">An optional attached catalog name. When omitted, SQLite uses <c>main</c>.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified view names.</returns>
     public async Task<SqliteListViewsToolResult> ListViewsAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_views", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -100,6 +148,17 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Lists functions known to SQLite metadata.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="database">An optional attached catalog name.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>
+    /// A tool result containing function names. SQLite does not expose a built-in function catalog, so successful calls normally return an
+    /// empty collection.
+    /// </returns>
     public async Task<SqliteListFunctionsToolResult> ListFunctionsAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_functions", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -115,6 +174,17 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Lists procedures known to SQLite metadata.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="database">An optional attached catalog name.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>
+    /// A tool result containing procedure names. SQLite does not support stored procedures, so successful calls normally return an empty
+    /// collection.
+    /// </returns>
     public async Task<SqliteListProceduresToolResult> ListProceduresAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_list_procedures", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -130,6 +200,17 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Gets the SQLite definition for a table or view.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to inspect.</param>
+    /// <param name="objectName">The table or view name to resolve.</param>
+    /// <param name="schemaName">An optional attached catalog name. When omitted, SQLite uses the requested database or <c>main</c>.</param>
+    /// <param name="objectKind">An optional object-kind hint such as <c>Table</c> or <c>View</c>.</param>
+    /// <param name="database">An optional attached catalog override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the resolved <c>CREATE TABLE</c> or <c>CREATE VIEW</c> text.</returns>
     public async Task<SqliteGetObjectDefinitionToolResult> GetObjectDefinitionAsync(string connectionName, string objectName, string? schemaName = null, string? objectKind = null, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_get_object_definition", new Dictionary<string, object?>
@@ -153,6 +234,16 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Executes SQLite SQL text through the shared execution pipeline.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to use.</param>
+    /// <param name="query">The SQL text to classify, approve if required, and execute.</param>
+    /// <param name="database">An optional attached catalog override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the execution classification, any result sets, and provider messages.</returns>
+    /// <seealso cref="ISqlQueryExecutor.ExecuteAsync(SqlConnectionTarget, string, CancellationToken)"/>
     public async Task<SqliteRunQueryToolResult> RunQueryAsync(string connectionName, string query, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_run_query", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database, ["query"] = query });
@@ -168,6 +259,19 @@ internal sealed class SqliteToolService(
         }
     }
 
+    /// <summary>
+    /// Analyzes a read-only SQLite query with <c>EXPLAIN QUERY PLAN</c>.
+    /// </summary>
+    /// <param name="connectionName">The logical SQLite connection profile to use.</param>
+    /// <param name="query">The read-only SQL statement to analyze.</param>
+    /// <param name="database">An optional attached catalog override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the synthesized explain payload and root-node summary.</returns>
+    /// <remarks>
+    /// SQLite returns <c>EXPLAIN QUERY PLAN</c> output as simple rows rather than rich XML or JSON. This method interprets the provider
+    /// output, infers a root-node summary, and serializes the tabular plan into JSON for downstream consumers.
+    /// </remarks>
     public async Task<SqliteExplainQueryToolResult> ExplainQueryAsync(string connectionName, string query, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "sqlite_explain_query", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database, ["query"] = query });
@@ -230,6 +334,7 @@ internal sealed class SqliteToolService(
             throw new InvalidOperationException("SQLite did not return an EXPLAIN QUERY PLAN result.");
         }
 
+        // SQLite exposes planner output as free-form detail strings, so the first row is used to derive a compact root-node summary.
         var firstDetail = rows[0]["detail"] as string;
         var rootNode = new SqlExplainNodeSummary(
             NodeType: ExtractSqliteNodeType(firstDetail),

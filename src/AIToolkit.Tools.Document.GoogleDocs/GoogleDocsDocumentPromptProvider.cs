@@ -5,10 +5,17 @@ namespace AIToolkit.Tools.Document.GoogleDocs;
 /// <summary>
 /// Supplies Google Docs-specific prompt guidance for hosted Google Docs references.
 /// </summary>
+/// <remarks>
+/// This provider explains the supported <c>gdocs://</c> reference shapes, the local-versus-hosted search split, and the
+/// AsciiDoc syntax conventions that the Google Docs bridge preserves through the Word renderer.
+/// </remarks>
 internal sealed class GoogleDocsDocumentPromptProvider(GoogleDocsDocumentHandlerOptions options) : IDocumentToolPromptProvider
 {
     private readonly GoogleDocsDocumentHandlerOptions _options = options ?? throw new ArgumentNullException(nameof(options));
 
+    /// <summary>
+    /// Builds the Google Docs-specific prompt contribution.
+    /// </summary>
     public DocumentToolPromptContribution GetPromptContribution()
     {
         var locationLines = CreateLocationLines();

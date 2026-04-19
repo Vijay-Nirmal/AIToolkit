@@ -9,6 +9,11 @@ namespace AIToolkit.Tools.Document;
 /// <summary>
 /// Implements the behavior behind the public <c>document_*</c> AI functions.
 /// </summary>
+/// <remarks>
+/// This service coordinates reference resolution, handler selection, canonical AsciiDoc conversion, stale-read tracking,
+/// and grep-style search. Provider packages collaborate with it through <see cref="IDocumentReferenceResolver"/>,
+/// <see cref="IDocumentHandler"/>, and <see cref="IDocumentToolPromptProvider"/> while the public AI surface stays stable.
+/// </remarks>
 internal sealed class DocumentToolService(DocumentToolsOptions options)
 {
     private static readonly Action<ILogger, string, string, Exception?> ToolInvocationLog =
@@ -24,6 +29,17 @@ internal sealed class DocumentToolService(DocumentToolsOptions options)
     private readonly DocumentHandlerRegistry _handlerRegistry = new(options);
     private readonly DocumentReadStateStore _readState = new();
 
+    /// <summary>
+    /// Reads a supported document and returns canonical AsciiDoc as numbered text content parts.
+    /// </summary>
+    /// <param name="document_reference">The local path or resolver-backed document reference to read.</param>
+    /// <param name="offset">The optional 1-based AsciiDoc line offset to start from.</param>
+    /// <param name="limit">The optional maximum number of AsciiDoc lines to return.</param>
+    /// <param name="serviceProvider">The optional service provider used for logging, handlers, and resolvers.</param>
+    /// <param name="cancellationToken">A token that cancels the operation.</param>
+    /// <returns>
+    /// One or more <see cref="AIContent"/> parts containing guidance messages plus numbered AsciiDoc lines.
+    /// </returns>
     public async Task<IEnumerable<AIContent>> ReadFileAsync(
         string document_reference,
         int? offset = null,
@@ -72,6 +88,8 @@ internal sealed class DocumentToolService(DocumentToolsOptions options)
 
             var response = await handler.ReadAsync(context, cancellationToken).ConfigureAwait(false);
             var normalized = DocumentSupport.NormalizeLineEndings(response.AsciiDoc ?? string.Empty);
+            // Track the exact canonical snapshot that was shown to the model so later edits can reject stale or partial
+            // reads before mutating a binary-backed provider document.
             TrackRead(context.ReadStateKey, offset, limit, normalized);
 
             var contents = new List<AIContent>();
@@ -118,6 +136,14 @@ internal sealed class DocumentToolService(DocumentToolsOptions options)
         }
     }
 
+    /// <summary>
+    /// Writes a supported document from canonical AsciiDoc.
+    /// </summary>
+    /// <param name="document_reference">The local path or resolver-backed document reference to write.</param>
+    /// <param name="content">The canonical AsciiDoc payload to persist.</param>
+    /// <param name="serviceProvider">The optional service provider used for logging, handlers, and resolvers.</param>
+    /// <param name="cancellationToken">A token that cancels the operation.</param>
+    /// <returns>The provider-agnostic write result returned to the AI caller.</returns>
     public async Task<DocumentWriteFileToolResult> WriteFileAsync(
         string document_reference,
         string content,
@@ -192,6 +218,16 @@ internal sealed class DocumentToolService(DocumentToolsOptions options)
         }
     }
 
+    /// <summary>
+    /// Applies an exact-string edit against the canonical AsciiDoc representation of a supported document.
+    /// </summary>
+    /// <param name="document_reference">The local path or resolver-backed document reference to edit.</param>
+    /// <param name="old_string">The exact canonical AsciiDoc text to replace.</param>
+    /// <param name="new_string">The replacement canonical AsciiDoc text.</param>
+    /// <param name="replace_all"><see langword="true"/> to replace every exact match instead of only a unique single match.</param>
+    /// <param name="serviceProvider">The optional service provider used for logging, handlers, and resolvers.</param>
+    /// <param name="cancellationToken">A token that cancels the operation.</param>
+    /// <returns>The provider-agnostic edit result returned to the AI caller.</returns>
     public async Task<DocumentEditFileToolResult> EditFileAsync(
         string document_reference,
         string old_string,
@@ -343,6 +379,20 @@ internal sealed class DocumentToolService(DocumentToolsOptions options)
         }
     }
 
+    /// <summary>
+    /// Searches canonical AsciiDoc across supported local documents or explicit resolver-backed references.
+    /// </summary>
+    /// <param name="pattern">The text or regular expression to search for.</param>
+    /// <param name="useRegex"><see langword="true"/> to treat <paramref name="pattern"/> as a regular expression.</param>
+    /// <param name="includePattern">An optional glob used to limit local workspace files.</param>
+    /// <param name="document_references">Optional explicit resolver-backed references to search instead of scanning the local workspace.</param>
+    /// <param name="caseSensitive"><see langword="true"/> to perform a case-sensitive search.</param>
+    /// <param name="contextLines">The number of context lines to capture before and after each match.</param>
+    /// <param name="workingDirectory">The optional workspace root used for relative path resolution.</param>
+    /// <param name="maxResults">The optional maximum number of matches to return.</param>
+    /// <param name="serviceProvider">The optional service provider used for logging, handlers, and resolvers.</param>
+    /// <param name="cancellationToken">A token that cancels the operation.</param>
+    /// <returns>The grep-style search result returned to the AI caller.</returns>
     public async Task<DocumentGrepSearchToolResult> GrepSearchAsync(
         string pattern,
         bool useRegex = false,
@@ -633,6 +683,7 @@ internal sealed class DocumentToolService(DocumentToolsOptions options)
                 continue;
             }
 
+            // Skip duplicate resolver targets so aliases that normalize to the same document are searched only once.
             if (!searchedKeys.Add(resolution.ReadStateKey))
             {
                 continue;

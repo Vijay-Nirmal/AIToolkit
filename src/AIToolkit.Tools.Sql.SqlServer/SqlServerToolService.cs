@@ -12,6 +12,12 @@ namespace AIToolkit.Tools.Sql.SqlServer;
 /// This type also centralizes tool-call logging and the conversion from exceptions into tool-friendly failure payloads so those concerns do not
 /// leak into the metadata and query components.
 /// </remarks>
+/// <param name="profileCatalog">Supplies the named SQL Server profiles visible to the model.</param>
+/// <param name="metadataProvider">Reads database, schema, object, and routine metadata.</param>
+/// <param name="queryExecutor">Executes classified queries through the shared execution pipeline.</param>
+/// <param name="connectionOpener">Opens raw SQL Server connections for provider-specific commands.</param>
+/// <param name="queryClassifier">Classifies T-SQL text before execution or analysis.</param>
+/// <param name="executionPolicy">Controls command timeout, mutation behavior, and result limits.</param>
 internal sealed class SqlServerToolService(
     ISqlConnectionProfileCatalog profileCatalog,
     ISqlMetadataProvider metadataProvider,
@@ -33,6 +39,12 @@ internal sealed class SqlServerToolService(
             new EventId(1, "SqlToolInvocation"),
             "AI tool call {ToolName} with parameters {Parameters}");
 
+    /// <summary>
+    /// Lists the SQL Server connection profiles registered with the host.
+    /// </summary>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing connection names and server summaries.</returns>
     public async Task<SqlServerListServersToolResult> ListServersAsync(
         IServiceProvider? serviceProvider = null,
         CancellationToken cancellationToken = default)
@@ -50,6 +62,13 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the databases visible to the selected SQL Server connection.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing visible SQL Server database names.</returns>
     public async Task<SqlServerListDatabasesToolResult> ListDatabasesAsync(
         string connectionName,
         IServiceProvider? serviceProvider = null,
@@ -74,6 +93,14 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the schemas available in the selected SQL Server database.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing schema names.</returns>
     public async Task<SqlServerListSchemasToolResult> ListSchemasAsync(
         string connectionName,
         string? database = null,
@@ -100,6 +127,14 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the tables available in the selected SQL Server database.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified table names.</returns>
     public async Task<SqlServerListTablesToolResult> ListTablesAsync(
         string connectionName,
         string? database = null,
@@ -126,6 +161,14 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the views available in the selected SQL Server database.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified view names.</returns>
     public async Task<SqlServerListViewsToolResult> ListViewsAsync(
         string connectionName,
         string? database = null,
@@ -152,6 +195,14 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the functions available in the selected SQL Server database.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified SQL Server function names.</returns>
     public async Task<SqlServerListFunctionsToolResult> ListFunctionsAsync(
         string connectionName,
         string? database = null,
@@ -178,6 +229,14 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the procedures available in the selected SQL Server database.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified SQL Server procedure names.</returns>
     public async Task<SqlServerListProceduresToolResult> ListProceduresAsync(
         string connectionName,
         string? database = null,
@@ -204,6 +263,17 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Gets the SQL Server definition for a table, view, function, or procedure.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to inspect.</param>
+    /// <param name="objectName">The object name to resolve.</param>
+    /// <param name="schemaName">An optional schema name. When omitted, SQL Server defaults to <c>dbo</c>.</param>
+    /// <param name="objectKind">An optional object-kind hint such as <c>Table</c> or <c>Procedure</c>.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the resolved object definition.</returns>
     public async Task<SqlServerGetObjectDefinitionToolResult> GetObjectDefinitionAsync(
         string connectionName,
         string objectName,
@@ -240,6 +310,15 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Executes T-SQL text through the shared execution pipeline.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to use.</param>
+    /// <param name="query">The SQL text to classify, approve if required, and execute.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the execution classification, any result sets, and provider messages.</returns>
     public async Task<SqlServerRunQueryToolResult> RunQueryAsync(
         string connectionName,
         string query,
@@ -268,6 +347,19 @@ internal sealed class SqlServerToolService(
         }
     }
 
+    /// <summary>
+    /// Analyzes a read-only SQL Server query with <c>SET STATISTICS XML ON</c>.
+    /// </summary>
+    /// <param name="connectionName">The logical SQL Server connection profile to use.</param>
+    /// <param name="query">The read-only SQL statement to analyze.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the parsed SQL Server plan summary and raw XML plan payload.</returns>
+    /// <remarks>
+    /// SQL Server emits execution plans as ShowPlan XML. This method captures the raw XML and also projects key statement, operator, and
+    /// runtime counter data into the shared explain-plan models for easier cross-provider consumption.
+    /// </remarks>
     public async Task<SqlServerExplainQueryToolResult> ExplainQueryAsync(
         string connectionName,
         string query,
@@ -364,6 +456,7 @@ internal sealed class SqlServerToolService(
         var root = document.Root ?? throw new InvalidOperationException("SQL Server returned an empty execution plan.");
         var ns = root.Name.Namespace;
 
+        // SQL Server nests the useful plan details across statement, query-plan, and relop elements, so the parser walks multiple levels.
         var statement = root
             .Descendants()
             .FirstOrDefault(static element => element.Name.LocalName.StartsWith("Stmt", StringComparison.Ordinal));

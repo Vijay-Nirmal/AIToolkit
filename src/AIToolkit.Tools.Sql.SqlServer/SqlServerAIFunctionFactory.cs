@@ -10,10 +10,15 @@ namespace AIToolkit.Tools.Sql.SqlServer;
 /// Keeping this factory separate from <see cref="SqlServerToolService"/> lets the service focus on tool behavior while this type owns the
 /// stable tool names and descriptions exposed to AI hosts.
 /// </remarks>
+/// <param name="toolService">The service instance whose public methods are exposed as AI functions.</param>
 internal sealed class SqlServerAIFunctionFactory(SqlServerToolService toolService)
 {
     private readonly SqlServerToolService _toolService = toolService ?? throw new ArgumentNullException(nameof(toolService));
 
+    /// <summary>
+    /// Creates the complete SQL Server AI function set.
+    /// </summary>
+    /// <returns>The <c>mssql_*</c> functions backed by <see cref="SqlServerToolService"/>.</returns>
     public IReadOnlyList<AIFunction> CreateAll() =>
     [
         Create(nameof(SqlServerToolService.ListServersAsync), "mssql_list_servers", "List all SQL Server connection profiles registered with the host."),

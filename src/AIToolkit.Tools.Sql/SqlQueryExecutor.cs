@@ -10,6 +10,21 @@ namespace AIToolkit.Tools.Sql;
 /// Provider packages can reuse this executor by supplying an <see cref="ISqlConnectionOpener"/> and an
 /// <see cref="ISqlQueryClassifier"/>. Override the virtual members when a provider needs custom materialization behavior.
 /// </remarks>
+/// <param name="connectionOpener">
+/// Opens the provider-native connection once the query has been classified and approved for execution.
+/// </param>
+/// <param name="queryClassifier">
+/// Classifies incoming SQL text before any command is sent to the database.
+/// </param>
+/// <param name="executionPolicy">
+/// Controls mutation handling, command timeout, result truncation, and other execution limits. When omitted,
+/// <see cref="SqlExecutionPolicy.ReadOnly"/> is used.
+/// </param>
+/// <param name="mutationApprover">
+/// Approves mutation-capable statements when the execution policy requires explicit approval.
+/// </param>
+/// <seealso cref="ISqlQueryExecutor"/>
+/// <seealso cref="SqlExecutionPolicy"/>
 public class SqlQueryExecutor(
     ISqlConnectionOpener connectionOpener,
     ISqlQueryClassifier queryClassifier,
@@ -37,6 +52,7 @@ public class SqlQueryExecutor(
 
         if (classification.Safety == SqlStatementSafety.ApprovalRequired)
         {
+            // The executor keeps approval handling centralized so provider wrappers can stay thin and share identical mutation semantics.
             var approvalResult = await ApproveMutationAsync(target, query, classification, cancellationToken).ConfigureAwait(false);
             if (approvalResult is not null)
             {
@@ -110,6 +126,10 @@ public class SqlQueryExecutor(
     /// </summary>
     /// <param name="value">The provider value to normalize.</param>
     /// <returns>The normalized value.</returns>
+    /// <remarks>
+    /// The default implementation trims oversized strings and converts common provider-specific scalar types into JSON-friendly values without
+    /// losing useful precision.
+    /// </remarks>
     protected virtual object? NormalizeValue(object value)
     {
         if (value is DBNull)
@@ -196,6 +216,7 @@ public class SqlQueryExecutor(
             totalRows++;
             if (rows.Count >= _executionPolicy.MaxRows)
             {
+                // Continue reading after truncation so TotalRowCount still reflects the full result size observed by the provider.
                 isTruncated = true;
                 continue;
             }

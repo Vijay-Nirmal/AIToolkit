@@ -7,46 +7,59 @@ namespace AIToolkit.Tools.Sql.MySql;
 /// <summary>
 /// Implements MySQL metadata discovery and object-definition lookup on top of the shared provider contracts.
 /// </summary>
+/// <remarks>
+/// MySQL spreads metadata across <c>information_schema</c> and connection-scoped functions such as <c>DATABASE()</c>. This provider converts
+/// those catalog reads into the shared metadata models and reconstructs table or view definitions when MySQL stores only fragments of the
+/// final statement text.
+/// </remarks>
+/// <param name="connectionResolver">Resolves named MySQL profiles into open connections for metadata operations.</param>
 internal sealed class MySqlMetadataProvider(MySqlConnectionResolver connectionResolver) : ISqlMetadataProvider
 {
     private readonly MySqlConnectionResolver _connectionResolver = connectionResolver ?? throw new ArgumentNullException(nameof(connectionResolver));
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlDatabaseInfo>> ListDatabasesAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ExecuteScalarStringsAsync(target, MySqlCatalogQueries.ListDatabases, null, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlDatabaseInfo(name)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ExecuteScalarStringsAsync(target, MySqlCatalogQueries.ListSchemas, null, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlSchemaInfo(name)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ExecuteScalarStringsAsync(target, MySqlCatalogQueries.ListTables, null, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlTableInfo(ParseObjectIdentifier(name))).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlViewInfo>> ListViewsAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ExecuteScalarStringsAsync(target, MySqlCatalogQueries.ListViews, null, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlViewInfo(ParseObjectIdentifier(name))).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlRoutineInfo>> ListFunctionsAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ExecuteScalarStringsAsync(target, MySqlCatalogQueries.ListFunctions, null, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlRoutineInfo(ParseObjectIdentifier(name), SqlRoutineKind.Function)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlRoutineInfo>> ListProceduresAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ExecuteScalarStringsAsync(target, MySqlCatalogQueries.ListProcedures, null, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlRoutineInfo(ParseObjectIdentifier(name), SqlRoutineKind.Procedure)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<SqlObjectDefinition> GetObjectDefinitionAsync(
         SqlConnectionTarget target,
         string? schemaName,
@@ -69,6 +82,7 @@ internal sealed class MySqlMetadataProvider(MySqlConnectionResolver connectionRe
         };
     }
 
+    /// <inheritdoc />
     public async ValueTask<SqlSchemaOverview> GetSchemaOverviewAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var tables = await ListTablesAsync(target, cancellationToken).ConfigureAwait(false);
@@ -202,6 +216,7 @@ internal sealed class MySqlMetadataProvider(MySqlConnectionResolver connectionRe
             return new SqlObjectIdentifier(schemaName, objectName);
         }
 
+        // MySQL resolves unqualified objects against the current database, so metadata lookup mirrors that behavior explicitly.
         var currentDatabase = await GetCurrentDatabaseAsync(target, cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(currentDatabase))
         {

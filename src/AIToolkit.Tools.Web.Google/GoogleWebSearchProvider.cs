@@ -6,6 +6,13 @@ namespace AIToolkit.Tools.Web.Google;
 /// <summary>
 /// Implements <see cref="IWebSearchProvider"/> on top of Google Custom Search.
 /// </summary>
+/// <remarks>
+/// Google exposes most search shaping through dedicated query parameters, but domain filters are still represented with
+/// <c>site:</c> operators so the shared <see cref="WebSearchRequest"/> contract stays provider-agnostic. The provider
+/// also propagates Google's estimated total result count when it is available.
+/// </remarks>
+/// <seealso cref="GoogleWebSearchOptions"/>
+/// <seealso cref="WebToolService"/>
 public sealed class GoogleWebSearchProvider : IWebSearchProvider
 {
     private static readonly HttpClient SharedHttpClient = CreateHttpClient();
@@ -18,16 +25,33 @@ public sealed class GoogleWebSearchProvider : IWebSearchProvider
     /// </summary>
     /// <param name="options">The Google provider options.</param>
     /// <param name="httpClient">An optional HTTP client override.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public GoogleWebSearchProvider(GoogleWebSearchOptions options, HttpClient? httpClient = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _httpClient = httpClient ?? SharedHttpClient;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the provider identifier reported in <see cref="WebSearchResponse.Provider"/>.
+    /// </summary>
     public string ProviderName => "google";
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Executes a Google Custom Search request and normalizes the response.
+    /// </summary>
+    /// <param name="request">The normalized search request to execute.</param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>A normalized Google search response.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="GoogleWebSearchOptions.ApiKey"/> or <see cref="GoogleWebSearchOptions.SearchEngineId"/> is missing,
+    /// or Google returns a non-success response.
+    /// </exception>
+    /// <remarks>
+    /// Google surfaces timing and approximate total matches under the <c>searchInformation</c> object. This provider
+    /// forwards both values when they are present so callers can preserve that provider-specific signal.
+    /// </remarks>
     public async ValueTask<WebSearchResponse> SearchAsync(WebSearchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -63,6 +87,7 @@ public sealed class GoogleWebSearchProvider : IWebSearchProvider
 
         if (root.TryGetProperty("searchInformation", out var searchInformation))
         {
+            // Google's searchInformation object is the authoritative place for timing and corpus size metadata.
             if (searchInformation.TryGetProperty("searchTime", out var searchTimeElement)
                 && searchTimeElement.TryGetDouble(out var searchTimeSeconds))
             {

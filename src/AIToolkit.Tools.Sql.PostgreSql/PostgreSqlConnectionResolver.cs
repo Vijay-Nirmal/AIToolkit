@@ -6,11 +6,26 @@ namespace AIToolkit.Tools.Sql.PostgreSql;
 /// <summary>
 /// Resolves host-defined PostgreSQL connection profiles into open connections for stateless tool calls.
 /// </summary>
+/// <remarks>
+/// This type is the PostgreSQL implementation of both profile discovery and connection opening. It applies optional per-call database
+/// overrides and keeps provider-specific connection string rules close to the Npgsql client library. It is the bridge between the shared
+/// <see cref="ISqlConnectionProfileCatalog"/> and <see cref="ISqlConnectionOpener"/> abstractions and the PostgreSQL-specific
+/// <see cref="NpgsqlConnectionStringBuilder"/> behavior used by this provider package.
+/// </remarks>
+/// <param name="profiles">The PostgreSQL profiles that may be selected by name.</param>
+/// <param name="connectionFactory">The factory used to create and open <see cref="NpgsqlConnection"/> instances.</param>
 internal sealed class PostgreSqlConnectionResolver : ISqlConnectionProfileCatalog, ISqlConnectionOpener
 {
     private readonly PostgreSqlConnectionProfile[] _profiles;
     private readonly PostgreSqlConnectionFactory _connectionFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PostgreSqlConnectionResolver"/> class.
+    /// </summary>
+    /// <param name="profiles">The named PostgreSQL connection profiles that tools may resolve at runtime.</param>
+    /// <param name="connectionFactory">
+    /// The factory used to materialize <see cref="NpgsqlConnection"/> instances. Tests commonly replace this to avoid live database access.
+    /// </param>
     public PostgreSqlConnectionResolver(
         IEnumerable<PostgreSqlConnectionProfile>? profiles = null,
         PostgreSqlConnectionFactory? connectionFactory = null)
@@ -19,6 +34,17 @@ internal sealed class PostgreSqlConnectionResolver : ISqlConnectionProfileCatalo
         _connectionFactory = connectionFactory ?? new PostgreSqlConnectionFactory();
     }
 
+    /// <summary>
+    /// Lists the registered PostgreSQL profiles in a model-friendly summary format.
+    /// </summary>
+    /// <param name="cancellationToken">A token that can cancel the asynchronous operation.</param>
+    /// <returns>
+    /// A summary list containing each profile name plus the resolved server and default database that the shared SQL tools expose to the model.
+    /// </returns>
+    /// <remarks>
+    /// This method normalizes the server text so the default PostgreSQL port is omitted from the display string while non-default ports are
+    /// preserved.
+    /// </remarks>
     public ValueTask<IReadOnlyList<SqlConnectionProfileSummary>> ListProfilesAsync(
         CancellationToken cancellationToken = default)
     {
@@ -76,6 +102,7 @@ internal sealed class PostgreSqlConnectionResolver : ISqlConnectionProfileCatalo
     {
         if (!string.IsNullOrWhiteSpace(profile.ConnectionString))
         {
+            // Raw connection strings stay authoritative; the resolver only swaps the database when a tool call explicitly overrides it.
             return string.IsNullOrWhiteSpace(database)
                 ? profile.ConnectionString
                 : OverrideDatabase(profile.ConnectionString, database);
@@ -94,6 +121,8 @@ internal sealed class PostgreSqlConnectionResolver : ISqlConnectionProfileCatalo
 
     private static string BuildConnectionString(PostgreSqlConnectionOptions options, string? database)
     {
+        // Structured options are converted here so Npgsql-specific defaults such as the fallback database and application name
+        // stay local to the PostgreSQL provider implementation.
         var builder = new NpgsqlConnectionStringBuilder
         {
             Host = options.Host,

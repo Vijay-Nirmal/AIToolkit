@@ -3,8 +3,15 @@ using Microsoft.Extensions.AI;
 namespace AIToolkit.Tools.Web;
 
 /// <summary>
-/// Creates the generic <c>web_*</c> tools used by Microsoft.Extensions.AI hosts.
+/// Creates the generic <c>web_fetch</c> and <c>web_search</c> tools used by Microsoft.Extensions.AI hosts.
 /// </summary>
+/// <remarks>
+/// This type is the provider-agnostic entry point for the web tool family. Provider-specific packages supply an
+/// <see cref="IWebSearchProvider"/> while the shared package contributes the default <see cref="DefaultWebContentFetcher"/>
+/// and prompt guidance used by the public tool contracts.
+/// </remarks>
+/// <seealso cref="WebToolsOptions"/>
+/// <seealso cref="IWebSearchProvider"/>
 public static class WebTools
 {
     /// <summary>
@@ -23,23 +30,49 @@ public static class WebTools
         ToolPromptCatalog.AppendSystemPromptSection(currentSystemPrompt, GetSystemPromptGuidance());
 
     /// <summary>
-    /// Creates the default web tool set.
+    /// Creates the default shared web tool set.
     /// </summary>
     /// <param name="options">The options that control web fetch and search behavior.</param>
     /// <param name="searchProvider">The optional search provider used by <c>web_search</c>.</param>
     /// <param name="contentFetcher">The optional content fetcher used by <c>web_fetch</c>.</param>
     /// <returns>The <c>web_*</c> AI functions ready to register with an AI host.</returns>
+    /// <remarks>
+    /// When <paramref name="searchProvider"/> is <see langword="null"/>, the returned <c>web_search</c> function still
+    /// exists but reports a structured configuration error at invocation time. This is useful for hosts that always
+    /// register the full tool family and enable search only in selected environments.
+    /// </remarks>
+    /// <example>
+    /// <code language="csharp"><![CDATA[
+    /// var functions = WebTools.CreateFunctions(
+    ///     new WebToolsOptions { MaxSearchResults = 5 },
+    ///     searchProvider: new DuckDuckGoWebSearchProvider());
+    /// ]]></code>
+    /// </example>
     public static IReadOnlyList<AIFunction> CreateFunctions(
         WebToolsOptions? options = null,
         IWebSearchProvider? searchProvider = null,
         IWebContentFetcher? contentFetcher = null) =>
         CreateFactory(options, searchProvider, contentFetcher).CreateAll();
 
+    /// <summary>
+    /// Creates only the shared <c>web_fetch</c> function.
+    /// </summary>
+    /// <param name="options">The options that control fetch behavior.</param>
+    /// <param name="contentFetcher">The optional content fetcher override.</param>
+    /// <returns>An AI function that exposes the shared fetch behavior.</returns>
+    /// <seealso cref="CreateFunctions(WebToolsOptions?, IWebSearchProvider?, IWebContentFetcher?)"/>
     public static AIFunction CreateFetchFunction(
         WebToolsOptions? options = null,
         IWebContentFetcher? contentFetcher = null) =>
         CreateFactory(options, searchProvider: null, contentFetcher).CreateFetch();
 
+    /// <summary>
+    /// Creates only the shared <c>web_search</c> function.
+    /// </summary>
+    /// <param name="options">The options that control search result limits.</param>
+    /// <param name="searchProvider">The optional search provider used to fulfill searches.</param>
+    /// <returns>An AI function that exposes the shared search behavior.</returns>
+    /// <seealso cref="CreateFunctions(WebToolsOptions?, IWebSearchProvider?, IWebContentFetcher?)"/>
     public static AIFunction CreateSearchFunction(
         WebToolsOptions? options = null,
         IWebSearchProvider? searchProvider = null) =>

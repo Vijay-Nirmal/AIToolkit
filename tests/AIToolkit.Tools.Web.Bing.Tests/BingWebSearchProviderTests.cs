@@ -3,9 +3,15 @@ using System.Text;
 
 namespace AIToolkit.Tools.Web.Bing.Tests;
 
+/// <summary>
+/// Verifies Bing-specific request construction and result normalization.
+/// </summary>
 [TestClass]
 public class BingWebSearchProviderTests
 {
+    /// <summary>
+    /// Confirms the provider sends the subscription header and maps Bing's web page payload into normalized results.
+    /// </summary>
     [TestMethod]
     public async Task SearchAsyncParsesBingResponseAndSetsHeader()
     {

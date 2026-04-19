@@ -10,6 +10,13 @@ namespace AIToolkit.Tools.Web.DuckDuckGo;
 /// <summary>
 /// Implements <see cref="IWebSearchProvider"/> on top of DuckDuckGo's HTML results page.
 /// </summary>
+/// <remarks>
+/// Unlike the API-backed providers, this implementation parses DuckDuckGo's public HTML result cards with XPath. That
+/// makes it useful without API credentials, but also means the provider is tightly coupled to the current markup and
+/// therefore collaborates with the shared <see cref="WebToolService"/> filtering step to keep behavior consistent.
+/// </remarks>
+/// <seealso cref="DuckDuckGoWebSearchOptions"/>
+/// <seealso cref="WebToolService"/>
 public sealed class DuckDuckGoWebSearchProvider : IWebSearchProvider
 {
     private const string ResultCardXPath = "//div[@id='links']//div[contains(concat(' ', normalize-space(@class), ' '), ' web-result ')]";
@@ -34,10 +41,24 @@ public sealed class DuckDuckGoWebSearchProvider : IWebSearchProvider
         _httpClient = httpClient ?? SharedHttpClient;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the provider identifier reported in <see cref="WebSearchResponse.Provider"/>.
+    /// </summary>
     public string ProviderName => "duckduckgo";
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Executes a DuckDuckGo HTML search request and normalizes the parsed result cards.
+    /// </summary>
+    /// <param name="request">The normalized search request to execute.</param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>A normalized DuckDuckGo search response.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">DuckDuckGo returns a non-success response.</exception>
+    /// <remarks>
+    /// DuckDuckGo does not offer structured include/exclude domain parameters on its HTML page, so this provider first
+    /// encodes the requested domains into the query text and then performs an additional local host filter after the
+    /// HTML is parsed.
+    /// </remarks>
     public async ValueTask<WebSearchResponse> SearchAsync(WebSearchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -104,6 +125,8 @@ public sealed class DuckDuckGoWebSearchProvider : IWebSearchProvider
 
         foreach (var node in nodes)
         {
+            // The HTML endpoint links through DuckDuckGo redirect wrappers, so both the title link and the visible URL
+            // need to be decoded back to the destination URL before the shared result model is populated.
             var titleNode = node.SelectSingleNode(TitleLinkXPath);
             var title = NormalizeText(titleNode?.InnerText);
             var href = ExtractResultUrl(titleNode?.GetAttributeValue("href", string.Empty));

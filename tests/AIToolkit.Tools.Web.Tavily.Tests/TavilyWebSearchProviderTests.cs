@@ -3,9 +3,15 @@ using System.Text;
 
 namespace AIToolkit.Tools.Web.Tavily.Tests;
 
+/// <summary>
+/// Verifies Tavily-specific request construction and result normalization.
+/// </summary>
 [TestClass]
 public class TavilyWebSearchProviderTests
 {
+    /// <summary>
+    /// Confirms Tavily requests are posted as JSON, the provider summary is surfaced, and duration metadata is converted.
+    /// </summary>
     [TestMethod]
     public async Task SearchAsyncParsesTavilyResponseAndPostsJsonBody()
     {

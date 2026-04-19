@@ -6,6 +6,12 @@ namespace AIToolkit.Tools.Document.GoogleDocs;
 /// <summary>
 /// Bridges Google Docs through the Word AsciiDoc engine and a managed payload sidecar.
 /// </summary>
+/// <remarks>
+/// Reads prefer the managed appData AsciiDoc payload, then fall back to embedded payloads inside a Drive-exported DOCX,
+/// and finally to best-effort Word import when enabled. Writes always generate a DOCX through the Word renderer, embed the
+/// canonical payload, and rely on the Drive client to upload, convert, and persist a managed sidecar for future lossless
+/// reads.
+/// </remarks>
 internal sealed class GoogleDocsDocumentHandler(
     GoogleDocsDocumentHandlerOptions options,
     IGoogleDocsWorkspaceClient client) : IDocumentHandler
@@ -13,13 +19,32 @@ internal sealed class GoogleDocsDocumentHandler(
     private readonly GoogleDocsDocumentHandlerOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly IGoogleDocsWorkspaceClient _client = client ?? throw new ArgumentNullException(nameof(client));
 
+    /// <summary>
+    /// Gets the stable provider name reported by generic document tool results.
+    /// </summary>
     public string ProviderName => "google-docs";
 
+    /// <summary>
+    /// Gets the local file extensions supported by this handler.
+    /// </summary>
+    /// <remarks>
+    /// Google Docs operations are resolver-backed, so this provider does not claim any local workspace extensions.
+    /// </remarks>
     public IReadOnlyCollection<string> SupportedExtensions => [];
 
+    /// <summary>
+    /// Determines whether the resolved document context represents a hosted Google Docs location.
+    /// </summary>
     public bool CanHandle(DocumentHandlerContext context) =>
         context.State is GoogleDocsDocumentLocation;
 
+    /// <summary>
+    /// Reads a hosted Google Doc as canonical AsciiDoc.
+    /// </summary>
+    /// <remarks>
+    /// The provider first checks for a managed payload sidecar, then for an embedded payload in the exported DOCX, and
+    /// finally falls back to best-effort import through <see cref="WordAsciiDocImporter"/> when configured.
+    /// </remarks>
     public async ValueTask<DocumentReadResponse> ReadAsync(DocumentHandlerContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,6 +101,13 @@ internal sealed class GoogleDocsDocumentHandler(
             Message: "Imported Google Docs content into best-effort AsciiDoc.");
     }
 
+    /// <summary>
+    /// Writes canonical AsciiDoc to a hosted Google Doc.
+    /// </summary>
+    /// <remarks>
+    /// The write path renders a DOCX through the Word provider, optionally post-processes the package, then relies on the
+    /// resolver-backed write stream to upload the DOCX and refresh the managed AsciiDoc payload sidecar.
+    /// </remarks>
     public async ValueTask<DocumentWriteResponse> WriteAsync(DocumentHandlerContext context, string asciiDoc, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

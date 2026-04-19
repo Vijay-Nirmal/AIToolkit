@@ -3,9 +3,15 @@ using System.Text;
 
 namespace AIToolkit.Tools.Web.Tests;
 
+/// <summary>
+/// Verifies the shared fetcher's normalization, redirect, and URL-safety behavior.
+/// </summary>
 [TestClass]
 public class DefaultWebContentFetcherTests
 {
+    /// <summary>
+    /// Confirms HTML content is converted to markdown and prompt-based section selection keeps the relevant fragment.
+    /// </summary>
     [TestMethod]
     public async Task FetchConvertsHtmlToMarkdownAndAppliesPromptSelection()
     {
@@ -50,6 +56,9 @@ public class DefaultWebContentFetcherTests
         StringAssert.Contains(result.Content, "Sample Article");
     }
 
+    /// <summary>
+    /// Confirms cross-host redirects are surfaced as explicit follow-up instructions instead of being followed automatically.
+    /// </summary>
     [TestMethod]
     public async Task FetchReturnsRedirectForDifferentHost()
     {
@@ -67,6 +76,9 @@ public class DefaultWebContentFetcherTests
         Assert.AreEqual("https://docs.example.net/start", result.RedirectUrl);
     }
 
+    /// <summary>
+    /// Confirms localhost URLs are rejected before any outbound request is attempted.
+    /// </summary>
     [TestMethod]
     public async Task FetchRejectsLocalhostUrls()
     {

@@ -6,10 +6,19 @@ namespace AIToolkit.Tools.Sql.MySql;
 /// <summary>
 /// Maps the internal MySQL tool service methods to the public <c>mysql_*</c> AI function names.
 /// </summary>
+/// <remarks>
+/// Tool behavior lives in <see cref="MySqlToolService"/>, while this factory owns the stable function names and descriptions presented to AI
+/// hosts. That separation keeps prompt contracts stable even when the implementation evolves.
+/// </remarks>
+/// <param name="toolService">The service instance whose public methods are exposed as AI functions.</param>
 internal sealed class MySqlAIFunctionFactory(MySqlToolService toolService)
 {
     private readonly MySqlToolService _toolService = toolService ?? throw new ArgumentNullException(nameof(toolService));
 
+    /// <summary>
+    /// Creates the complete MySQL AI function set.
+    /// </summary>
+    /// <returns>The <c>mysql_*</c> functions backed by <see cref="MySqlToolService"/>.</returns>
     public IReadOnlyList<AIFunction> CreateAll() =>
     [
         Create(nameof(MySqlToolService.ListServersAsync), "mysql_list_servers", "List all MySQL connection profiles registered with the host."),

@@ -6,22 +6,30 @@ namespace AIToolkit.Tools.Sql.Sqlite;
 /// <summary>
 /// Implements SQLite metadata discovery and object-definition lookup on top of the shared provider contracts.
 /// </summary>
+/// <remarks>
+/// SQLite lacks a rich server-side catalog surface, so this provider maps attached databases to both database and schema concepts, reads
+/// objects from <c>sqlite_schema</c>, and reconstructs definitions from the stored SQL text that SQLite keeps for tables and views.
+/// </remarks>
+/// <param name="connectionResolver">Resolves named SQLite profiles into open connections for metadata operations.</param>
 internal sealed class SqliteMetadataProvider(SqliteConnectionResolver connectionResolver) : ISqlMetadataProvider
 {
     private readonly SqliteConnectionResolver _connectionResolver = connectionResolver ?? throw new ArgumentNullException(nameof(connectionResolver));
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlDatabaseInfo>> ListDatabasesAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ReadDatabaseNamesAsync(target, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlDatabaseInfo(name)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var items = await ReadDatabaseNamesAsync(target, cancellationToken).ConfigureAwait(false);
         return items.Select(static name => new SqlSchemaInfo(name)).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var catalog = GetCatalogName(target);
@@ -29,6 +37,7 @@ internal sealed class SqliteMetadataProvider(SqliteConnectionResolver connection
         return items.Select(name => new SqlTableInfo(new SqlObjectIdentifier(catalog, name))).ToArray();
     }
 
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<SqlViewInfo>> ListViewsAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var catalog = GetCatalogName(target);
@@ -36,12 +45,15 @@ internal sealed class SqliteMetadataProvider(SqliteConnectionResolver connection
         return items.Select(name => new SqlViewInfo(new SqlObjectIdentifier(catalog, name))).ToArray();
     }
 
+    /// <inheritdoc />
     public ValueTask<IReadOnlyList<SqlRoutineInfo>> ListFunctionsAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default) =>
         ValueTask.FromResult<IReadOnlyList<SqlRoutineInfo>>(Array.Empty<SqlRoutineInfo>());
 
+    /// <inheritdoc />
     public ValueTask<IReadOnlyList<SqlRoutineInfo>> ListProceduresAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default) =>
         ValueTask.FromResult<IReadOnlyList<SqlRoutineInfo>>(Array.Empty<SqlRoutineInfo>());
 
+    /// <inheritdoc />
     public async ValueTask<SqlObjectDefinition> GetObjectDefinitionAsync(
         SqlConnectionTarget target,
         string? schemaName,
@@ -54,6 +66,7 @@ internal sealed class SqliteMetadataProvider(SqliteConnectionResolver connection
             throw new ArgumentException("Object name is required.", nameof(objectName));
         }
 
+        // SQLite stores object definitions per attached catalog, so schemaName is treated as an explicit catalog override when provided.
         var catalog = !string.IsNullOrWhiteSpace(schemaName) ? ValidateCatalogName(schemaName) : GetCatalogName(target);
         var identifier = new SqlObjectIdentifier(catalog, objectName);
         var kind = objectKind == SqlObjectKind.Unknown
@@ -80,6 +93,7 @@ internal sealed class SqliteMetadataProvider(SqliteConnectionResolver connection
         return new SqlObjectDefinition(identifier, kind, items[0]);
     }
 
+    /// <inheritdoc />
     public async ValueTask<SqlSchemaOverview> GetSchemaOverviewAsync(SqlConnectionTarget target, CancellationToken cancellationToken = default)
     {
         var tables = await ListTablesAsync(target, cancellationToken).ConfigureAwait(false);

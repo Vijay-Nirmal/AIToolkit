@@ -3,11 +3,17 @@ using System.Text;
 
 namespace AIToolkit.Tools.Web.DuckDuckGo.Tests;
 
+/// <summary>
+/// Verifies DuckDuckGo HTML parsing and shared tool registration behavior.
+/// </summary>
 [TestClass]
 public class DuckDuckGoWebSearchProviderTests
 {
     private static readonly string[] ExpectedToolNames = ["web_fetch", "web_search"];
 
+    /// <summary>
+    /// Confirms HTML result cards are parsed correctly and DuckDuckGo redirect wrappers are decoded back to destination URLs.
+    /// </summary>
     [TestMethod]
     public async Task SearchAsyncParsesHtmlResultsAndDecodesRedirectUrls()
     {
@@ -62,6 +68,9 @@ public class DuckDuckGoWebSearchProviderTests
         Assert.AreEqual(new DateTimeOffset(2025, 11, 7, 0, 0, 0, TimeSpan.Zero), result.Results[0].PublishedAt);
     }
 
+    /// <summary>
+    /// Confirms the package-level helper registers the shared fetch and search tool names.
+    /// </summary>
     [TestMethod]
     public void CreateFunctionsExposesWebTools()
     {

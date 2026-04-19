@@ -9,12 +9,25 @@ namespace AIToolkit.Tools.Document.Word;
 /// <summary>
 /// Resolves OneDrive and SharePoint Word document references through Microsoft Graph.
 /// </summary>
+/// <remarks>
+/// This resolver understands hosted HTTPS URLs plus the package-specific <c>m365://</c> aliases for drive items and
+/// drive-root paths. It translates those references into generic <see cref="DocumentReferenceResolution"/> instances that
+/// stream content through Microsoft Graph while preserving version metadata for stale-read detection. Uploads use
+/// <see cref="UploadOnDisposeMemoryStream"/> so <see cref="DocumentFormat.OpenXml.Packaging.WordprocessingDocument"/> can
+/// dispose synchronously while the actual network persistence continues safely in the background.
+/// </remarks>
 internal sealed class WordM365DocumentReferenceResolver : IDocumentReferenceResolver, IDisposable
 {
     private static readonly string[] DefaultScopes = ["https://graph.microsoft.com/.default"];
 
     private readonly GraphServiceClient _graphClient;
 
+    /// <summary>
+    /// Initializes a Microsoft Graph-backed hosted Word document resolver.
+    /// </summary>
+    /// <param name="options">The Microsoft 365 connection settings to use.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> does not contain a credential.</exception>
     public WordM365DocumentReferenceResolver(WordDocumentM365Options options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -25,6 +38,18 @@ internal sealed class WordM365DocumentReferenceResolver : IDocumentReferenceReso
         _graphClient = new GraphServiceClient(credential, NormalizeScopes(options.Scopes));
     }
 
+    /// <summary>
+    /// Resolves a supported OneDrive or SharePoint reference into a stream-backed document resource.
+    /// </summary>
+    /// <param name="documentReference">The hosted HTTPS or <c>m365://</c> reference to resolve.</param>
+    /// <param name="context">The shared resolver context for the current document tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels Graph lookups.</param>
+    /// <returns>
+    /// A stream-backed resolution when the reference matches a supported Microsoft 365 form; otherwise,
+    /// <see langword="null"/>.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">The reference uses an unsupported hosted alias format.</exception>
+    /// <exception cref="FileNotFoundException">The referenced hosted Word document could not be found.</exception>
     public async ValueTask<DocumentReferenceResolution?> ResolveAsync(
         string documentReference,
         DocumentReferenceResolverContext context,
@@ -244,6 +269,12 @@ internal sealed class WordM365DocumentReferenceResolver : IDocumentReferenceReso
             Length: item.Size);
     }
 
+    /// <summary>
+    /// Disposes the underlying <see cref="GraphServiceClient"/>.
+    /// </summary>
+    /// <remarks>
+    /// Dispose the resolver only after all pending read or write streams have completed.
+    /// </remarks>
     public void Dispose() =>
         _graphClient.Dispose();
 
@@ -354,6 +385,12 @@ internal sealed class WordM365DocumentReferenceResolver : IDocumentReferenceReso
 /// <summary>
 /// Buffers generated Word content until it can be uploaded back to Microsoft Graph on disposal.
 /// </summary>
+/// <remarks>
+/// <see cref="WordprocessingDocument"/> disposes its target stream synchronously, so this wrapper snapshots the content,
+/// starts the upload once, and lets <see cref="DisposeAsync"/> await the same persistence task without blocking the sync
+/// disposal path on network I/O. The resolver uses it to bridge the Open XML save pipeline with Microsoft Graph's async
+/// upload APIs.
+/// </remarks>
 internal sealed class UploadOnDisposeMemoryStream(
     Func<Stream, CancellationToken, ValueTask> persistAsync,
     CancellationToken cancellationToken) : MemoryStream
@@ -363,6 +400,10 @@ internal sealed class UploadOnDisposeMemoryStream(
     private readonly object _persistLock = new();
     private Task? _persistTask;
 
+    /// <summary>
+    /// Uploads the buffered snapshot before disposing the stream asynchronously.
+    /// </summary>
+    /// <returns>A task that completes after the buffered content has been persisted and the stream has been disposed.</returns>
     public override async ValueTask DisposeAsync()
     {
         await BeginPersistAsync().ConfigureAwait(false);
@@ -404,6 +445,13 @@ internal sealed class UploadOnDisposeMemoryStream(
     }
 }
 
+/// <summary>
+/// Describes a hosted Microsoft 365 Word document after reference normalization.
+/// </summary>
+/// <remarks>
+/// This immutable snapshot is carried as <see cref="DocumentReferenceResolution.State"/> so later reads and writes can
+/// reopen the same hosted document without reparsing the original reference text.
+/// </remarks>
 internal sealed record WordM365DocumentLocation(
     string DriveId,
     string? ItemId,

@@ -1,8 +1,14 @@
 namespace AIToolkit.Tools.Tests;
 
+/// <summary>
+/// Exercises task tracking together with the shell execution tools.
+/// </summary>
 [TestClass]
 public class WorkspaceTaskAndShellIntegrationTests
 {
+    /// <summary>
+    /// Verifies manual tasks can be created, updated, retrieved, and listed.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task ManualTaskLifecycleWorks()
@@ -62,6 +68,9 @@ public class WorkspaceTaskAndShellIntegrationTests
         Assert.IsTrue(listResult.Tasks.Any(task => task.Id == createResult.Task.Id));
     }
 
+    /// <summary>
+    /// Verifies command execution supports both foreground completion and background task tracking.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task CommandToolSupportsForegroundAndBackgroundTasks()
@@ -107,6 +116,9 @@ public class WorkspaceTaskAndShellIntegrationTests
         Assert.AreEqual(WorkspaceTaskStatus.Canceled, stopResult.Task.Status);
     }
 
+    /// <summary>
+    /// Verifies the PowerShell tool runs when PowerShell is available in the environment.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task PowerShellToolRunsWhenAvailable()

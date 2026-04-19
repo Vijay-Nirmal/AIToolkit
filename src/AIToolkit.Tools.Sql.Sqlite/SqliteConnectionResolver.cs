@@ -10,6 +10,8 @@ namespace AIToolkit.Tools.Sql.Sqlite;
 /// SQLite does not use server and database selection in the same way as client/server providers. The resolver therefore treats the registered
 /// data source as the connection target and leaves attached database selection to the metadata layer.
 /// </remarks>
+/// <param name="profiles">The SQLite profiles that may be selected by name.</param>
+/// <param name="connectionFactory">The factory used to create and open <see cref="SqliteConnection"/> instances.</param>
 internal sealed class SqliteConnectionResolver : ISqlConnectionProfileCatalog, ISqlConnectionOpener
 {
     private readonly SqliteConnectionProfile[] _profiles;
@@ -23,6 +25,7 @@ internal sealed class SqliteConnectionResolver : ISqlConnectionProfileCatalog, I
         _connectionFactory = connectionFactory ?? new SqliteConnectionFactory();
     }
 
+    /// <inheritdoc />
     public ValueTask<IReadOnlyList<SqlConnectionProfileSummary>> ListProfilesAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<SqlConnectionProfileSummary> profiles =

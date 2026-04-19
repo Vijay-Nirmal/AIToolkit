@@ -3,9 +3,15 @@ using System.Text;
 
 namespace AIToolkit.Tools.Web.Brave.Tests;
 
+/// <summary>
+/// Verifies Brave-specific request construction and result normalization.
+/// </summary>
 [TestClass]
 public class BraveWebSearchProviderTests
 {
+    /// <summary>
+    /// Confirms Brave extra snippets are merged into the normalized snippet text and pagination metadata is preserved.
+    /// </summary>
     [TestMethod]
     public async Task SearchAsyncParsesBraveResponseAndExtraSnippets()
     {

@@ -3,6 +3,23 @@ namespace AIToolkit.Tools;
 /// <summary>
 /// Configures the generic workspace tools created by <see cref="WorkspaceTools"/>.
 /// </summary>
+/// <remarks>
+/// These options shape how <see cref="WorkspaceToolService"/> resolves paths, enforces limits, and composes the
+/// built-in file handler pipeline. Most hosts configure this once and reuse the same instance when registering
+/// tools for a session.
+/// </remarks>
+/// <example>
+/// <code>
+/// var options = new WorkspaceToolsOptions
+/// {
+///     WorkingDirectory = @"C:\repo",
+///     MaxReadLines = 500,
+///     FileHandlers = [PdfWorkspaceTools.CreateFileHandler()],
+/// };
+/// </code>
+/// </example>
+/// <seealso cref="WorkspaceTools"/>
+/// <seealso cref="IWorkspaceFileHandler"/>
 public sealed class WorkspaceToolsOptions
 {
     /// <summary>
@@ -16,6 +33,10 @@ public sealed class WorkspaceToolsOptions
     /// <summary>
     /// Gets or sets the default command timeout in seconds for foreground shell execution.
     /// </summary>
+    /// <remarks>
+    /// Individual calls may request a smaller or larger timeout, but
+    /// <see cref="WorkspaceToolsOptions.MaxCommandTimeoutSeconds"/> still applies.
+    /// </remarks>
     public int DefaultCommandTimeoutSeconds { get; init; } = 30;
 
     /// <summary>
@@ -56,5 +77,9 @@ public sealed class WorkspaceToolsOptions
     /// <summary>
     /// Gets or sets custom file handlers that extend <c>workspace_read_file</c>.
     /// </summary>
+    /// <remarks>
+    /// Handlers from this collection are consulted before handlers resolved from dependency injection and before
+    /// the built-in text, media, and notebook handlers.
+    /// </remarks>
     public IEnumerable<IWorkspaceFileHandler>? FileHandlers { get; init; }
 }

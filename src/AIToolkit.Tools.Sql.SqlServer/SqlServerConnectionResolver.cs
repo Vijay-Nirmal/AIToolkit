@@ -10,6 +10,8 @@ namespace AIToolkit.Tools.Sql.SqlServer;
 /// This type is the SQL Server implementation of both profile discovery and connection opening. It stays provider-specific because connection
 /// string building, authentication options, and database overrides differ across ADO.NET providers.
 /// </remarks>
+/// <param name="profiles">The SQL Server profiles that may be selected by name.</param>
+/// <param name="connectionFactory">The factory used to create and open <see cref="SqlConnection"/> instances.</param>
 internal sealed class SqlServerConnectionResolver : ISqlConnectionProfileCatalog, ISqlConnectionOpener
 {
     private readonly SqlServerConnectionProfile[] _profiles;
@@ -23,6 +25,7 @@ internal sealed class SqlServerConnectionResolver : ISqlConnectionProfileCatalog
         _connectionFactory = connectionFactory ?? new SqlServerConnectionFactory();
     }
 
+    /// <inheritdoc />
     public ValueTask<IReadOnlyList<SqlConnectionProfileSummary>> ListProfilesAsync(
         CancellationToken cancellationToken = default)
     {

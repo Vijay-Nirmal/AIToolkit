@@ -3,8 +3,15 @@ namespace AIToolkit.Tools.Sql.PostgreSql;
 /// <summary>
 /// Holds the PostgreSQL catalog queries used by the metadata provider.
 /// </summary>
+/// <remarks>
+/// PostgreSQL metadata spans both <c>pg_catalog</c> and <c>information_schema</c>. Keeping the raw SQL here keeps the provider logic focused
+/// on mapping catalog rows into shared models instead of on string-heavy query definitions.
+/// </remarks>
 internal static class PostgreSqlCatalogQueries
 {
+    /// <summary>
+    /// Gets the query that lists installed extensions in the current database.
+    /// </summary>
     public const string ListExtensions = @"
 SELECT
     e.extname,
@@ -16,30 +23,45 @@ INNER JOIN pg_namespace n ON n.oid = e.extnamespace
 LEFT JOIN pg_description d ON d.objoid = e.oid AND d.classoid = 'pg_extension'::regclass AND d.objsubid = 0
 ORDER BY e.extname;";
 
+    /// <summary>
+    /// Gets the query that lists user-visible databases.
+    /// </summary>
     public const string ListDatabases = @"
 SELECT datname
 FROM pg_database
 WHERE datallowconn AND NOT datistemplate
 ORDER BY datname;";
 
+    /// <summary>
+    /// Gets the query that lists non-system schemas.
+    /// </summary>
     public const string ListSchemas = @"
 SELECT schema_name
 FROM information_schema.schemata
 WHERE schema_name <> 'information_schema' AND schema_name NOT LIKE 'pg_%'
 ORDER BY schema_name;";
 
+    /// <summary>
+    /// Gets the query that lists base tables in non-system schemas.
+    /// </summary>
     public const string ListTables = @"
 SELECT concat(table_schema, '.', table_name)
 FROM information_schema.tables
 WHERE table_type = 'BASE TABLE' AND table_schema <> 'information_schema' AND table_schema NOT LIKE 'pg_%'
 ORDER BY table_schema, table_name;";
 
+    /// <summary>
+    /// Gets the query that lists views in non-system schemas.
+    /// </summary>
     public const string ListViews = @"
 SELECT concat(table_schema, '.', table_name)
 FROM information_schema.tables
 WHERE table_type = 'VIEW' AND table_schema <> 'information_schema' AND table_schema NOT LIKE 'pg_%'
 ORDER BY table_schema, table_name;";
 
+    /// <summary>
+    /// Gets the query that lists functions in non-system schemas.
+    /// </summary>
     public const string ListFunctions = @"
 SELECT concat(n.nspname, '.', p.proname)
 FROM pg_proc p
@@ -47,6 +69,9 @@ INNER JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE p.prokind = 'f' AND n.nspname <> 'information_schema' AND n.nspname NOT LIKE 'pg_%'
 ORDER BY n.nspname, p.proname;";
 
+    /// <summary>
+    /// Gets the query that lists procedures in non-system schemas.
+    /// </summary>
     public const string ListProcedures = @"
 SELECT concat(n.nspname, '.', p.proname)
 FROM pg_proc p
@@ -54,6 +79,9 @@ INNER JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE p.prokind = 'p' AND n.nspname <> 'information_schema' AND n.nspname NOT LIKE 'pg_%'
 ORDER BY n.nspname, p.proname;";
 
+    /// <summary>
+    /// Gets the query that resolves whether a named object is a table, view, function, or procedure.
+    /// </summary>
     public const string ResolveObjectKind = @"
 SELECT kind
 FROM (
@@ -84,12 +112,18 @@ FROM (
 ORDER BY sort_order
 LIMIT 1;";
 
+    /// <summary>
+    /// Gets the query that returns the SQL text for a view body.
+    /// </summary>
     public const string ViewDefinition = @"
 SELECT pg_get_viewdef(c.oid, true)
 FROM pg_class c
 INNER JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = @schemaName AND c.relname = @objectName AND c.relkind = 'v';";
 
+    /// <summary>
+    /// Gets the query that returns the full definition for a function.
+    /// </summary>
     public const string FunctionDefinition = @"
 SELECT pg_get_functiondef(p.oid)
 FROM pg_proc p
@@ -98,6 +132,9 @@ WHERE n.nspname = @schemaName AND p.proname = @objectName AND p.prokind = 'f'
 ORDER BY p.oid
 LIMIT 1;";
 
+    /// <summary>
+    /// Gets the query that returns the full definition for a stored procedure.
+    /// </summary>
     public const string ProcedureDefinition = @"
 SELECT pg_get_functiondef(p.oid)
 FROM pg_proc p
@@ -106,6 +143,9 @@ WHERE n.nspname = @schemaName AND p.proname = @objectName AND p.prokind = 'p'
 ORDER BY p.oid
 LIMIT 1;";
 
+    /// <summary>
+    /// Gets the query that returns table columns in ordinal order.
+    /// </summary>
     public const string TableColumns = @"
 SELECT
     a.attname,

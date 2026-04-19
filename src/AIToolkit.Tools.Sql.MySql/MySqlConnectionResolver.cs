@@ -6,11 +6,26 @@ namespace AIToolkit.Tools.Sql.MySql;
 /// <summary>
 /// Resolves host-defined MySQL connection profiles into open connections for stateless tool calls.
 /// </summary>
+/// <remarks>
+/// This type is the MySQL implementation of both profile discovery and connection opening. It applies optional per-call database overrides and
+/// keeps provider-specific connection string rules close to the MySQL client library. It is the bridge between the shared
+/// <see cref="ISqlConnectionProfileCatalog"/> and <see cref="ISqlConnectionOpener"/> abstractions and the MySQL-specific
+/// <see cref="MySqlConnectionStringBuilder"/> rules used by the provider package.
+/// </remarks>
+/// <param name="profiles">The MySQL profiles that may be selected by name.</param>
+/// <param name="connectionFactory">The factory used to create and open <see cref="MySqlConnection"/> instances.</param>
 internal sealed class MySqlConnectionResolver : ISqlConnectionProfileCatalog, ISqlConnectionOpener
 {
     private readonly MySqlConnectionProfile[] _profiles;
     private readonly MySqlConnectionFactory _connectionFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MySqlConnectionResolver"/> class.
+    /// </summary>
+    /// <param name="profiles">The named MySQL connection profiles that tools may resolve at runtime.</param>
+    /// <param name="connectionFactory">
+    /// The factory used to materialize <see cref="MySqlConnection"/> instances. Tests commonly replace this to avoid live database access.
+    /// </param>
     public MySqlConnectionResolver(
         IEnumerable<MySqlConnectionProfile>? profiles = null,
         MySqlConnectionFactory? connectionFactory = null)
@@ -19,6 +34,16 @@ internal sealed class MySqlConnectionResolver : ISqlConnectionProfileCatalog, IS
         _connectionFactory = connectionFactory ?? new MySqlConnectionFactory();
     }
 
+    /// <summary>
+    /// Lists the registered MySQL profiles in a model-friendly summary format.
+    /// </summary>
+    /// <param name="cancellationToken">A token that can cancel the asynchronous operation.</param>
+    /// <returns>
+    /// A summary list containing each profile name plus the resolved server and default database that the shared SQL tools expose to the model.
+    /// </returns>
+    /// <remarks>
+    /// This method normalizes the server text so the default MySQL port is omitted from the display string while non-default ports are preserved.
+    /// </remarks>
     public ValueTask<IReadOnlyList<SqlConnectionProfileSummary>> ListProfilesAsync(
         CancellationToken cancellationToken = default)
     {
@@ -75,6 +100,7 @@ internal sealed class MySqlConnectionResolver : ISqlConnectionProfileCatalog, IS
     {
         if (!string.IsNullOrWhiteSpace(profile.ConnectionString))
         {
+            // Raw connection strings stay authoritative; the resolver only swaps the database when a tool call explicitly overrides it.
             return string.IsNullOrWhiteSpace(database)
                 ? profile.ConnectionString
                 : OverrideDatabase(profile.ConnectionString, database);
@@ -93,6 +119,8 @@ internal sealed class MySqlConnectionResolver : ISqlConnectionProfileCatalog, IS
 
     private static string BuildConnectionString(MySqlConnectionOptions options, string? database)
     {
+        // Structured options are converted here so provider-specific defaults such as the fallback database remain close to the
+        // MySQL client library instead of leaking into the shared SQL abstractions.
         var builder = new MySqlConnectionStringBuilder
         {
             Server = options.Server,

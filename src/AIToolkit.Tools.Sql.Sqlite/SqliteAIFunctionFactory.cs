@@ -6,10 +6,19 @@ namespace AIToolkit.Tools.Sql.Sqlite;
 /// <summary>
 /// Maps the internal SQLite tool service methods to the public <c>sqlite_*</c> AI function names.
 /// </summary>
+/// <remarks>
+/// Tool behavior lives in <see cref="SqliteToolService"/>, while this factory preserves the externally visible function names and
+/// descriptions. Keeping that boundary explicit lets the package evolve implementation details without breaking host prompts or tool bindings.
+/// </remarks>
+/// <param name="toolService">The service instance whose public methods are exposed as AI functions.</param>
 internal sealed class SqliteAIFunctionFactory(SqliteToolService toolService)
 {
     private readonly SqliteToolService _toolService = toolService ?? throw new ArgumentNullException(nameof(toolService));
 
+    /// <summary>
+    /// Creates the complete SQLite AI function set.
+    /// </summary>
+    /// <returns>The <c>sqlite_*</c> functions backed by <see cref="SqliteToolService"/>.</returns>
     public IReadOnlyList<AIFunction> CreateAll() =>
     [
         Create(nameof(SqliteToolService.ListServersAsync), "sqlite_list_servers", "List all SQLite connection profiles registered with the host."),

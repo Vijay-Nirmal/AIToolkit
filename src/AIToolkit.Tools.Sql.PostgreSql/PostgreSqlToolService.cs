@@ -6,6 +6,18 @@ namespace AIToolkit.Tools.Sql.PostgreSql;
 /// <summary>
 /// Adapts the shared SQL abstractions into AI-callable PostgreSQL tool methods.
 /// </summary>
+/// <remarks>
+/// This class is the PostgreSQL-specific orchestration layer between the shared abstractions and the public <c>pgsql_*</c> tool names. It
+/// logs tool calls, translates optional database selection into <see cref="SqlConnectionTarget"/> values, converts provider exceptions into
+/// stable tool result records, exposes PostgreSQL-specific extension discovery, and maps PostgreSQL JSON explain plans into shared result
+/// models that other hosts can consume uniformly.
+/// </remarks>
+/// <param name="profileCatalog">Supplies the named PostgreSQL profiles visible to the model.</param>
+/// <param name="metadataProvider">Reads database, schema, object, and routine metadata.</param>
+/// <param name="queryExecutor">Executes classified queries through the shared execution pipeline.</param>
+/// <param name="connectionOpener">Opens raw PostgreSQL connections for provider-specific commands.</param>
+/// <param name="queryClassifier">Classifies PostgreSQL SQL text before execution or analysis.</param>
+/// <param name="executionPolicy">Controls command timeout, mutation behavior, and result limits.</param>
 internal sealed class PostgreSqlToolService(
     ISqlConnectionProfileCatalog profileCatalog,
     ISqlMetadataProvider metadataProvider,
@@ -27,6 +39,12 @@ internal sealed class PostgreSqlToolService(
             new EventId(1, "PostgreSqlToolInvocation"),
             "AI tool call {ToolName} with parameters {Parameters}");
 
+    /// <summary>
+    /// Lists the PostgreSQL connection profiles registered with the host.
+    /// </summary>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing connection names and server summaries.</returns>
     public async Task<PostgreSqlListServersToolResult> ListServersAsync(
         IServiceProvider? serviceProvider = null,
         CancellationToken cancellationToken = default)
@@ -44,6 +62,13 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the databases visible to the selected PostgreSQL connection.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing visible PostgreSQL database names.</returns>
     public async Task<PostgreSqlListDatabasesToolResult> ListDatabasesAsync(
         string connectionName,
         IServiceProvider? serviceProvider = null,
@@ -62,6 +87,14 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the installed extensions in the selected PostgreSQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing installed extension metadata.</returns>
     public async Task<PostgreSqlListExtensionsToolResult> ListExtensionsAsync(
         string connectionName,
         string? database = null,
@@ -81,6 +114,14 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the visible non-system schemas in the selected PostgreSQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing schema names.</returns>
     public async Task<PostgreSqlListSchemasToolResult> ListSchemasAsync(
         string connectionName,
         string? database = null,
@@ -100,6 +141,14 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the tables available in the selected PostgreSQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified table names.</returns>
     public async Task<PostgreSqlListTablesToolResult> ListTablesAsync(
         string connectionName,
         string? database = null,
@@ -119,6 +168,14 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the views available in the selected PostgreSQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified view names.</returns>
     public async Task<PostgreSqlListViewsToolResult> ListViewsAsync(
         string connectionName,
         string? database = null,
@@ -138,6 +195,14 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the functions available in the selected PostgreSQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified PostgreSQL function names.</returns>
     public async Task<PostgreSqlListFunctionsToolResult> ListFunctionsAsync(
         string connectionName,
         string? database = null,
@@ -157,6 +222,14 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the procedures available in the selected PostgreSQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified PostgreSQL procedure names.</returns>
     public async Task<PostgreSqlListProceduresToolResult> ListProceduresAsync(
         string connectionName,
         string? database = null,
@@ -176,6 +249,17 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Gets the PostgreSQL definition for a table, view, function, or procedure.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to inspect.</param>
+    /// <param name="objectName">The object name to resolve.</param>
+    /// <param name="schemaName">An optional schema name. When omitted, PostgreSQL defaults to <c>public</c>.</param>
+    /// <param name="objectKind">An optional object-kind hint such as <c>Table</c> or <c>Procedure</c>.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the resolved object definition.</returns>
     public async Task<PostgreSqlGetObjectDefinitionToolResult> GetObjectDefinitionAsync(
         string connectionName,
         string objectName,
@@ -212,6 +296,15 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Executes PostgreSQL SQL text through the shared execution pipeline.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to use.</param>
+    /// <param name="query">The SQL text to classify, approve if required, and execute.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the execution classification, any result sets, and provider messages.</returns>
     public async Task<PostgreSqlRunQueryToolResult> RunQueryAsync(
         string connectionName,
         string query,
@@ -240,6 +333,19 @@ internal sealed class PostgreSqlToolService(
         }
     }
 
+    /// <summary>
+    /// Analyzes a read-only PostgreSQL query with JSON-formatted <c>EXPLAIN ANALYZE</c>.
+    /// </summary>
+    /// <param name="connectionName">The logical PostgreSQL connection profile to use.</param>
+    /// <param name="query">The read-only SQL statement to analyze.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the parsed PostgreSQL plan summary and raw JSON plan payload.</returns>
+    /// <remarks>
+    /// PostgreSQL exposes detailed timing, buffer, and WAL statistics through JSON-formatted explain plans. This method keeps the raw payload
+    /// and also projects a compact root-node summary into the provider-neutral explain models.
+    /// </remarks>
     public async Task<PostgreSqlExplainQueryToolResult> ExplainQueryAsync(
         string connectionName,
         string query,
@@ -353,6 +459,7 @@ internal sealed class PostgreSqlToolService(
         }
 
         var explainRoot = document.RootElement[0];
+        // PostgreSQL returns a nested JSON payload, so the parser lifts key root-node metrics into provider-neutral summary records.
         var planElement = explainRoot.TryGetProperty("Plan", out var node) ? node : default;
         var timing = new SqlExplainTimingStatistics(
             GetDouble(explainRoot, "Planning Time"),

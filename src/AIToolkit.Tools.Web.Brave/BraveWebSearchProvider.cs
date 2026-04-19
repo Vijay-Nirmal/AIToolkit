@@ -7,6 +7,13 @@ namespace AIToolkit.Tools.Web.Brave;
 /// <summary>
 /// Implements <see cref="IWebSearchProvider"/> on top of the Brave Search API.
 /// </summary>
+/// <remarks>
+/// Brave accepts most request shaping as query parameters, but domain filters still need to be translated into
+/// <c>site:</c> operators. The provider also folds Brave's <c>extra_snippets</c> array into a single normalized snippet
+/// so the shared <see cref="WebSearchResult"/> contract remains compact.
+/// </remarks>
+/// <seealso cref="BraveWebSearchOptions"/>
+/// <seealso cref="WebToolService"/>
 public sealed class BraveWebSearchProvider : IWebSearchProvider
 {
     private static readonly HttpClient SharedHttpClient = CreateHttpClient();
@@ -19,16 +26,32 @@ public sealed class BraveWebSearchProvider : IWebSearchProvider
     /// </summary>
     /// <param name="options">The Brave provider options.</param>
     /// <param name="httpClient">An optional HTTP client override.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public BraveWebSearchProvider(BraveWebSearchOptions options, HttpClient? httpClient = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _httpClient = httpClient ?? SharedHttpClient;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the provider identifier reported in <see cref="WebSearchResponse.Provider"/>.
+    /// </summary>
     public string ProviderName => "brave";
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Executes a Brave Search request and normalizes the response.
+    /// </summary>
+    /// <param name="request">The normalized search request to execute.</param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>A normalized Brave search response.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="BraveWebSearchOptions.ApiKey"/> is missing or Brave returns a non-success response.
+    /// </exception>
+    /// <remarks>
+    /// Brave surfaces pagination state through <c>query.more_results_available</c>; that value is copied into
+    /// <see cref="WebSearchResponse.Truncated"/> so callers know more results exist beyond the current page.
+    /// </remarks>
     public async ValueTask<WebSearchResponse> SearchAsync(WebSearchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -88,6 +111,8 @@ public sealed class BraveWebSearchProvider : IWebSearchProvider
                 var snippet = GetString(item, "description");
                 if (item.TryGetProperty("extra_snippets", out var extraSnippetsElement) && extraSnippetsElement.ValueKind == JsonValueKind.Array)
                 {
+                    // Brave can return multiple snippet fragments for the same hit. Combining them preserves the extra
+                    // context without expanding the shared result contract.
                     var extraSnippets = extraSnippetsElement
                         .EnumerateArray()
                         .Where(static value => value.ValueKind == JsonValueKind.String)

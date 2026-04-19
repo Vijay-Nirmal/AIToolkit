@@ -3,9 +3,15 @@ using System.Text.Json.Nodes;
 
 namespace AIToolkit.Tools.Tests;
 
+/// <summary>
+/// Exercises workspace file, search, and notebook tools together.
+/// </summary>
 [TestClass]
 public class WorkspaceFileAndSearchIntegrationTests
 {
+    /// <summary>
+    /// Verifies the text file tools and search tools work together in a realistic flow.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task FileToolsAndSearchToolsWorkTogether()
@@ -90,6 +96,9 @@ public class WorkspaceFileAndSearchIntegrationTests
         Assert.IsTrue(grepResult.Matches.Any(static match => match.Path == "docs/notes.txt" && match.LineText.Contains("delta", StringComparison.Ordinal)));
     }
 
+    /// <summary>
+    /// Verifies writes and edits require a fresh read snapshot.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task WriteAndEditRequireFreshReadState()
@@ -135,6 +144,9 @@ public class WorkspaceFileAndSearchIntegrationTests
         StringAssert.Contains(editWithStaleRead.Message!, "File has been modified since read");
     }
 
+    /// <summary>
+    /// Verifies custom read handlers and the built-in media handler can both participate in file reads.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task ReadToolSupportsCustomHandlersAndMediaContent()
@@ -174,6 +186,9 @@ public class WorkspaceFileAndSearchIntegrationTests
         Assert.IsTrue(imageResult.OfType<DataContent>().Any(content => string.Equals(content.MediaType, "image/png", StringComparison.Ordinal)));
     }
 
+    /// <summary>
+    /// Verifies notebook edits can insert and replace cells.
+    /// </summary>
     [TestMethod]
     [TestCategory("Integration")]
     public async Task NotebookToolCanInsertAndReplaceCells()
@@ -236,11 +251,25 @@ public class WorkspaceFileAndSearchIntegrationTests
     }
 }
 
+/// <summary>
+/// Provides a simple custom file handler fixture for integration tests.
+/// </summary>
 internal sealed class CustomReadHandler : IWorkspaceFileHandler
 {
+    /// <summary>
+    /// Determines whether the handler should read the current test file.
+    /// </summary>
+    /// <param name="context">The read context under test.</param>
+    /// <returns><see langword="true"/> when the file uses the custom extension.</returns>
     public bool CanHandle(WorkspaceFileReadContext context) =>
         string.Equals(context.Extension, ".custom", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Returns a fixed content part so tests can verify custom-handler selection.
+    /// </summary>
+    /// <param name="context">The read context under test.</param>
+    /// <param name="cancellationToken">A token that can cancel the read.</param>
+    /// <returns>The fixed custom content.</returns>
     public ValueTask<IEnumerable<AIContent>> ReadAsync(WorkspaceFileReadContext context, CancellationToken cancellationToken = default) =>
         ValueTask.FromResult<IEnumerable<AIContent>>([new TextContent("custom-handler")]);
 }

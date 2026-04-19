@@ -4,6 +4,13 @@ using System.Text.Json;
 
 namespace AIToolkit.Tools.Web.Tests;
 
+/// <summary>
+/// Provides reusable helpers for invoking AI functions inside the web tool test suite.
+/// </summary>
+/// <remarks>
+/// These helpers keep the tests focused on behavior by centralizing function registration, argument construction, and
+/// JSON result deserialization.
+/// </remarks>
 internal static class FunctionTestUtilities
 {
     internal static readonly JsonSerializerOptions JsonOptions = new()
@@ -11,6 +18,12 @@ internal static class FunctionTestUtilities
         PropertyNameCaseInsensitive = true,
     };
 
+    /// <summary>
+    /// Creates the shared <c>web_*</c> functions with deterministic limits for tests.
+    /// </summary>
+    /// <param name="searchProvider">The optional provider used by <c>web_search</c>.</param>
+    /// <param name="contentFetcher">The optional fetcher used by <c>web_fetch</c>.</param>
+    /// <returns>The configured AI function list used by the tests.</returns>
     public static IReadOnlyList<AIFunction> CreateFunctions(
         IWebSearchProvider? searchProvider = null,
         IWebContentFetcher? contentFetcher = null) =>
@@ -24,6 +37,15 @@ internal static class FunctionTestUtilities
             searchProvider,
             contentFetcher);
 
+    /// <summary>
+    /// Invokes a named function and converts the result to the expected test type.
+    /// </summary>
+    /// <typeparam name="T">The expected result type.</typeparam>
+    /// <param name="functions">The registered functions to search.</param>
+    /// <param name="name">The function name to invoke.</param>
+    /// <param name="arguments">The optional invocation arguments.</param>
+    /// <returns>The typed invocation result.</returns>
+    /// <exception cref="InvalidOperationException">The function result cannot be converted to <typeparamref name="T"/>.</exception>
     public static async Task<T> InvokeAsync<T>(IReadOnlyList<AIFunction> functions, string name, AIFunctionArguments? arguments = null)
     {
         var function = functions.Single(function => function.Name == name);
@@ -37,6 +59,11 @@ internal static class FunctionTestUtilities
         };
     }
 
+    /// <summary>
+    /// Converts an anonymous object's public properties into <see cref="AIFunctionArguments"/>.
+    /// </summary>
+    /// <param name="values">The object whose public properties should become function arguments.</param>
+    /// <returns>A populated argument collection.</returns>
     public static AIFunctionArguments CreateArguments(object values)
     {
         var arguments = new AIFunctionArguments();

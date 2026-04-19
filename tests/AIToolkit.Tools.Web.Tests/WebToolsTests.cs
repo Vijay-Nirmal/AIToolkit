@@ -1,11 +1,17 @@
 namespace AIToolkit.Tools.Web.Tests;
 
+/// <summary>
+/// Verifies the shared web tool registration, prompt guidance, and provider orchestration behavior.
+/// </summary>
 [TestClass]
 public class WebToolsTests
 {
     private static readonly string[] ExpectedToolNames = ["web_fetch", "web_search"];
     private static readonly string[] AllowedMicrosoftDocsDomain = ["learn.microsoft.com"];
 
+    /// <summary>
+    /// Confirms the shared registration surface exposes the expected stable tool names.
+    /// </summary>
     [TestMethod]
     public void CreateFunctionsUsesExpectedToolNames()
     {
@@ -16,6 +22,9 @@ public class WebToolsTests
             functions.Select(static function => function.Name).ToArray());
     }
 
+    /// <summary>
+    /// Confirms prompt guidance preserves existing text and includes the freshness and citation instructions.
+    /// </summary>
     [TestMethod]
     public void GetSystemPromptGuidanceIncludesSourcesAndCurrentYear()
     {
@@ -28,6 +37,9 @@ public class WebToolsTests
         StringAssert.Contains(prompt, "web_search");
     }
 
+    /// <summary>
+    /// Confirms the shared service applies final allowed-domain filtering even after a provider returns broader results.
+    /// </summary>
     [TestMethod]
     public async Task WebSearchAppliesAllowedDomainFilters()
     {
@@ -58,6 +70,9 @@ public class WebToolsTests
         Assert.AreEqual("https://learn.microsoft.com/dotnet", result.Result.Results[0].Url);
     }
 
+    /// <summary>
+    /// Confirms invoking <c>web_search</c> without a configured provider returns a structured failure result.
+    /// </summary>
     [TestMethod]
     public async Task WebSearchFailsWithoutProvider()
     {
@@ -74,6 +89,9 @@ public class WebToolsTests
         StringAssert.Contains(result.Message!, "IWebSearchProvider");
     }
 
+    /// <summary>
+    /// Confirms redirect confirmation metadata is preserved by the public <c>web_fetch</c> function surface.
+    /// </summary>
     [TestMethod]
     public async Task WebFetchSurfacesRedirectConfirmationMessage()
     {
@@ -111,8 +129,14 @@ public class WebToolsTests
     {
         private readonly WebSearchResponse _response = response;
 
+        /// <summary>
+        /// Gets the provider name copied from the preconfigured response.
+        /// </summary>
         public string ProviderName => _response.Provider;
 
+        /// <summary>
+        /// Returns the preconfigured response while replacing the query with the caller-supplied value.
+        /// </summary>
         public ValueTask<WebSearchResponse> SearchAsync(WebSearchRequest request, CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(_response with { Query = request.Query });
     }
@@ -121,6 +145,9 @@ public class WebToolsTests
     {
         private readonly WebContentFetchResponse _response = response;
 
+        /// <summary>
+        /// Returns the preconfigured response while replacing the URL with the caller-supplied value.
+        /// </summary>
         public ValueTask<WebContentFetchResponse> FetchAsync(WebContentFetchRequest request, CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(_response with { Url = request.Url });
     }

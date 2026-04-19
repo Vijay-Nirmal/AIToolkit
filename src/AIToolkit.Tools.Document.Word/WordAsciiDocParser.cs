@@ -6,8 +6,20 @@ namespace AIToolkit.Tools.Document.Word;
 /// <summary>
 /// Parses a focused subset of AsciiDoc into a block model for Word rendering.
 /// </summary>
+/// <remarks>
+/// The parser intentionally accepts only the constructs that the Word renderer and importer understand. It resolves
+/// document attributes, accumulates pending block metadata, normalizes line endings, and produces the intermediate
+/// <see cref="WordAsciiDocDocumentModel"/> consumed by <see cref="WordAsciiDocRenderer"/>. Recovery logic also accepts a
+/// few malformed-but-common patterns emitted by interactive agents or imported external content so the pipeline can
+/// normalize them during the next write.
+/// </remarks>
 internal static partial class WordAsciiDocParser
 {
+    /// <summary>
+    /// Parses canonical AsciiDoc into the intermediate model used by the Word renderer.
+    /// </summary>
+    /// <param name="asciiDoc">The canonical AsciiDoc text to parse.</param>
+    /// <returns>A Word-oriented intermediate document model.</returns>
     public static WordAsciiDocDocumentModel Parse(string asciiDoc)
     {
         var normalized = WordAsciiDocTextUtilities.NormalizeLineEndings(asciiDoc);
@@ -19,6 +31,8 @@ internal static partial class WordAsciiDocParser
 
         ParseHeader(lines, ref index, attributes, ref title);
 
+        // Metadata lines in AsciiDoc apply to the next block, so the parser carries them forward until a concrete block
+        // is emitted and then resets the accumulator.
         var pendingMetadata = new PendingBlockMetadata();
         while (index < lines.Length)
         {
@@ -101,6 +115,8 @@ internal static partial class WordAsciiDocParser
                 continue;
             }
 
+            // Tables and delimited blocks are checked before plain paragraphs so attribute lines can influence the next
+            // structural block instead of being flattened into paragraph text.
             if (TryParseTable(lines, ref index, attributes, pendingMetadata, out var tableBlock))
             {
                 blocks.Add(tableBlock);
@@ -798,6 +814,8 @@ internal static partial class WordAsciiDocParser
             return cell;
         }
 
+        // External content and LLM edits sometimes place alignment or role markers directly after the leading table pipe.
+        // Normalize them into valid role spans so the renderer sees one consistent representation.
         if (TryNormalizeMalformedTableCellRolePrefix(cell, out var normalizedCell))
         {
             return normalizedCell;
@@ -925,14 +943,29 @@ internal static partial class WordAsciiDocParser
     /// </summary>
     private sealed class PendingBlockMetadata
     {
+        /// <summary>
+        /// Gets or sets the pending block title.
+        /// </summary>
         public string? Title { get; set; }
 
+        /// <summary>
+        /// Gets the pending role names.
+        /// </summary>
         public List<string> Roles { get; } = [];
 
+        /// <summary>
+        /// Gets the pending positional attributes.
+        /// </summary>
         public List<string> PositionalAttributes { get; } = [];
 
+        /// <summary>
+        /// Gets the pending named attributes.
+        /// </summary>
         public Dictionary<string, string> NamedAttributes { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Creates an immutable metadata snapshot for the next parsed block.
+        /// </summary>
         public WordAsciiDocBlockMetadata ToMetadata() =>
             new(Title, [.. Roles], [.. PositionalAttributes], new Dictionary<string, string>(NamedAttributes, StringComparer.OrdinalIgnoreCase));
     }

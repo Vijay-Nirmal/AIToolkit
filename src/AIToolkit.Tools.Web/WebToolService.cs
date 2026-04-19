@@ -4,8 +4,15 @@ using System.Text.Json;
 namespace AIToolkit.Tools.Web;
 
 /// <summary>
-/// Implements the behavior behind the public <c>web_*</c> AI functions.
+/// Implements the shared orchestration behind the public <c>web_fetch</c> and <c>web_search</c> AI functions.
 /// </summary>
+/// <remarks>
+/// This service centralizes logging, option clamping, dependency resolution, and post-processing so provider packages
+/// only need to supply <see cref="IWebSearchProvider"/> implementations. It also keeps the public tool surface stable
+/// for <see cref="WebAIFunctionFactory"/> by exposing reflection-friendly instance methods.
+/// </remarks>
+/// <seealso cref="WebAIFunctionFactory"/>
+/// <seealso cref="DefaultWebContentFetcher"/>
 internal sealed class WebToolService(WebToolsOptions options, IWebSearchProvider? searchProvider, IWebContentFetcher? contentFetcher)
 {
     private static readonly Action<ILogger, string, string, Exception?> ToolInvocationLog =
@@ -21,6 +28,23 @@ internal sealed class WebToolService(WebToolsOptions options, IWebSearchProvider
     private readonly IWebContentFetcher? _contentFetcher = contentFetcher;
     private readonly DefaultWebContentFetcher _defaultContentFetcher = new(options);
 
+    /// <summary>
+    /// Executes the shared <c>web_fetch</c> flow.
+    /// </summary>
+    /// <param name="url">The URL to fetch.</param>
+    /// <param name="prompt">An optional relevance hint used to trim the normalized content.</param>
+    /// <param name="maxCharacters">An optional per-call character cap.</param>
+    /// <param name="serviceProvider">
+    /// An optional service provider used to resolve <see cref="ILoggerFactory"/> and override fetch dependencies.
+    /// </param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>
+    /// A structured result that either contains a normalized fetch response or an error message suitable for tool output.
+    /// </returns>
+    /// <remarks>
+    /// Provider and transport exceptions are converted into a failed <see cref="WebFetchToolResult"/> so AI hosts can
+    /// surface a stable tool payload instead of an unhandled exception.
+    /// </remarks>
     public async Task<WebFetchToolResult> FetchAsync(
         string url,
         string? prompt = null,
@@ -48,6 +72,8 @@ internal sealed class WebToolService(WebToolsOptions options, IWebSearchProvider
 
             if (response.RedirectRequiresConfirmation && !string.IsNullOrWhiteSpace(response.RedirectUrl))
             {
+                // Cross-host redirects are intentionally surfaced as an explicit follow-up action so a model does not
+                // silently pivot from one site to another without acknowledging the change in origin.
                 return new WebFetchToolResult(
                     true,
                     response,
@@ -62,6 +88,22 @@ internal sealed class WebToolService(WebToolsOptions options, IWebSearchProvider
         }
     }
 
+    /// <summary>
+    /// Executes the shared <c>web_search</c> flow.
+    /// </summary>
+    /// <param name="query">The search query.</param>
+    /// <param name="allowedDomains">Optional domains that results must come from.</param>
+    /// <param name="blockedDomains">Optional domains that results must not come from.</param>
+    /// <param name="maxResults">An optional per-call result cap.</param>
+    /// <param name="serviceProvider">
+    /// An optional service provider used to resolve <see cref="ILoggerFactory"/> and provider dependencies.
+    /// </param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>A structured search result containing normalized hits or a validation/provider error message.</returns>
+    /// <remarks>
+    /// The shared service performs final query validation and host filtering after the provider call returns. That
+    /// extra pass keeps result behavior consistent even when a provider only approximates domain filtering.
+    /// </remarks>
     public async Task<WebSearchToolResult> SearchAsync(
         string query,
         string[]? allowedDomains = null,
@@ -105,6 +147,9 @@ internal sealed class WebToolService(WebToolsOptions options, IWebSearchProvider
                 cancellationToken).ConfigureAwait(false);
 
             var originalResults = response.Results ?? [];
+
+            // Providers use different query syntaxes and may not enforce include/exclude filters exactly, so the shared
+            // service re-applies normalized host filtering before it returns the result to the model.
             var filteredResults = originalResults
                 .Where(result => IsDomainAllowed(result.Url, allowedDomains, blockedDomains))
                 .Take(effectiveMaxResults)

@@ -6,6 +6,13 @@ using System.Text.RegularExpressions;
 
 namespace AIToolkit.Tools.Document;
 
+/// <summary>
+/// Collects internal helpers shared across the generic document tool pipeline.
+/// </summary>
+/// <remarks>
+/// These helpers keep line-ending normalization, diff generation, and simple text operations consistent across handler
+/// implementations so stale-read checks remain provider agnostic.
+/// </remarks>
 internal static class DocumentSupport
 {
     internal static string NormalizeLineEndings(string value) =>
@@ -110,16 +117,30 @@ internal static class DocumentSupport
 /// <summary>
 /// Resolves document handlers from options and dependency injection.
 /// </summary>
+/// <remarks>
+/// The registry merges handlers supplied directly through <see cref="DocumentToolsOptions.Handlers"/> with handlers
+/// registered in the active <see cref="IServiceProvider"/>. <see cref="DocumentToolService"/> uses it to locate the first
+/// handler that can own a resolved document reference.
+/// </remarks>
 internal sealed class DocumentHandlerRegistry(DocumentToolsOptions options)
 {
     private readonly DocumentToolsOptions _options = options;
 
+    /// <summary>
+    /// Determines whether any handlers are currently available.
+    /// </summary>
     public bool HasHandlers(IServiceProvider? services) =>
         GetHandlers(services).Any();
 
+    /// <summary>
+    /// Creates the handler context used for a resolved document operation.
+    /// </summary>
     public DocumentHandlerContext CreateContext(string documentReference, DocumentReferenceResolution resolution, IServiceProvider? services) =>
         new(documentReference, resolution, _options, services);
 
+    /// <summary>
+    /// Resolves the first handler that can process the supplied document context.
+    /// </summary>
     public IDocumentHandler? ResolveHandler(DocumentHandlerContext context)
     {
         foreach (var handler in GetHandlers(context.Services))
@@ -133,6 +154,9 @@ internal sealed class DocumentHandlerRegistry(DocumentToolsOptions options)
         return null;
     }
 
+    /// <summary>
+    /// Gets the distinct set of locally searchable file extensions exposed by all known handlers.
+    /// </summary>
     public string[] GetSupportedExtensions(IServiceProvider? services) =>
         GetHandlers(services)
             .SelectMany(static handler => handler.SupportedExtensions)
@@ -167,33 +191,59 @@ internal sealed class DocumentHandlerRegistry(DocumentToolsOptions options)
     }
 }
 
+/// <summary>
+/// Tracks the last canonical AsciiDoc snapshot read for each resolved document.
+/// </summary>
+/// <remarks>
+/// The generic edit and write flows use this store to reject stale updates and to distinguish full reads from partial
+/// reads.
+/// </remarks>
 internal sealed class DocumentReadStateStore
 {
     private readonly ConcurrentDictionary<string, DocumentReadStateEntry> _entries = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Retrieves the read-state entry for a resolved document key.
+    /// </summary>
     public DocumentReadStateEntry? Get(string path) =>
         _entries.TryGetValue(path, out var entry) ? entry : null;
 
+    /// <summary>
+    /// Stores or replaces the read-state entry for a resolved document key.
+    /// </summary>
     public void Set(string path, DocumentReadStateEntry entry) =>
         _entries[path] = entry;
 }
 
+/// <summary>
+/// Captures the canonical AsciiDoc that was last read together with whether the model saw the full document.
+/// </summary>
 internal sealed record DocumentReadStateEntry(
     string NormalizedAsciiDoc,
     bool IsPartialView,
     int? Offset,
     int? Limit);
 
+/// <summary>
+/// Represents the current canonical AsciiDoc snapshot re-read from a provider before a write or edit completes.
+/// </summary>
 internal sealed record DocumentAsciiDocSnapshot(
     string NormalizedAsciiDoc);
 
 /// <summary>
 /// Evaluates a subset of glob patterns needed for document file searches.
 /// </summary>
+/// <remarks>
+/// The matcher intentionally supports only the document search scenarios used by <see cref="DocumentToolService"/>:
+/// <c>*</c>, <c>**</c>, <c>?</c>, and simple brace groups.
+/// </remarks>
 internal sealed class GlobMatcher(string pattern)
 {
     private readonly Regex _regex = new(GlobToRegex(pattern), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
 
+    /// <summary>
+    /// Determines whether a normalized relative path matches the configured glob expression.
+    /// </summary>
     public bool IsMatch(string relativePath) =>
         _regex.IsMatch(relativePath.Replace('\\', '/'));
 

@@ -1,7 +1,22 @@
 namespace AIToolkit.Tools;
 
+/// <summary>
+/// Stores the stable natural-language descriptions and prompt snippets for the tool families in this package.
+/// </summary>
+/// <remarks>
+/// Keeping this text in one place makes the public AI-facing contract easier to audit. The factories use these
+/// strings when creating <see cref="Microsoft.Extensions.AI.AIFunction"/> instances, and the public
+/// <see cref="WorkspaceTools"/> and <see cref="TaskTools"/> façades use the guidance builders to append
+/// package-specific operating instructions to a host's system prompt.
+/// </remarks>
 internal static class ToolPromptCatalog
 {
+    /// <summary>
+    /// Appends one guidance section to an existing system prompt.
+    /// </summary>
+    /// <param name="currentSystemPrompt">The existing prompt text, if any.</param>
+    /// <param name="guidance">The guidance section to append.</param>
+    /// <returns>The original prompt followed by <paramref name="guidance"/>, separated by a blank line.</returns>
     public static string AppendSystemPromptSection(string? currentSystemPrompt, string guidance)
     {
         if (string.IsNullOrWhiteSpace(currentSystemPrompt))
@@ -12,6 +27,9 @@ internal static class ToolPromptCatalog
         return string.Join("\n\n", currentSystemPrompt, guidance);
     }
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_run_bash</c>.
+    /// </summary>
     public static string WorkspaceRunBashDescription =>
         """
         Executes a given bash command and returns its output.
@@ -28,9 +46,15 @@ internal static class ToolPromptCatalog
         - If commands depend on each other, run them sequentially.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_run_powershell</c>.
+    /// </summary>
     public static string WorkspaceRunPowerShellDescription =>
         "Executes a PowerShell command and returns its output. Use this for terminal operations via PowerShell, including cmdlets and Windows-oriented shell workflows. Do not use it for reading, writing, editing, or searching files when a dedicated workspace_* tool can do the job. If commands are independent, make separate tool calls in parallel. If commands depend on each other, run them sequentially.";
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_read_file</c>.
+    /// </summary>
     public static string WorkspaceReadFileDescription =>
         """
         Reads a file from the local filesystem. You can access any file directly by using this tool.
@@ -49,6 +73,9 @@ internal static class ToolPromptCatalog
         - If you read a file that exists but has empty contents you will receive a reminder instead of file contents.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_write_file</c>.
+    /// </summary>
     public static string WorkspaceWriteFileDescription =>
         """
         Writes a file to the local filesystem.
@@ -61,6 +88,9 @@ internal static class ToolPromptCatalog
         - Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_edit_file</c>.
+    /// </summary>
     public static string WorkspaceEditFileDescription =>
         """
         Performs exact string replacements in files.
@@ -74,15 +104,27 @@ internal static class ToolPromptCatalog
         - Use replace_all for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_glob_search</c>.
+    /// </summary>
     public static string WorkspaceGlobSearchDescription =>
         "Fast file pattern matching tool for workspace searches. Use it to find files by name patterns such as **/*.cs or src/**/*.ts. Prefer this tool over shell-based find or recursive directory listing when you are looking for files by path pattern.";
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_grep_search</c>.
+    /// </summary>
     public static string WorkspaceGrepSearchDescription =>
         "Powerful workspace content search tool. Always prefer it for search tasks instead of invoking grep, rg, Select-String, or similar shell commands. It supports plain text or regex matching and can filter files with glob patterns.";
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>workspace_edit_notebook</c>.
+    /// </summary>
     public static string WorkspaceEditNotebookDescription =>
         "Edits a Jupyter notebook as structured notebook data. Use it to insert, replace, or delete notebook cells instead of treating .ipynb files as raw text when you need cell-aware changes.";
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>task_create</c>.
+    /// </summary>
     public static string TaskCreateDescription =>
         """
         Use this tool to create a structured task list for your current coding session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user. It also helps the user understand the progress of the task and the overall progress of their requests.
@@ -108,6 +150,9 @@ internal static class ToolPromptCatalog
         - After creating tasks, use task_update to set status, ownership, or follow-up details as work progresses.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>task_get</c>.
+    /// </summary>
     public static string TaskGetDescription =>
         """
         Use this tool to retrieve a task by its ID from the task list.
@@ -124,6 +169,9 @@ internal static class ToolPromptCatalog
         - Use task_list for the summary view and task_get when you need the full task details.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>task_list</c>.
+    /// </summary>
     public static string TaskListDescription =>
         """
         Use this tool to list all tasks in the task list.
@@ -146,6 +194,9 @@ internal static class ToolPromptCatalog
         - After completing your current task, call task_list to find the next available work.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>task_update</c>.
+    /// </summary>
     public static string TaskUpdateDescription =>
         """
         Use this tool to update a task in the task list.
@@ -167,6 +218,9 @@ internal static class ToolPromptCatalog
         - After completing a task, call task_list to find the next task or newly unblocked work.
         """;
 
+    /// <summary>
+    /// Gets the AI-visible description for <c>task_stop</c>.
+    /// </summary>
     public static string TaskStopDescription =>
         """
         Stops a running background task or cancels a manual task by task ID.
@@ -178,6 +232,11 @@ internal static class ToolPromptCatalog
         Return values indicate whether the stop succeeded and include the updated task state when available.
         """;
 
+    /// <summary>
+    /// Builds workspace-tool system prompt guidance.
+    /// </summary>
+    /// <param name="taskToolsEnabled"><see langword="true"/> to append guidance that references the <c>task_*</c> tools.</param>
+    /// <returns>A markdown-friendly guidance block for a host system prompt.</returns>
     public static string GetWorkspaceSystemPromptGuidance(bool taskToolsEnabled)
     {
         var lines = new List<string>
@@ -202,6 +261,11 @@ internal static class ToolPromptCatalog
         return string.Join("\n", lines);
     }
 
+    /// <summary>
+    /// Builds task-tool system prompt guidance.
+    /// </summary>
+    /// <param name="workspaceToolsEnabled"><see langword="true"/> to append guidance that references the <c>workspace_*</c> tools.</param>
+    /// <returns>A markdown-friendly guidance block for a host system prompt.</returns>
     public static string GetTaskSystemPromptGuidance(bool workspaceToolsEnabled)
     {
         var lines = new List<string>

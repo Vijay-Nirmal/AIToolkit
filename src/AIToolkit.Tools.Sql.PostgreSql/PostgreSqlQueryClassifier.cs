@@ -5,6 +5,10 @@ namespace AIToolkit.Tools.Sql.PostgreSql;
 /// <summary>
 /// Applies a conservative PostgreSQL-oriented safety classification to ad-hoc SQL text.
 /// </summary>
+/// <remarks>
+/// The classifier strips comments and quoted content before inspecting tokens so routine literals do not trigger false mutation matches.
+/// PostgreSQL commands with side effects outside normal DML, such as <c>DO</c>, <c>LISTEN</c>, and <c>NOTIFY</c>, are blocked outright.
+/// </remarks>
 internal sealed partial class PostgreSqlQueryClassifier : ISqlQueryClassifier
 {
     private static readonly string[] ApprovalKeywords =
@@ -46,6 +50,17 @@ internal sealed partial class PostgreSqlQueryClassifier : ISqlQueryClassifier
         "WITH",
     ];
 
+    /// <summary>
+    /// Classifies ad-hoc PostgreSQL SQL text as read-only, approval-required, or blocked.
+    /// </summary>
+    /// <param name="query">The SQL text to inspect.</param>
+    /// <returns>
+    /// A classification that records the detected statement types, the computed safety level, and a reason when the query is not a safe read.
+    /// </returns>
+    /// <remarks>
+    /// The classifier removes comments and quoted content before token inspection so PostgreSQL keywords embedded inside literals and quoted
+    /// identifiers do not trigger false positives.
+    /// </remarks>
     public SqlQueryClassification Classify(string query)
     {
         if (string.IsNullOrWhiteSpace(query))

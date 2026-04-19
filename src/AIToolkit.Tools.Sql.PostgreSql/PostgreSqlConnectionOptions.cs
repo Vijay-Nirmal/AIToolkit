@@ -19,11 +19,17 @@ public sealed class PostgreSqlConnectionOptions
     /// <summary>
     /// Gets the PostgreSQL port.
     /// </summary>
+    /// <remarks>
+    /// The default value is <c>5432</c>.
+    /// </remarks>
     public int Port { get; init; } = 5432;
 
     /// <summary>
     /// Gets the default database to connect to.
     /// </summary>
+    /// <remarks>
+    /// When omitted, the provider falls back to <c>postgres</c>.
+    /// </remarks>
     public string? Database { get; init; }
 
     /// <summary>
@@ -39,16 +45,25 @@ public sealed class PostgreSqlConnectionOptions
     /// <summary>
     /// Gets the SSL mode.
     /// </summary>
+    /// <remarks>
+    /// Leave this unset to let Npgsql use its default TLS behavior.
+    /// </remarks>
     public SslMode? SslMode { get; init; }
 
     /// <summary>
     /// Gets the application name reported to PostgreSQL.
     /// </summary>
+    /// <remarks>
+    /// The default value is <c>AIToolkit</c>.
+    /// </remarks>
     public string ApplicationName { get; init; } = "AIToolkit";
 
     /// <summary>
     /// Gets the optional connection timeout, in seconds.
     /// </summary>
+    /// <remarks>
+    /// When <see langword="null"/>, Npgsql uses its own timeout default.
+    /// </remarks>
     public int? TimeoutSeconds { get; init; }
 
     internal string EffectiveDatabase => string.IsNullOrWhiteSpace(Database) ? "postgres" : Database;

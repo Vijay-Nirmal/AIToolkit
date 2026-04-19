@@ -7,6 +7,13 @@ namespace AIToolkit.Tools.Web.Bing;
 /// <summary>
 /// Implements <see cref="IWebSearchProvider"/> on top of the Bing Web Search API.
 /// </summary>
+/// <remarks>
+/// Bing does not expose include/exclude domain arrays in its REST contract, so this provider translates shared domain
+/// filters into query operators such as <c>site:</c> and <c>-site:</c>. <see cref="WebToolService"/> still applies a
+/// final host-based filter after the provider response is normalized to guard against provider-side approximation.
+/// </remarks>
+/// <seealso cref="BingWebSearchOptions"/>
+/// <seealso cref="WebToolService"/>
 public sealed class BingWebSearchProvider : IWebSearchProvider
 {
     private static readonly HttpClient SharedHttpClient = CreateHttpClient();
@@ -19,16 +26,32 @@ public sealed class BingWebSearchProvider : IWebSearchProvider
     /// </summary>
     /// <param name="options">The Bing provider options.</param>
     /// <param name="httpClient">An optional HTTP client override.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public BingWebSearchProvider(BingWebSearchOptions options, HttpClient? httpClient = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _httpClient = httpClient ?? SharedHttpClient;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the provider identifier reported in <see cref="WebSearchResponse.Provider"/>.
+    /// </summary>
     public string ProviderName => "bing";
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Executes a Bing Web Search request and normalizes the response.
+    /// </summary>
+    /// <param name="request">The normalized search request to execute.</param>
+    /// <param name="cancellationToken">The token used to cancel the asynchronous operation.</param>
+    /// <returns>A normalized Bing search response.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="BingWebSearchOptions.ApiKey"/> is missing or Bing returns a non-success response.
+    /// </exception>
+    /// <remarks>
+    /// Bing returns estimated match counts under <c>webPages.totalEstimatedMatches</c>. This provider preserves that
+    /// value when present so callers can distinguish a truncated page of hits from the estimated corpus size.
+    /// </remarks>
     public async ValueTask<WebSearchResponse> SearchAsync(WebSearchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -66,6 +89,7 @@ public sealed class BingWebSearchProvider : IWebSearchProvider
 
         if (root.TryGetProperty("webPages", out var webPages))
         {
+            // Bing nests most usable web results inside the webPages object, including the approximate total hit count.
             if (webPages.TryGetProperty("totalEstimatedMatches", out var totalMatchesElement) && totalMatchesElement.TryGetInt32(out var totalMatches))
             {
                 totalEstimatedMatches = totalMatches;

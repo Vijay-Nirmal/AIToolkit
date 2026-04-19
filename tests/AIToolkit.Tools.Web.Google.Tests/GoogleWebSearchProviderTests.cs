@@ -3,11 +3,17 @@ using System.Text;
 
 namespace AIToolkit.Tools.Web.Google.Tests;
 
+/// <summary>
+/// Verifies Google-specific request construction and result normalization.
+/// </summary>
 [TestClass]
 public class GoogleWebSearchProviderTests
 {
     private static readonly string[] ExpectedToolNames = ["web_fetch", "web_search"];
 
+    /// <summary>
+    /// Confirms Google query parameters, timing metadata, and normalized result mapping are preserved.
+    /// </summary>
     [TestMethod]
     public async Task SearchAsyncParsesGoogleResponseAndBuildsFilteredQuery()
     {
@@ -60,6 +66,9 @@ public class GoogleWebSearchProviderTests
         Assert.AreEqual(420d, result.DurationMilliseconds, 0.1d);
     }
 
+    /// <summary>
+    /// Confirms the package-level helper registers the shared fetch and search tool names.
+    /// </summary>
     [TestMethod]
     public void CreateFunctionsExposesWebTools()
     {

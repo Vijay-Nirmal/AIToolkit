@@ -6,6 +6,11 @@ namespace AIToolkit.Tools.Document.GoogleDocs;
 /// <summary>
 /// Configures the authenticated Google Drive workspace used for Google Docs references.
 /// </summary>
+/// <remarks>
+/// Google Docs support ultimately talks to Google Drive for URL resolution, DOCX export, conversion uploads, and managed
+/// payload sidecars. Supply either a credential, a preconfigured HTTP initializer, an API key for public-read scenarios,
+/// or an internal test client.
+/// </remarks>
 public sealed class GoogleDocsWorkspaceOptions
 {
     /// <summary>
@@ -30,7 +35,8 @@ public sealed class GoogleDocsWorkspaceOptions
     /// Gets or sets the Google API scopes to request.
     /// </summary>
     /// <remarks>
-    /// When omitted, the resolver uses Drive, Drive AppData, and Google Docs-compatible Drive conversion scopes.
+    /// When omitted, the workspace client uses Drive and Drive AppData scopes that support hosted document conversion plus
+    /// managed-payload sidecars.
     /// </remarks>
     public IEnumerable<string>? Scopes { get; init; }
 

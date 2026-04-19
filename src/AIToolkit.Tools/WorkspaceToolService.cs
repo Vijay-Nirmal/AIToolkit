@@ -13,6 +13,13 @@ namespace AIToolkit.Tools;
 /// <summary>
 /// Implements the behavior behind the public <c>workspace_*</c> AI functions.
 /// </summary>
+/// <remarks>
+/// <see cref="WorkspaceAIFunctionFactory"/> reflects over this service to create host-facing AI functions. The
+/// service coordinates shell execution, read-before-write safety checks, file handler selection, notebook editing,
+/// and file-search behavior while sharing background task state through <see cref="ITaskToolStore"/>.
+/// </remarks>
+/// <seealso cref="WorkspaceTools"/>
+/// <seealso cref="WorkspaceFileHandlerPipeline"/>
 internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskToolStore taskStore)
 {
     private static readonly Action<ILogger, string, string, Exception?> ToolInvocationLog =
@@ -28,6 +35,18 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
     private readonly WorkspaceFileReadStateStore _readState = new();
     private static readonly JsonSerializerOptions LogJsonOptions = ToolJsonSerializerOptions.CreateWeb();
 
+    /// <summary>
+    /// Executes a command using Bash-compatible shells.
+    /// </summary>
+    /// <param name="command">The command text to execute.</param>
+    /// <param name="workingDirectory">The optional working directory, relative to the configured workspace when not rooted.</param>
+    /// <param name="timeoutSeconds">The optional timeout in seconds for foreground execution.</param>
+    /// <param name="runInBackground"><see langword="true"/> to track the command as a background task instead of waiting for completion.</param>
+    /// <param name="taskSubject">The optional task subject to use when <paramref name="runInBackground"/> is <see langword="true"/>.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the tool call.</param>
+    /// <returns>A structured result containing command output or the created background task identifier.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<WorkspaceCommandToolResult> RunBashAsync(
         string command,
         string? workingDirectory = null,
@@ -59,6 +78,18 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Executes a command using PowerShell.
+    /// </summary>
+    /// <param name="command">The command text to execute.</param>
+    /// <param name="workingDirectory">The optional working directory, relative to the configured workspace when not rooted.</param>
+    /// <param name="timeoutSeconds">The optional timeout in seconds for foreground execution.</param>
+    /// <param name="runInBackground"><see langword="true"/> to track the command as a background task instead of waiting for completion.</param>
+    /// <param name="taskSubject">The optional task subject to use when <paramref name="runInBackground"/> is <see langword="true"/>.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the tool call.</param>
+    /// <returns>A structured result containing command output or the created background task identifier.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<WorkspaceCommandToolResult> RunPowerShellAsync(
         string command,
         string? workingDirectory = null,
@@ -90,6 +121,21 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Reads a file using the first matching workspace file handler.
+    /// </summary>
+    /// <param name="file_path">The file path to read.</param>
+    /// <param name="offset">The optional 1-based starting line for text-style reads.</param>
+    /// <param name="limit">The optional maximum number of lines for text-style reads.</param>
+    /// <param name="pages">The optional page-range selector for page-oriented formats.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the read.</param>
+    /// <returns>The AI content parts returned by the selected file handler.</returns>
+    /// <remarks>
+    /// Text-file reads are tracked in <see cref="WorkspaceFileReadStateStore"/> so later write and edit calls can
+    /// verify the agent read the file recently and did not only inspect a partial view.
+    /// </remarks>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<IEnumerable<AIContent>> ReadFileAsync(
         string file_path,
         int? offset = null,
@@ -158,6 +204,8 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             }
 
             var result = await handler.ReadAsync(context, cancellationToken).ConfigureAwait(false);
+            // Persist the read snapshot only after the handler succeeds so later writes are validated against the
+            // same file state the caller actually saw.
             await TrackTextReadAsync(resolvedPath, isBinary, offset, limit, textSnapshot, cancellationToken).ConfigureAwait(false);
             return result;
         }
@@ -170,6 +218,19 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         }
     }
 
+    /// <summary>
+    /// Writes an entire text file after validating the caller has a fresh full-file read.
+    /// </summary>
+    /// <param name="file_path">The target file path.</param>
+    /// <param name="content">The full replacement file content.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the write.</param>
+    /// <returns>A structured result describing the write outcome.</returns>
+    /// <remarks>
+    /// Existing files must have been read completely first. This optimistic-concurrency check prevents accidental
+    /// overwrites when the user or a formatter changed the file after the tool last read it.
+    /// </remarks>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<WorkspaceWriteFileToolResult> WriteFileAsync(
         string file_path,
         string content,
@@ -201,6 +262,8 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
             TextFileSnapshot? originalSnapshot = null;
             if (exists)
             {
+                // Existing files can only be rewritten from a fresh full-file read so the agent does not overwrite
+                // unseen content or changes made outside the tool call.
                 var readState = _readState.Get(resolvedPath);
                 if (readState is null || readState.IsPartialView)
                 {
@@ -247,6 +310,21 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         }
     }
 
+    /// <summary>
+    /// Applies a deterministic string replacement to a text file.
+    /// </summary>
+    /// <param name="file_path">The target file path.</param>
+    /// <param name="old_string">The exact text to replace.</param>
+    /// <param name="new_string">The replacement text.</param>
+    /// <param name="replace_all"><see langword="true"/> to replace every match; otherwise, exactly one match must exist.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the edit.</param>
+    /// <returns>A structured result describing the edit outcome.</returns>
+    /// <remarks>
+    /// The tool operates on normalized line endings so the match logic is stable across platforms, then restores
+    /// the original line-ending style when writing the updated file back to disk.
+    /// </remarks>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<WorkspaceEditFileToolResult> EditFileAsync(
         string file_path,
         string old_string,
@@ -372,6 +450,8 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
                 return new WorkspaceEditFileToolResult(false, resolvedPath, 0, snapshot.NormalizedContent.Length, snapshot.NormalizedContent, null, null, $"Found {matches.ToString(CultureInfo.InvariantCulture)} matches of the string to replace, but replace_all is false. To replace all occurrences, set replace_all to true. To replace only one occurrence, provide more surrounding context to uniquely identify the instance.{Environment.NewLine}String: {old_string}");
             }
 
+            // Matching is performed against normalized content so edits remain predictable even when the file uses
+            // Windows line endings and the incoming replacement text does not.
             var updatedNormalized = replace_all
                 ? snapshot.NormalizedContent.Replace(normalizedOld, normalizedNew, StringComparison.Ordinal)
                 : ReplaceFirst(snapshot.NormalizedContent, normalizedOld, normalizedNew);
@@ -403,6 +483,16 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         }
     }
 
+    /// <summary>
+    /// Searches for files whose relative paths match a glob pattern.
+    /// </summary>
+    /// <param name="pattern">The glob pattern to match.</param>
+    /// <param name="workingDirectory">The optional working directory to search from.</param>
+    /// <param name="maxResults">The optional maximum number of matches to return.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the search.</param>
+    /// <returns>A structured result containing the matching paths.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public Task<WorkspaceGlobSearchToolResult> GlobSearchAsync(
         string pattern,
         string? workingDirectory = null,
@@ -455,6 +545,21 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         }
     }
 
+    /// <summary>
+    /// Searches text files for a matching line or regular expression.
+    /// </summary>
+    /// <param name="pattern">The text or regular-expression pattern to search for.</param>
+    /// <param name="useRegex"><see langword="true"/> to treat <paramref name="pattern"/> as a regular expression.</param>
+    /// <param name="includePattern">An optional glob filter applied to relative file paths before reading file contents.</param>
+    /// <param name="caseSensitive"><see langword="true"/> to perform a case-sensitive search.</param>
+    /// <param name="contextLines">The number of context lines to include before and after each match.</param>
+    /// <param name="maxResults">The optional maximum number of matches to return.</param>
+    /// <param name="workingDirectory">The optional working directory to search from.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the search.</param>
+    /// <returns>A structured result containing the matching lines.</returns>
+    /// <exception cref="ArgumentException">Thrown when an invalid regular expression is supplied.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<WorkspaceGrepSearchToolResult> GrepSearchAsync(
         string pattern,
         bool useRegex = false,
@@ -553,6 +658,22 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         }
     }
 
+    /// <summary>
+    /// Edits a Jupyter notebook using cell-aware operations.
+    /// </summary>
+    /// <param name="path">The notebook path.</param>
+    /// <param name="operation">The notebook edit operation to perform.</param>
+    /// <param name="cellId">The optional target cell identifier.</param>
+    /// <param name="cellIndex">The optional zero-based target cell index.</param>
+    /// <param name="afterCellId">The optional cell identifier used by <see cref="WorkspaceNotebookEditOperation.InsertAfter"/>.</param>
+    /// <param name="afterCellIndex">The optional cell index used by <see cref="WorkspaceNotebookEditOperation.InsertAfter"/>.</param>
+    /// <param name="cellType">The optional cell type for inserted or replaced cells.</param>
+    /// <param name="content">The optional replacement or inserted cell content.</param>
+    /// <param name="workingDirectory">The optional working directory used to resolve relative notebook paths.</param>
+    /// <param name="serviceProvider">The optional service provider for the current tool invocation.</param>
+    /// <param name="cancellationToken">A token that cancels the edit.</param>
+    /// <returns>A structured result describing the notebook edit outcome.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken"/> is canceled.</exception>
     public async Task<WorkspaceNotebookEditToolResult> EditNotebookAsync(
         string path,
         WorkspaceNotebookEditOperation operation,
@@ -1319,6 +1440,10 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
     {
         private readonly ToolOutputBuffer _buffer = buffer;
 
+        /// <summary>
+        /// Appends buffered output text.
+        /// </summary>
+        /// <param name="value">The text to append.</param>
         public void Append(string value) => _buffer.Append(value);
     }
 
@@ -1326,6 +1451,10 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
     {
         private readonly Action<string> _append = append;
 
+        /// <summary>
+        /// Streams output text directly to the callback supplied by the task store monitor.
+        /// </summary>
+        /// <param name="value">The text to append.</param>
         public void Append(string value) => _append(value);
     }
 
@@ -1336,6 +1465,11 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
     {
         private readonly Regex _regex = new(GlobToRegex(pattern), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
 
+        /// <summary>
+        /// Determines whether the supplied relative path matches the configured glob.
+        /// </summary>
+        /// <param name="relativePath">The relative path to evaluate.</param>
+        /// <returns><see langword="true"/> when the path matches the glob; otherwise, <see langword="false"/>.</returns>
         public bool IsMatch(string relativePath) => _regex.IsMatch(relativePath.Replace('\\', '/'));
 
         private static string GlobToRegex(string pattern)

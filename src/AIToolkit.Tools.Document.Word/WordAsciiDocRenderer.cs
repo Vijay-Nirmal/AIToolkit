@@ -9,10 +9,25 @@ namespace AIToolkit.Tools.Document.Word;
 /// <summary>
 /// Renders the parsed AsciiDoc block model into WordprocessingML.
 /// </summary>
+/// <remarks>
+/// Rendering is intentionally two-phase: <see cref="WordAsciiDocParser"/> produces a normalized model, then this type
+/// converts that model into Open XML paragraphs, tables, bookmarks, and package metadata. The renderer also recreates
+/// table-of-contents entries and heading bookmarks so generated Word documents remain navigable. The visible body that it
+/// creates is later paired with <see cref="WordAsciiDocPayload"/> by <see cref="WordDocumentHandler"/> to preserve a
+/// lossless canonical source.
+/// </remarks>
 internal static partial class WordAsciiDocRenderer
 {
+    /// <summary>
+    /// Writes a new Word document body from canonical AsciiDoc.
+    /// </summary>
+    /// <param name="mainPart">The main document part that will receive the rendered body.</param>
+    /// <param name="asciiDoc">The canonical AsciiDoc to parse and render.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="mainPart"/> is <see langword="null"/>.</exception>
     public static void Write(MainDocumentPart mainPart, string asciiDoc)
     {
+        ArgumentNullException.ThrowIfNull(mainPart);
+
         var model = WordAsciiDocParser.Parse(asciiDoc);
         var document = new DocumentFormat.OpenXml.Wordprocessing.Document();
         var body = new Body();
@@ -41,6 +56,11 @@ internal static partial class WordAsciiDocRenderer
         mainPart.Document.Save();
     }
 
+    /// <summary>
+    /// Tries to extract the document title from canonical AsciiDoc without rendering the full package.
+    /// </summary>
+    /// <param name="asciiDoc">The canonical AsciiDoc to inspect.</param>
+    /// <returns>The document title when the AsciiDoc header contains one; otherwise, <see langword="null"/>.</returns>
     public static string? TryExtractTitle(string asciiDoc) =>
         WordAsciiDocParser.Parse(asciiDoc).Title;
 
@@ -427,6 +447,8 @@ internal static partial class WordAsciiDocRenderer
                 continue;
             }
 
+            // Several recovery branches intentionally accept malformed agent-authored syntax so the next write can emit
+            // normalized markup while still preserving the user's intended styling or link target.
             if (TryParseMalformedStyledLink(text, index, end, out var consumed, out var malformedStyledLinkInline))
             {
                 FlushText(builder, result);
@@ -1261,8 +1283,14 @@ internal static partial class WordAsciiDocRenderer
         private readonly RenderedHeadingInfo[] _headingInfos = BuildHeadingInfos(model);
         private int _nextHeadingIndex;
 
+        /// <summary>
+        /// Gets the precomputed heading information used for rendered headings and table-of-contents entries.
+        /// </summary>
         public IReadOnlyList<RenderedHeadingInfo> HeadingInfos => _headingInfos;
 
+        /// <summary>
+        /// Returns the next heading entry in document order.
+        /// </summary>
         public RenderedHeadingInfo TakeNextHeadingInfo() => _headingInfos[_nextHeadingIndex++];
     }
 

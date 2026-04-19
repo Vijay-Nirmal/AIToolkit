@@ -10,13 +10,33 @@ namespace AIToolkit.Tools.PDF;
 /// <summary>
 /// Extracts text and embedded images from PDF files for workspace reads.
 /// </summary>
+/// <remarks>
+/// The handler is intentionally read-only. It interprets the <c>pages</c> selector, ignores line-based offset/limit
+/// parameters that make sense for text files, extracts text with PdfPig, and best-effort converts embedded image payloads
+/// into <see cref="DataContent"/> parts when configured. <see cref="PdfWorkspaceTools"/> exposes this handler through the
+/// generic workspace tool surface.
+/// </remarks>
 internal sealed class PdfWorkspaceFileHandler(PdfWorkspaceFileHandlerOptions options) : IWorkspaceFileHandler
 {
     private readonly PdfWorkspaceFileHandlerOptions _options = options ?? throw new ArgumentNullException(nameof(options));
 
+    /// <summary>
+    /// Determines whether the workspace request targets a PDF file.
+    /// </summary>
+    /// <param name="context">The workspace read context to inspect.</param>
+    /// <returns><see langword="true"/> when the request targets a <c>.pdf</c> file; otherwise, <see langword="false"/>.</returns>
     public bool CanHandle(WorkspaceFileReadContext context) =>
         string.Equals(context.Extension, ".pdf", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Reads selected PDF pages and returns extracted text and optional image content.
+    /// </summary>
+    /// <param name="context">The workspace read context that provides the PDF bytes and request options.</param>
+    /// <param name="cancellationToken">A token that cancels the read.</param>
+    /// <returns>
+    /// A sequence of <see cref="AIContent"/> parts that starts with a summary message and then includes extracted page text
+    /// plus any decoded images that fit within the configured limits.
+    /// </returns>
     public async ValueTask<IEnumerable<AIContent>> ReadAsync(
         WorkspaceFileReadContext context,
         CancellationToken cancellationToken = default)
@@ -29,6 +49,7 @@ internal sealed class PdfWorkspaceFileHandler(PdfWorkspaceFileHandlerOptions opt
                 UseLenientParsing = _options.UseLenientParsing,
             });
 
+        // Page selection is handled up front so invalid selectors fail with a clear text response instead of partial data.
         if (!TryResolvePageNumbers(context.Request.Pages, document.NumberOfPages, _options.MaxPages, out var pageNumbers, out var pageMessage))
         {
             return
@@ -91,6 +112,8 @@ internal sealed class PdfWorkspaceFileHandler(PdfWorkspaceFileHandlerOptions opt
                     continue;
                 }
 
+                // Image extraction is best-effort because PdfPig can surface raw image bytes in different shapes depending
+                // on how the PDF was authored.
                 if (!TryCreateImageContent(
                     image,
                     context.Request.FilePath,

@@ -8,6 +8,17 @@ namespace AIToolkit.Tools.Sql.MySql;
 /// <summary>
 /// Adapts the shared SQL abstractions into AI-callable MySQL tool methods.
 /// </summary>
+/// <remarks>
+/// This class is the MySQL-specific orchestration layer between the shared abstractions and the public <c>mysql_*</c> tool names. It logs
+/// tool calls, translates optional database selection into <see cref="SqlConnectionTarget"/> values, converts provider exceptions into stable
+/// tool result records, and interprets MySQL's text-based <c>EXPLAIN ANALYZE FORMAT=TREE</c> output into the shared explain-plan models.
+/// </remarks>
+/// <param name="profileCatalog">Supplies the named MySQL profiles visible to the model.</param>
+/// <param name="metadataProvider">Reads database, schema, object, and routine metadata.</param>
+/// <param name="queryExecutor">Executes classified queries through the shared execution pipeline.</param>
+/// <param name="connectionOpener">Opens raw MySQL connections for provider-specific commands.</param>
+/// <param name="queryClassifier">Classifies MySQL SQL text before execution or analysis.</param>
+/// <param name="executionPolicy">Controls command timeout, mutation behavior, and result limits.</param>
 internal sealed class MySqlToolService(
     ISqlConnectionProfileCatalog profileCatalog,
     ISqlMetadataProvider metadataProvider,
@@ -28,6 +39,12 @@ internal sealed class MySqlToolService(
     private static readonly Regex MySqlEstimatedNodeRegex = new(@"^->\s*(?<node>.+?)\s+\(cost=(?<cost>[-+0-9.eE]+)\s+rows=(?<rows>[-+0-9.eE]+)\)$", RegexOptions.Compiled);
     private static readonly Regex MySqlActualNodeRegex = new(@"actual time=(?<start>[-+0-9.eE]+)\.\.(?<end>[-+0-9.eE]+)\s+rows=(?<rows>[-+0-9.eE]+)\s+loops=(?<loops>[-+0-9.eE]+)", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Lists the MySQL connection profiles registered with the host.
+    /// </summary>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing connection names and server summaries.</returns>
     public async Task<MySqlListServersToolResult> ListServersAsync(IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_servers", new Dictionary<string, object?>());
@@ -43,6 +60,13 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the databases visible to the selected MySQL connection.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing visible MySQL database names.</returns>
     public async Task<MySqlListDatabasesToolResult> ListDatabasesAsync(string connectionName, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_databases", new Dictionary<string, object?> { ["connectionName"] = connectionName });
@@ -58,6 +82,14 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the schema context exposed by the selected MySQL connection.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the active schema name for the selected database context.</returns>
     public async Task<MySqlListSchemasToolResult> ListSchemasAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_schemas", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -73,6 +105,14 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the tables available in the selected MySQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified table names.</returns>
     public async Task<MySqlListTablesToolResult> ListTablesAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_tables", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -88,6 +128,14 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the views available in the selected MySQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified view names.</returns>
     public async Task<MySqlListViewsToolResult> ListViewsAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_views", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -103,6 +151,14 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the functions available in the selected MySQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified MySQL function names.</returns>
     public async Task<MySqlListFunctionsToolResult> ListFunctionsAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_functions", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -118,6 +174,14 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Lists the procedures available in the selected MySQL database.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing fully qualified MySQL procedure names.</returns>
     public async Task<MySqlListProceduresToolResult> ListProceduresAsync(string connectionName, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_list_procedures", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database });
@@ -133,6 +197,17 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Gets the MySQL definition for a table, view, function, or procedure.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to inspect.</param>
+    /// <param name="objectName">The object name to resolve.</param>
+    /// <param name="schemaName">An optional schema or database name.</param>
+    /// <param name="objectKind">An optional object-kind hint such as <c>Table</c> or <c>Procedure</c>.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the resolved object definition.</returns>
     public async Task<MySqlGetObjectDefinitionToolResult> GetObjectDefinitionAsync(string connectionName, string objectName, string? schemaName = null, string? objectKind = null, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_get_object_definition", new Dictionary<string, object?>
@@ -156,6 +231,15 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Executes MySQL SQL text through the shared execution pipeline.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to use.</param>
+    /// <param name="query">The SQL text to classify, approve if required, and execute.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the execution classification, any result sets, and provider messages.</returns>
     public async Task<MySqlRunQueryToolResult> RunQueryAsync(string connectionName, string query, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_run_query", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database, ["query"] = query });
@@ -171,6 +255,19 @@ internal sealed class MySqlToolService(
         }
     }
 
+    /// <summary>
+    /// Analyzes a read-only MySQL query with <c>EXPLAIN ANALYZE FORMAT=TREE</c>.
+    /// </summary>
+    /// <param name="connectionName">The logical MySQL connection profile to use.</param>
+    /// <param name="query">The read-only SQL statement to analyze.</param>
+    /// <param name="database">An optional database override for the connection target.</param>
+    /// <param name="serviceProvider">Optional services used for logging.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A tool result containing the parsed MySQL plan summary and raw plan payload.</returns>
+    /// <remarks>
+    /// MySQL returns tree-shaped explain output as text. This method parses the first estimated and actual plan lines it can recognize and maps
+    /// them into <see cref="SqlExplainNodeSummary"/> and <see cref="SqlExplainTimingStatistics"/> for cross-provider consumption.
+    /// </remarks>
     public async Task<MySqlExplainQueryToolResult> ExplainQueryAsync(string connectionName, string query, string? database = null, IServiceProvider? serviceProvider = null, CancellationToken cancellationToken = default)
     {
         LogToolInvocation(serviceProvider, "mysql_explain_query", new Dictionary<string, object?> { ["connectionName"] = connectionName, ["database"] = database, ["query"] = query });
@@ -242,6 +339,7 @@ internal sealed class MySqlToolService(
             .Select(static line => line.Trim())
             .ToArray();
 
+        // MySQL tree plans are plain text, so the parser looks for the first estimated and actual iterator lines it can reliably recognize.
         var estimatedMatch = lines.Select(line => MySqlEstimatedNodeRegex.Match(line)).FirstOrDefault(static match => match.Success);
         var actualMatch = lines.Select(line => MySqlActualNodeRegex.Match(line)).FirstOrDefault(static match => match.Success);
 
