@@ -23,7 +23,7 @@ That keeps workbook text short enough for agent prompts while still preserving c
 | Detailed override | `[cell ...]` |
 | Shared built-ins | `[style ...]`, `[name ...]` |
 | Sheet built-ins | `[state ...]`, `[view ...]`, `[used ...]` |
-| Other built-ins | `[merge ...]`, `[type ...]`, `[fmt ...]`, `[validate ...]`, `[cf ...]`, `[table ...]`, `[pivot ...]`, `[chart ...]`, `[spark ...]` |
+| Other built-ins | `[merge ...]`, `[type ...]`, `[fmt ...]`, `[cf ...]`, `[table ...]`, `[pivot ...]`, `[chart ...]`, `[spark ...]` |
 | Not built in | tab color, column widths, row heights, page layout, filter state, filter views, images, protection |
 | Extension form | `[x ...]` |
 
@@ -41,6 +41,8 @@ A `WorkbookDoc` file is made of:
 8. zero or more non-cell directives per sheet.
 
 The compact row line is the canonical default. Use explicit `[cell ...]` only when the compact row line would become awkward or lossy.
+
+Emit literal WorkbookDoc characters, not JSON unicode escapes such as `\u0022`, `\u0027`, `\u003E`, or `\u003C`.
 
 ## Quick Example
 
@@ -233,7 +235,7 @@ The following are intentionally **not** part of the WorkbookDoc built-in surface
 - provider-specific chart extras,
 - macros and scripting.
 
-Those details may still matter in a host application, but they are less useful for agent-facing spreadsheet text than semantic sheet content, formulas, merges, validations, and charts. If a workflow needs them, use `[x ...]`.
+Those details may still matter in a host application, but they are less useful for agent-facing spreadsheet text than semantic sheet content, formulas, merges, conditional formatting, and charts. If a workflow needs them, use `[x ...]`.
 
 Examples:
 
@@ -500,41 +502,6 @@ Rules:
 3. Inline cell attrs and explicit `[cell ...]` details override `[fmt ...]`.
 4. Prefer row attrlists for full-row patterns such as header rows; use `[fmt ...]` when the shared formatting is better expressed as a range.
 
-### `[validate ...]`
-
-What it is: cell input validation. Use it for dropdowns, numeric/date constraints, checkboxes, and custom rules that control what users may enter.
-
-```text
-[validate <range> <validation-rule> <behavior>...]
-```
-
-Examples:
-
-```text
-[validate H6:H50 number between(0,1) warn]
-[validate B6:B50 list("Marketing","Sales","Support") reject dropdown]
-```
-
-Built-in validation rule forms:
-
-| Rule form | What it means | Example |
-| --- | --- | --- |
-| `list(...)` | Value must match one of the listed items or cells in a source range | `list("Marketing","Sales","Support")` |
-| `number between(a,b)` | Numeric value must fall within an inclusive range | `number between(0,1)` |
-| `number gt(x)` | Numeric value must be greater than a threshold | `number gt(0)` |
-| `date between(a,b)` | Date value must fall within an inclusive date range | `date between(date("2026-01-01"),date("2026-12-31"))` |
-| `text-len between(a,b)` | Text length must fall within a length range | `text-len between(1,40)` |
-| `checkbox` | Cell is treated as a boolean checkbox-style input | `checkbox` |
-| `formula(...)` | A custom formula decides whether the value is valid | `formula(=COUNTIF($B$6:$B$50,B6)=1)` |
-
-Built-in validation behaviors:
-
-| Behavior | What it means |
-| --- | --- |
-| `reject` | Invalid input must be rejected |
-| `warn` | Invalid input may be entered after warning |
-| `dropdown` | A dropdown affordance should be shown when the rule supports one |
-
 ### `[cf ...]`
 
 What it is: conditional formatting. Use it when formatting depends on cell values, formulas, scales, bars, or icon sets.
@@ -554,7 +521,7 @@ Built-in conditional-format rule forms:
 
 | Rule form | What it means | Example |
 | --- | --- | --- |
-| `when cell <value-op> value` | Format depends on the cell's own value compared against a threshold | `when cell < 0.5` |
+| `when cell <value-op> value` | Format depends on the cell's own value compared against a threshold | `when cell > 0.15` |
 | `when text contains "..."` | Format depends on whether cell text contains a substring | `when text contains "Risk"` |
 | `when formula(...)` | Format depends on a formula evaluated relative to the top-left cell of the target range | `when formula(=H6<0.5)` |
 | `scale(...)` | Apply a color scale across the whole range | `scale(min:#F8696B,50%:#FFEB84,max:#63BE7B)` |
@@ -570,6 +537,8 @@ Built-in conditional-format entries:
 | `fill=#RRGGBB` | Fill color to apply |
 | `fg=#RRGGBB` | Font color to apply |
 | `bold` / `italic` / `underline` | Text styling to apply |
+
+Providers may approximate rule families they cannot render natively, but the WorkbookDoc rule text stays the same.
 
 ### `[table ...]`
 
@@ -596,9 +565,11 @@ What it is: a pivot table definition. Use it when a sheet contains an aggregated
 [pivot <name> source=<source> at=<cell>]
 - row <field>
 - col <field>
-- val <field> <agg>
+- val <field> <agg> [as "<label>"]
 [end]
 ```
+
+`source=` must point to a table name or to a range whose first row is the header row used by the pivot field names.
 
 Built-in pivot line kinds:
 
@@ -606,7 +577,7 @@ Built-in pivot line kinds:
 | --- | --- | --- |
 | `row <field>` | Add a row grouping field | `- row Region` |
 | `col <field>` | Add a column grouping field | `- col Quarter` |
-| `val <field> <agg>` | Add an aggregated value field | `- val Revenue sum` |
+| `val <field> <agg> [as "<label>"]` | Add an aggregated value field | `- val Revenue sum as "Sum of Revenue"` |
 | `filter <field>` | Add a pivot filter field | `- filter Status` |
 
 ### `[chart ...]`

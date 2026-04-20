@@ -1,11 +1,9 @@
 using AIToolkit.Tools.Document.Word;
 using DocumentFormat.OpenXml.Packaging;
-using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
-using DriveFile = Google.Apis.Drive.v3.Data.File;
 using Google.Apis.Services;
 using Google.Apis.Upload;
-using System.Globalization;
+using DriveFile = Google.Apis.Drive.v3.Data.File;
 
 namespace AIToolkit.Tools.Document.GoogleDocs;
 

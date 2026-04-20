@@ -2,7 +2,7 @@
 
 AIToolkit is a family of focused .NET packages for building AI tooling and integrations.
 
-The repository currently includes a reusable SQL abstraction package plus SQL Server, PostgreSQL, MySQL, and SQLite provider packages for agent-ready database tooling, a generic workspace tools package for file, shell, search, notebook, and task operations, a generic document-tools package with Word and Google Docs providers built around canonical AsciiDoc, and a generic web-tools package with pluggable search providers.
+The repository currently includes a reusable SQL abstraction package plus SQL Server, PostgreSQL, MySQL, and SQLite provider packages for agent-ready database tooling, a generic workspace tools package for file, shell, search, notebook, and task operations, a generic document-tools package with Word and Google Docs providers built around canonical AsciiDoc, a generic workbook-tools package with an Excel provider built around canonical WorkbookDoc, and a generic web-tools package with pluggable search providers.
 
 ## What You Get
 
@@ -15,6 +15,7 @@ In practical terms, you can:
 - optionally allow write queries behind a host-controlled approval check
 - expose file, shell, search, notebook, and task operations through a generic workspace tool surface
 - expose document read, write, edit, and content-search operations through a canonical AsciiDoc abstraction for supported document formats
+- expose workbook read, write, edit, content-search, and syntax-help operations through a canonical WorkbookDoc abstraction for supported spreadsheet formats
 - expose `web_fetch` and provider-driven `web_search` tools with consistent result shapes and prompt guidance
 
 ## Choose a Package
@@ -30,6 +31,9 @@ In practical terms, you can:
 | `AIToolkit.Tools.Document` | You need generic `document_*` tools and a provider-neutral document conversion contract based on canonical AsciiDoc |
 | `AIToolkit.Tools.Document.Word` | You need Microsoft Word `.docx`/`.docm`/`.dotx`/`.dotm` support behind the `document_*` tool surface |
 | `AIToolkit.Tools.Document.GoogleDocs` | You need hosted Google Docs support behind the `document_*` tool surface, including local `.gdoc` shortcut files for workspace search |
+| `AIToolkit.Tools.Workbook` | You need generic `workbook_*` tools and a provider-neutral workbook conversion contract based on canonical WorkbookDoc |
+| `AIToolkit.Tools.Workbook.Excel` | You need Microsoft Excel `.xlsx`/`.xlsm`/`.xltx`/`.xltm` support behind the `workbook_*` tool surface |
+| `AIToolkit.Tools.Workbook.GoogleSheets` | You need hosted Google Sheets support behind the `workbook_*` tool surface |
 | `AIToolkit.Tools.PDF` | You want first-party PDF extraction that plugs into `workspace_read_file` and returns page text plus embedded images |
 | `AIToolkit.Tools.Web` | You need generic `web_fetch` and `web_search` tools plus the base web abstractions |
 | `AIToolkit.Tools.Web.DuckDuckGo` | You want DuckDuckGo HTML search as the `web_search` backend |
@@ -38,7 +42,7 @@ In practical terms, you can:
 | `AIToolkit.Tools.Web.Brave` | You want Brave Search as the `web_search` backend |
 | `AIToolkit.Tools.Web.Tavily` | You want Tavily Search as the `web_search` backend |
 
-Most applications reference `AIToolkit.Tools.Sql` plus one SQL provider package, use `AIToolkit.Tools` directly for generic workspace and task operations, use `AIToolkit.Tools.Document` plus a document provider such as `AIToolkit.Tools.Document.Word` or `AIToolkit.Tools.Document.GoogleDocs`, or use `AIToolkit.Tools.Web` plus one web-search provider package.
+Most applications reference `AIToolkit.Tools.Sql` plus one SQL provider package, use `AIToolkit.Tools` directly for generic workspace and task operations, use `AIToolkit.Tools.Document` plus a document provider such as `AIToolkit.Tools.Document.Word` or `AIToolkit.Tools.Document.GoogleDocs`, use `AIToolkit.Tools.Workbook` plus a workbook provider such as `AIToolkit.Tools.Workbook.Excel` or `AIToolkit.Tools.Workbook.GoogleSheets` for spreadsheet automation, or use `AIToolkit.Tools.Web` plus one web-search provider package.
 
 ## Getting Started
 
@@ -57,6 +61,9 @@ dotnet add package AIToolkit.Tools
 dotnet add package AIToolkit.Tools.Document
 dotnet add package AIToolkit.Tools.Document.Word
 dotnet add package AIToolkit.Tools.Document.GoogleDocs
+dotnet add package AIToolkit.Tools.Workbook
+dotnet add package AIToolkit.Tools.Workbook.Excel
+dotnet add package AIToolkit.Tools.Workbook.GoogleSheets
 dotnet add package AIToolkit.Tools.PDF
 dotnet add package AIToolkit.Tools.Web
 dotnet add package AIToolkit.Tools.Web.DuckDuckGo
@@ -86,6 +93,8 @@ For generic workspace operations, use `WorkspaceTools.CreateFunctions(...)` from
 
 For generic document operations, use `DocumentTools.CreateFunctions(...)` from `AIToolkit.Tools.Document` and register a provider handler such as `WordDocumentTools.CreateHandler()` from `AIToolkit.Tools.Document.Word` or `GoogleDocsDocumentTools.CreateHandler()` from `AIToolkit.Tools.Document.GoogleDocs`.
 
+For generic workbook operations, use `WorkbookTools.CreateFunctions(...)` from `AIToolkit.Tools.Workbook` and register a provider handler such as `ExcelWorkbookTools.CreateHandler()` from `AIToolkit.Tools.Workbook.Excel` or `GoogleSheetsWorkbookTools.CreateHandler()` from `AIToolkit.Tools.Workbook.GoogleSheets`.
+
 For PDF extraction in `workspace_read_file`, add `AIToolkit.Tools.PDF` and register `PdfWorkspaceTools.CreateFileHandler()` in `WorkspaceToolsOptions.FileHandlers`.
 
 For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.Tools.Web` and supply an `IWebSearchProvider` from one of the web provider packages.
@@ -101,6 +110,9 @@ For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.
 - Package-specific usage: `src/AIToolkit.Tools.Document/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Document.GoogleDocs/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Document.Word/README.md`
+- Package-specific usage: `src/AIToolkit.Tools.Workbook/README.md`
+- Package-specific usage: `src/AIToolkit.Tools.Workbook.Excel/README.md`
+- Package-specific usage: `src/AIToolkit.Tools.Workbook.GoogleSheets/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.PDF/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Web/README.md`
 - Package-specific usage: `src/AIToolkit.Tools.Web.DuckDuckGo/README.md`
@@ -116,6 +128,9 @@ For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.
 - End-user document tools guide: `docs/AIToolkit.Tools.Document.md`
 - End-user Google Docs guide: `docs/AIToolkit.Tools.Document.GoogleDocs.md`
 - End-user Word document guide: `docs/AIToolkit.Tools.Document.Word.md`
+- End-user workbook tools guide: `docs/AIToolkit.Tools.Workbook.md`
+- End-user Excel workbook guide: `docs/AIToolkit.Tools.Workbook.Excel.md`
+- End-user Google Sheets workbook guide: `docs/AIToolkit.Tools.Workbook.GoogleSheets.md`
 - End-user PDF workspace guide: `docs/AIToolkit.Tools.PDF.md`
 - End-user web tools guide: `docs/AIToolkit.Tools.Web.md`
 - End-user DuckDuckGo web-search guide: `docs/AIToolkit.Tools.Web.DuckDuckGo.md`
@@ -135,4 +150,6 @@ For generic web operations, use `WebTools.CreateFunctions(...)` from `AIToolkit.
 - `samples/AIToolkit.Tools.Sample` also demonstrates wiring in `AIToolkit.Tools.PDF` so `workspace_read_file` can extract text and images from PDFs.
 - `samples/AIToolkit.Tools.Document.GoogleDocs.Sample` shows a hosted Google Docs workflow that seeds remote documents, writes local `.gdoc` shortcut files, and then reads them back through the generic `document_*` tools.
 - `samples/AIToolkit.Tools.Document.Word.Sample` shows an interactive agent that can read, write, edit, and discover Word documents through canonical AsciiDoc.
+- `samples/AIToolkit.Tools.Workbook.Excel.Sample` shows an interactive agent that can read, write, edit, search, and inspect WorkbookDoc-backed Excel workbooks.
+- `samples/AIToolkit.Tools.Workbook.GoogleSheets.Sample` shows an interactive agent that can read, write, edit, search, and inspect hosted Google Sheets through canonical WorkbookDoc.
 - `samples/AIToolkit.Tools.Web.Sample` shows an interactive agent that can switch between DuckDuckGo, Google, Bing, Brave, and Tavily for the `web_search` backend.

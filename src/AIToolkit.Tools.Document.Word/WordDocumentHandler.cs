@@ -1,6 +1,4 @@
-using AIToolkit.Tools.Document;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace AIToolkit.Tools.Document.Word;
 
@@ -147,7 +145,9 @@ internal sealed class WordDocumentHandler(WordDocumentHandlerOptions options) : 
                 await postProcessor.ProcessAsync(new WordDocumentPostProcessorContext(context, document, asciiDoc), cancellationToken).ConfigureAwait(false);
             }
 
-            mainPart.Document.Save();
+            var renderedDocument = mainPart.Document
+                ?? throw new InvalidOperationException("The Word document renderer did not create a main document.");
+            renderedDocument.Save();
         }
 
         if (bufferedStream is not null)

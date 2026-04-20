@@ -142,7 +142,9 @@ internal sealed class GoogleDocsDocumentHandler(
                 await _options.PostProcessor.ProcessAsync(new WordDocumentPostProcessorContext(context, document, asciiDoc), cancellationToken).ConfigureAwait(false);
             }
 
-            mainPart.Document.Save();
+            var renderedDocument = mainPart.Document
+                ?? throw new InvalidOperationException("The Word document renderer did not create a main document.");
+            renderedDocument.Save();
         }
 
         if (bufferedStream is not null)

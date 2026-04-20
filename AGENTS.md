@@ -32,6 +32,8 @@ dotnet pack src/<PackageName>/<PackageName>.csproj -c Release
 - For AI function packages, keep tool behavior in an internal service and keep stable tool names and descriptions in a separate factory class.
 - Tool methods exposed through `AIFunctionFactory` should accept optional `IServiceProvider` and `CancellationToken` parameters so DI and cancellation flow through `AIFunctionArguments.Services` and `InvokeAsync` automatically.
 - Prefer structured result records with `Success` and `Message` fields over ad hoc strings for tool responses.
+- All public Classes, methods, and properties should have proper XML doc comments with examples and other details on how the feature works in it's not start forward.
+- Every class (Public or Internal) should have a summary xml comment describing it's purpose and usage
 
 ## Documentation guidance
 

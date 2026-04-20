@@ -21,6 +21,7 @@
     <Company Condition="'$(Company)' == ''">AIToolkit</Company>
     <Product Condition="'$(Product)' == ''">AIToolkit</Product>
     <VersionPrefix Condition="'$(VersionPrefix)' == ''">0.1.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">preview.1</VersionSuffix>
     <PackageId Condition="'$(PackageId)' == ''">$(MSBuildProjectName)</PackageId>
     <Description Condition="'$(Description)' == ''">$(MSBuildProjectName) package for the AIToolkit repository.</Description>
     <PublishRepositoryUrl Condition="'$(HasRepositoryRoot)' == 'true'">true</PublishRepositoryUrl>

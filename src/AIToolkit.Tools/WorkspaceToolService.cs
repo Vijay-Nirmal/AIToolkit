@@ -937,12 +937,12 @@ internal sealed class WorkspaceToolService(WorkspaceToolsOptions options, ITaskT
         }
 
         var builder = new StringBuilder();
-    builder.Append("--- ");
-    builder.Append(path);
-    builder.AppendLine();
-    builder.Append("+++ ");
-    builder.Append(path);
-    builder.AppendLine();
+        builder.Append("--- ");
+        builder.Append(path);
+        builder.AppendLine();
+        builder.Append("+++ ");
+        builder.Append(path);
+        builder.AppendLine();
         builder.Append("@@ -");
         builder.Append((prefix + 1).ToString(CultureInfo.InvariantCulture));
         builder.Append(',');

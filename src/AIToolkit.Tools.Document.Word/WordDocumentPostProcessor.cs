@@ -1,4 +1,3 @@
-using AIToolkit.Tools.Document;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace AIToolkit.Tools.Document.Word;

@@ -1,5 +1,3 @@
-using AIToolkit.Tools.Document;
-using AIToolkit.Tools.Document.GoogleDocs;
 using AIToolkit.Tools.Document.Word;
 using Microsoft.Extensions.AI;
 using WordTestCases = AIToolkit.Tools.Document.Word.Tests;
@@ -71,7 +69,7 @@ public class GoogleDocsDocumentBestEffortRoundTripTests
         {
             var mainPart = document.AddMainDocumentPart();
             WordAsciiDocRenderer.Write(mainPart, asciiDoc);
-            mainPart.Document.Save();
+            (mainPart.Document ?? throw new InvalidOperationException("Expected the rendered Word document to exist.")).Save();
         }
 
         return stream.ToArray();

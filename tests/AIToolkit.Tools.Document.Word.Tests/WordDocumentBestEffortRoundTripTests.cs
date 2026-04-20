@@ -1,7 +1,4 @@
-using AIToolkit.Tools.Document;
-using AIToolkit.Tools.Document.Word;
 using Microsoft.Extensions.AI;
-using System.Text;
 
 namespace AIToolkit.Tools.Document.Word.Tests;
 

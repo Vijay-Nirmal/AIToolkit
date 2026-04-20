@@ -1,0 +1,523 @@
+[
+  {
+    "sectionId": "basics",
+    "title": "WorkbookDoc basics",
+    "keywords": ["workbookdoc", "basics", "header", "sheet", "rows", "anchored"],
+    "content": [
+      "Start the workbook with '= Workbook Name' and start each sheet with '== Sheet Name'.",
+      "The canonical default is the anchored row line '@B5 | a | b | c'.",
+      "Use explicit '[cell ...]' only when the compact row form would be awkward or lossy.",
+      "Emit literal WorkbookDoc text, not JSON unicode escapes such as '\\u0022', '\\u0027', '\\u003E', or '\\u003C'."
+    ]
+  },
+  {
+    "sectionId": "workbook-attrs",
+    "title": "Workbook attributes",
+    "keywords": ["attributes", "wbdoc", "locale", "date-system", "recalc", "active"],
+    "content": [
+      "Workbook-level settings use AsciiDoc-style attribute lines such as ':wbdoc: 4' and ':active: Summary'.",
+      "Built-in workbook attributes are ':wbdoc:', ':locale:', ':date-system:', ':recalc:', and ':active:'.",
+      "':wbdoc:' is required for canonical files, ':date-system:' may be 1900 or 1904, ':recalc:' may be auto or manual, and ':active:' must match a sheet name when present."
+    ]
+  },
+  {
+    "sectionId": "shared-style",
+    "title": "Shared style directive",
+    "keywords": ["style", "shared", "directive", "fmt", "fg", "bg", "align", "border"],
+    "content": [
+      "Define a reusable style with '[style <name> <style-entry>...]'.",
+      "Example: '[style title bold fg=#FFFFFF bg=#4472C4 align=center/middle]'.",
+      "Built-in style entries are fmt, fg, bg, bold, italic, underline, strike, font, size, align, wrap, clip, overflow, border, locked, and hide-formula."
+    ]
+  },
+  {
+    "sectionId": "shared-name",
+    "title": "Named ranges and formulas",
+    "keywords": ["name", "named-range", "named-formula", "reference"],
+    "content": [
+      "Define a named range or named formula with '[name <name> = <reference-or-formula>]'.",
+      "Examples: '[name TaxRate = Inputs!B2]' and '[name ActiveSales = =FILTER(Data!A2:F200,Data!G2:G200=\"Active\")]'.",
+      "Shared directives normally appear before the first sheet."
+    ]
+  },
+  {
+    "sectionId": "sheet-header",
+    "title": "Sheet headers",
+    "keywords": ["sheet", "header", "heading", "=="],
+    "content": [
+      "Each sheet starts with '== Sheet Name'.",
+      "Sheet directives usually appear below the heading and before the first row line.",
+      "The built-in sheet surface is intentionally small and keeps only common open-state or interpretation hints."
+    ]
+  },
+  {
+    "sectionId": "sheet-state",
+    "title": "Sheet state",
+    "keywords": ["state", "sheet-state", "hidden"],
+    "content": [
+      "Use '[state hidden]' when a sheet exists in the workbook but should not be shown by default.",
+      "Built-in value: 'hidden'.",
+      "This is a portable sheet visibility directive, not a provider-specific very-hidden feature."
+    ]
+  },
+  {
+    "sectionId": "sheet-view",
+    "title": "Sheet view",
+    "keywords": ["view", "freeze", "zoom", "grid", "gridlines"],
+    "content": [
+      "Use '[view <entry>...]' for first-open viewing hints.",
+      "Built-in entries are 'freeze=<rows>,<cols>', 'zoom=<n>', and 'grid'.",
+      "Examples: '[view freeze=1,1 zoom=90 grid]' and '[view freeze=5,2]'."
+    ]
+  },
+  {
+    "sectionId": "sheet-used",
+    "title": "Used range",
+    "keywords": ["used", "used-range", "bounds", "preview"],
+    "content": [
+      "Use '[used <range>]' for the intended occupied rectangle of the sheet.",
+      "This is important when meaningful content starts away from A1, outer blank framing is intentionally omitted, or stable preview bounds matter.",
+      "Examples: '[used B3:H50]' and '[used A1:K200]'."
+    ]
+  },
+  {
+    "sectionId": "not-built-in",
+    "title": "Not built in",
+    "keywords": ["not-built-in", "non-built-in", "unsupported", "not-supported"],
+    "content": [
+      "The built-in surface intentionally excludes tab color, exact column widths, exact row heights, page or print layout, saved filter state, images, protection, theme palettes, provider-specific chart extras, and macros.",
+      "Those details are not part of the built-in WorkbookDoc surface because they are less useful than semantic grid content, formulas, conditional formatting, and charts for agent-facing text.",
+      "The spec index focuses on built-in WorkbookDoc features only."
+    ]
+  },
+  {
+    "sectionId": "ranges",
+    "title": "Addressing and ranges",
+    "keywords": ["address", "range", "a1", "absolute", "quoted-sheet", "column", "row"],
+    "content": [
+      "WorkbookDoc uses A1 notation everywhere.",
+      "Supported forms include a single cell like 'B3', a rectangle like 'B5:H50', a whole column like 'B:B', a whole row like '5:5', a quoted sheet name like ''North America''!B2', and absolute references like '$B$5:$H$50'.",
+      "Use the same address syntax for rows, merges, fmt ranges, type ranges, charts, sparklines, conditional formatting, and pivots."
+    ]
+  },
+  {
+    "sectionId": "anchored-rows",
+    "title": "Anchored row lines",
+    "keywords": ["row", "anchored", "@", "blank", "gaps"],
+    "content": [
+      "Syntax: '@<address> [<row-attrlist>] | <cell> | <cell> | <cell> ...'.",
+      "The address is the first cell of the row and later cell addresses are inferred by position.",
+      "Use 'blank' for internal gaps, omit trailing blank cells, and omit fully blank rows unless a later row anchor needs to preserve the vertical gap."
+    ]
+  },
+  {
+    "sectionId": "row-attrlist",
+    "title": "Row attrlists",
+    "keywords": ["row-attrlist", "row-style", "row-defaults", "header-row"],
+    "content": [
+      "The optional attrlist after the row anchor applies defaults to every cell in that row.",
+      "Example: '@B5 [.hdr] | Project Name | Task Name | Assigned to'.",
+      "Use row attrlists for full-row patterns such as header rows instead of repeating the same cell attrs inline."
+    ]
+  },
+  {
+    "sectionId": "cell-attrs",
+    "title": "Cell attrlists",
+    "keywords": ["cell", "attrs", "style", "fmt", "fg", "bg", "font", "align", "link", "span"],
+    "content": [
+      "Inline cell attrlist shape: '[.style-name key=value flag] cell-content'.",
+      "Built-in entries are .style-name, fmt, fg, bg, bold, italic, underline, strike, font, size, align, wrap, clip, overflow, border, link, result, span, locked, and hide-formula.",
+      "Use 'fmt=' for number formats, not 'numfmt='. Border syntax is 'border=side:line:color' or 'border=all:line:color'. Writers should omit attrs that only restate defaults, especially default colors and default alignment such as 'align=left/middle'."
+    ]
+  },
+  {
+    "sectionId": "cell-content",
+    "title": "Cell content forms",
+    "keywords": ["content", "number", "boolean", "blank", "formula", "date", "time", "datetime", "error", "rich"],
+    "content": [
+      "Built-in content forms are numbers like '1250', booleans 'true' and 'false', 'blank', formulas like '=SUM(B2:B10)', typed literals like 'date(\"2026-04-18\")', errors like '#DIV/0!', plain text, quoted text, and rich text like 'rich(\"Status: [b]At Risk[/b]\")'.",
+      "Use plain text for the normal case and quote only when the token would otherwise parse as another literal kind or must preserve whitespace or pipes.",
+      "Cell tokens and explicit '[cell ...]' overrides share the same content forms."
+    ]
+  },
+  {
+    "sectionId": "formula-result",
+    "title": "Formula cached results",
+    "keywords": ["formula", "result", "cached", "displayed", "optional-cache"],
+    "content": [
+      "Keep the formula itself as the cell content and store the last displayed value with an optional 'result=...' attr.",
+      "Examples: '[result=1250] =SUM(B2:B10)' and '[cell C8 result=154200] =SUM(Data!B2:B5)'.",
+      "This cache form is optional and mainly useful for Excel-to-WorkbookDoc fidelity; WorkbookDoc-to-Excel writers may ignore it."
+    ]
+  },
+  {
+    "sectionId": "quoted-strings",
+    "title": "Quoted strings",
+    "keywords": ["quoted", "string", "escape", "pipe", "leading-equals", "blank-literal"],
+    "content": [
+      "Use double quotes when text needs leading or trailing spaces, a literal '|', a leading '=', a reserved literal such as 'blank', a line break, or content that would otherwise parse as another literal kind.",
+      "Supported escapes are '\\\"', '\\\\', '\\n', '\\t', and '\\|'.",
+      "Use quoted strings only when needed; plain text is preferred for the compact common case."
+    ]
+  },
+  {
+    "sectionId": "cell-overrides",
+    "title": "Explicit cell overrides",
+    "keywords": ["cell", "override", "explicit", "rich", "per-cell"],
+    "content": [
+      "Syntax: '[cell <address> <entry>...] [literal]'.",
+      "Examples: '[cell C8 result=154200 style=currency] =SUM(Data!B2:B5)', '[cell D8 rich=\"Status: [b][color=#C00000]At Risk[/color][/b]\"]', and '[cell E8 link=\"https://example.com\"] \"Open\"'.",
+      "Use '[cell ...]' for one-off cases such as a formula with cached result, awkward rich text, a blank cell with meaningful metadata, or an exact per-cell override in an otherwise compact sheet."
+    ]
+  },
+  {
+    "sectionId": "merge-inline-span",
+    "title": "Inline horizontal span",
+    "keywords": ["merge", "span", "inline", "horizontal", "row"],
+    "content": [
+      "For short horizontal merges inside a row, use 'span=<n>' on the owning cell.",
+      "Example: '@B3 [.title span=7] | \"Project Management Data\"'.",
+      "Covered cells are omitted from the row line."
+    ]
+  },
+  {
+    "sectionId": "merge-range",
+    "title": "Merge directive",
+    "keywords": ["merge", "range", "merge-and-center", "align"],
+    "content": [
+      "Use '[merge <range> [align=horizontal[/vertical]]]' for any merge, especially multi-row merges.",
+      "The top-left cell owns the value and formula.",
+      "Use 'align=' on the merge when the merge itself implies presentation, for example '[merge B3:H3 align=center/middle]'."
+    ]
+  },
+  {
+    "sectionId": "type-range",
+    "title": "Type ranges",
+    "keywords": ["type", "range", "date", "time", "datetime", "temporal"],
+    "content": [
+      "Use '[type <range> <kind>]' when adjacent cells repeat the same explicit temporal kind.",
+      "Built-in kinds are 'date', 'time', and 'datetime'.",
+      "When a type range is present, cells in that range should usually use raw values such as '2026-04-18' instead of repeating 'date(\"2026-04-18\")' on every cell."
+    ]
+  },
+  {
+    "sectionId": "fmt-range",
+    "title": "Shared format ranges",
+    "keywords": ["fmt", "range", "shared-format", "adjacent", "header"],
+    "content": [
+      "Use '[fmt <range> <style-entry>...]' when repeating the same non-default inline attrs across adjacent cells would be noisy.",
+      "Examples: '[fmt B5:H5 bold bg=#D9E2F3]' and '[fmt H6:H50 fmt=\"0.0%\" align=right/middle]'.",
+      "It uses the same built-in style entries as cell attrlists, so use 'fmt=' rather than 'numfmt=' and use border syntax such as 'border=all:thin:#D9D9D9'. Inline cell attrs or explicit '[cell ...]' details override '[fmt ...]'."
+    ]
+  },
+  {
+    "sectionId": "cf-overview",
+    "title": "Conditional formatting overview",
+    "keywords": ["cf", "conditional-formatting", "scale", "data-bar", "icon-set"],
+    "content": [
+      "Syntax: '[cf <range> <rule> <format-entry>...]'.",
+      "Use conditional formatting when formatting depends on cell values, text, formulas, scales, bars, or icon sets.",
+      "Built-in format entries are 'priority=<n>', 'stop', 'fill=#RRGGBB', 'fg=#RRGGBB', 'bold', 'italic', and 'underline'. Providers may approximate rule families they cannot render natively."
+    ]
+  },
+  {
+    "sectionId": "cf-when-cell",
+    "title": "Conditional format rule: when cell",
+    "keywords": ["cf", "when-cell", "comparison", "threshold"],
+    "content": [
+      "Rule form: 'when cell <value-op> value'.",
+      "Meaning: formatting depends on the cell's own value compared against a threshold.",
+      "Example: '[cf H6:H50 when cell > 0.15 fill=#C6EFCE fg=#006100]'."
+    ]
+  },
+  {
+    "sectionId": "cf-when-text",
+    "title": "Conditional format rule: when text contains",
+    "keywords": ["cf", "text", "contains", "substring"],
+    "content": [
+      "Rule form: 'when text contains \"...\"'.",
+      "Meaning: formatting depends on whether the cell text contains a substring.",
+      "Example: '[cf C2:C100 when text contains \"Risk\" fg=#C00000 bold]'."
+    ]
+  },
+  {
+    "sectionId": "cf-when-formula",
+    "title": "Conditional format rule: when formula",
+    "keywords": ["cf", "formula", "relative-formula"],
+    "content": [
+      "Rule form: 'when formula(...)'.",
+      "Meaning: formatting depends on a formula evaluated relative to the top-left cell of the target range.",
+      "Example: '[cf H6:H50 when formula(=H6<0.5) fill=#FFF2CC]'."
+    ]
+  },
+  {
+    "sectionId": "cf-scale",
+    "title": "Conditional format rule: scale",
+    "keywords": ["cf", "scale", "color-scale", "min", "max", "percentile"],
+    "content": [
+      "Rule form: 'scale(...)'.",
+      "Meaning: apply a color scale across the whole range.",
+      "Example: '[cf I9:I78 scale(min:#63BE7B,50%:#FCFCFF,max:#F8696B)]'."
+    ]
+  },
+  {
+    "sectionId": "cf-data-bar",
+    "title": "Conditional format rule: data bar",
+    "keywords": ["cf", "data-bar", "bar", "in-cell"],
+    "content": [
+      "Rule form: 'data-bar(...)'.",
+      "Meaning: show an in-cell bar whose length reflects the value.",
+      "Example: '[cf H6:H50 data-bar(color=#5B9BD5)]'."
+    ]
+  },
+  {
+    "sectionId": "cf-icon-set",
+    "title": "Conditional format rule: icon set",
+    "keywords": ["cf", "icon-set", "icons", "traffic-light", "arrows"],
+    "content": [
+      "Rule form: 'icon-set(...)'.",
+      "Meaning: show an icon chosen from thresholds or buckets.",
+      "Example: '[cf H6:H50 icon-set(3-arrows)]'."
+    ]
+  },
+  {
+    "sectionId": "table",
+    "title": "Table directive",
+    "keywords": ["table", "filter", "totals", "banded", "structured-table"],
+    "content": [
+      "Syntax: '[table <name> <range> <entry>...]'.",
+      "Built-in entries are 'filter', 'totals', 'banded', and 'style=<name>'.",
+      "Use it when a normal cell rectangle should behave like an Excel or Sheets data table, for example '[table ProjectTasks B5:H50 filter banded]'."
+    ]
+  },
+  {
+    "sectionId": "pivot",
+    "title": "Pivot directive",
+    "keywords": ["pivot", "source", "row", "col", "val", "filter"],
+    "content": [
+      "Syntax: '[pivot <name> source=<source> at=<cell>]' followed by pivot lines and a closing '[end]'.",
+      "Built-in pivot line kinds are '- row <field>', '- col <field>', '- val <field> <agg>', and '- filter <field>'.",
+      "Use pivots when a sheet contains an aggregated pivot view derived from a source range or table. 'source=' must point to a table name or to a range whose first row is the header row used by the pivot field names."
+    ]
+  },
+  {
+    "sectionId": "pivot-row",
+    "title": "Pivot line kind: row",
+    "keywords": ["pivot", "row", "grouping"],
+    "content": [
+      "Line kind: '- row <field>'.",
+      "Meaning: add a row grouping field.",
+      "Example: '- row Region'."
+    ]
+  },
+  {
+    "sectionId": "pivot-col",
+    "title": "Pivot line kind: col",
+    "keywords": ["pivot", "col", "column-grouping"],
+    "content": [
+      "Line kind: '- col <field>'.",
+      "Meaning: add a column grouping field.",
+      "Example: '- col Quarter'."
+    ]
+  },
+  {
+    "sectionId": "pivot-val",
+    "title": "Pivot line kind: val",
+    "keywords": ["pivot", "val", "aggregate", "sum"],
+    "content": [
+      "Line kind: '- val <field> <agg> [as \"<label>\"]'.",
+      "Meaning: add an aggregated value field.",
+      "Example: '- val Revenue sum as \"Sum of Revenue\"'."
+    ]
+  },
+  {
+    "sectionId": "pivot-filter",
+    "title": "Pivot line kind: filter",
+    "keywords": ["pivot", "filter", "slicer"],
+    "content": [
+      "Line kind: '- filter <field>'.",
+      "Meaning: add a pivot filter field.",
+      "Example: '- filter Status'."
+    ]
+  },
+  {
+    "sectionId": "chart-overview",
+    "title": "Chart directive",
+    "keywords": ["chart", "series", "type", "at", "size", "axis", "labels"],
+    "content": [
+      "Syntax: '[chart \"<name>\" type=<type> at=<cell> size=<width>x<height><unit>]' followed by '- series ...' lines and a closing '[end]'.",
+      "Built-in chart types are column, bar, line, area, pie, doughnut, scatter, bubble, combo, and radar.",
+      "Use chart blocks when the workbook includes a chart whose series, placement, and type should survive round-tripping."
+    ]
+  },
+  {
+    "sectionId": "chart-series",
+    "title": "Chart series lines",
+    "keywords": ["chart", "series", "cat", "val", "size", "axis", "labels", "color"],
+    "content": [
+      "Series syntax: '- series <type> \"<label>\" cat=<range> val=<range> [size=<range>] [axis=primary|secondary] [color=#RRGGBB] [labels]'.",
+      "Use 'size=' only for bubble series, 'axis=secondary' for combo or dual-axis layouts, and 'labels' when data labels should be shown.",
+      "Example: '- series line \"Margin %\" cat=A4:A6 val=C4:C6 axis=secondary color=#C00000 labels'."
+    ]
+  },
+  {
+    "sectionId": "chart-column",
+    "title": "Chart type: column",
+    "keywords": ["chart", "column", "vertical-bars"],
+    "content": [
+      "Type: 'column'.",
+      "Meaning: vertical bars comparing values across categories.",
+      "Series shape: 'cat=<range> val=<range>'. Example: '- series column \"Revenue\" cat=A4:A6 val=B4:B6'."
+    ]
+  },
+  {
+    "sectionId": "chart-bar",
+    "title": "Chart type: bar",
+    "keywords": ["chart", "bar", "horizontal-bars"],
+    "content": [
+      "Type: 'bar'.",
+      "Meaning: horizontal bars comparing values across categories.",
+      "Series shape: 'cat=<range> val=<range>'. It uses the same data model as column, just rotated."
+    ]
+  },
+  {
+    "sectionId": "chart-line",
+    "title": "Chart type: line",
+    "keywords": ["chart", "line", "trend", "ordered-sequence"],
+    "content": [
+      "Type: 'line'.",
+      "Meaning: connected points showing change across an ordered sequence.",
+      "Series shape: 'cat=<range> val=<range>'. It is best when category order matters."
+    ]
+  },
+  {
+    "sectionId": "chart-area",
+    "title": "Chart type: area",
+    "keywords": ["chart", "area", "filled-line"],
+    "content": [
+      "Type: 'area'.",
+      "Meaning: a filled line chart emphasizing magnitude over a sequence.",
+      "Series shape: 'cat=<range> val=<range>'. It uses the same data model as line."
+    ]
+  },
+  {
+    "sectionId": "chart-pie",
+    "title": "Chart type: pie",
+    "keywords": ["chart", "pie", "part-to-whole", "slices"],
+    "content": [
+      "Type: 'pie'.",
+      "Meaning: part-to-whole slices from one series.",
+      "Series shape: 'cat=<range> val=<range>'. The portable built-in case is one series."
+    ]
+  },
+  {
+    "sectionId": "chart-doughnut",
+    "title": "Chart type: doughnut",
+    "keywords": ["chart", "doughnut", "donut", "ring"],
+    "content": [
+      "Type: 'doughnut'.",
+      "Meaning: ring-style part-to-whole chart.",
+      "Series shape: 'cat=<range> val=<range>'. The portable built-in case is one series."
+    ]
+  },
+  {
+    "sectionId": "chart-scatter",
+    "title": "Chart type: scatter",
+    "keywords": ["chart", "scatter", "x-y", "numeric-axis"],
+    "content": [
+      "Type: 'scatter'.",
+      "Meaning: a numeric x/y point chart.",
+      "Series shape: 'cat=<range> val=<range>'. In scatter charts, 'cat' is treated as the x-values."
+    ]
+  },
+  {
+    "sectionId": "chart-bubble",
+    "title": "Chart type: bubble",
+    "keywords": ["chart", "bubble", "x-y-size", "size-range"],
+    "content": [
+      "Type: 'bubble'.",
+      "Meaning: a scatter chart with a third size dimension.",
+      "Series shape: 'cat=<range> val=<range> size=<range>'. Example: '- series bubble \"Risks\" cat=B6:B20 val=C6:C20 size=D6:D20 color=#4472C4'."
+    ]
+  },
+  {
+    "sectionId": "chart-combo",
+    "title": "Chart type: combo",
+    "keywords": ["chart", "combo", "mixed", "secondary-axis"],
+    "content": [
+      "Type: 'combo'.",
+      "Meaning: a mixed chart made from per-series types.",
+      "Per-series type decides the shape, and combo charts commonly mix 'column' and 'line', often with 'axis=secondary' on the line series."
+    ]
+  },
+  {
+    "sectionId": "chart-radar",
+    "title": "Chart type: radar",
+    "keywords": ["chart", "radar", "radial", "profile"],
+    "content": [
+      "Type: 'radar'.",
+      "Meaning: categories placed around a radial axis.",
+      "Series shape: 'cat=<range> val=<range>'. It is useful for profile or score comparisons."
+    ]
+  },
+  {
+    "sectionId": "spark-overview",
+    "title": "Sparkline directive",
+    "keywords": ["spark", "sparkline", "source", "type", "negative", "color"],
+    "content": [
+      "Syntax: '[spark <cell> source=<range> type=<type> [color=#RRGGBB] [negative=#RRGGBB]]'.",
+      "Built-in sparkline types are 'line', 'column', and 'winloss'.",
+      "Use sparklines for tiny in-cell trend graphics driven by a source range."
+    ]
+  },
+  {
+    "sectionId": "spark-line",
+    "title": "Sparkline type: line",
+    "keywords": ["spark", "line", "trend"],
+    "content": [
+      "Type: 'line'.",
+      "Meaning: a tiny line chart showing movement across the source values.",
+      "Example: '[spark D4 source=B4:C4 type=line color=#4472C4]'."
+    ]
+  },
+  {
+    "sectionId": "spark-column",
+    "title": "Sparkline type: column",
+    "keywords": ["spark", "column", "mini-bars"],
+    "content": [
+      "Type: 'column'.",
+      "Meaning: a tiny bar chart with one vertical bar per source value.",
+      "Use it for compact magnitude comparison when a line sparkline would be less clear."
+    ]
+  },
+  {
+    "sectionId": "spark-winloss",
+    "title": "Sparkline type: winloss",
+    "keywords": ["spark", "winloss", "positive-negative"],
+    "content": [
+      "Type: 'winloss'.",
+      "Meaning: a tiny positive/negative outcome chart.",
+      "Positive values are wins, negative values are losses, and zero is neutral."
+    ]
+  },
+  {
+    "sectionId": "size-units",
+    "title": "Length and size units",
+    "keywords": ["units", "size", "length", "px", "pt", "in", "cm", "mm"],
+    "content": [
+      "Built-in length units are 'px', 'pt', 'in', 'cm', and 'mm'.",
+      "Use these units in places such as chart sizes like 'size=720x360px'.",
+      "Keep sizes compact and only specify them when the workbook feature actually needs an explicit footprint."
+    ]
+  },
+  {
+    "sectionId": "canonical-serialization",
+    "title": "Canonical serialization rules",
+    "keywords": ["canonical", "serialization", "ordering", "diffs", "compact-export"],
+    "content": [
+      "Canonical order is: workbook attributes, shared directives (style, name), sheets in workbook order, sheet directives (state, view, used), shared range directives (type, fmt), anchored row lines, explicit '[cell ...]' overrides, then standalone non-cell directives (merge, validate, cf, table, pivot, chart, spark).",
+      "Compact export rules are: trim outer blank framing when safe, keep internal blanks with 'blank', omit formatting that only restates defaults, omit default alignment such as 'align=left/middle', hoist repeated non-default formatting into row attrlists or '[fmt ...]', hoist repeated adjacent temporal kinds into '[type ...]', and prefer row lines over '[cell ...]'.",
+      "Keep style metadata only when it is useful to downstream agents or required for fidelity."
+    ]
+  }
+]

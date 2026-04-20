@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Google Sheets support for AIToolkit workbook tools, with canonical WorkbookDoc round-tripping backed by Google Drive conversion and a managed payload store.</Description>
+    <PackageTags>$(PackageTags);workbook;google-sheets;drive;xlsx;workbookdoc;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="Google.Apis.Auth" />
+    <PackageReference Include="Google.Apis.Drive.v3" />
+    <PackageReference Include="Google.Apis.Sheets.v4" />
+    <ProjectReference Include="..\AIToolkit.Tools.Workbook\AIToolkit.Tools.Workbook.csproj" />
+    <ProjectReference Include="..\AIToolkit.Tools.Workbook.Excel\AIToolkit.Tools.Workbook.Excel.csproj" />
+  </ItemGroup>
+
+</Project>

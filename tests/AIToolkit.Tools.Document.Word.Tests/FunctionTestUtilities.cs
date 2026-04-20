@@ -1,5 +1,3 @@
-using AIToolkit.Tools.Document;
-using AIToolkit.Tools.Document.Word;
 using Microsoft.Extensions.AI;
 using System.Reflection;
 using System.Text.Json;

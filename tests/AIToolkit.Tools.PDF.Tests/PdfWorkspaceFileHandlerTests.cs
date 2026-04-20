@@ -1,4 +1,3 @@
-using AIToolkit.Tools.PDF;
 using Microsoft.Extensions.AI;
 
 namespace AIToolkit.Tools.PDF.Tests;

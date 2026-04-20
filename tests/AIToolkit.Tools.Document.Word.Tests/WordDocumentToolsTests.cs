@@ -1,5 +1,3 @@
-using AIToolkit.Tools.Document;
-using AIToolkit.Tools.Document.Word;
 using Azure.Core;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -534,8 +532,8 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var mainPart = document.MainDocumentPart!;
-        var body = mainPart.Document.Body!;
+        var mainPart = GetRequiredMainDocumentPart(document);
+        var body = GetRequiredBody(mainPart);
         var paragraphs = body.Elements<Paragraph>().ToArray();
         var paragraphTexts = paragraphs.Select(static paragraph => paragraph.InnerText).ToArray();
 
@@ -607,7 +605,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Color sample");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Color sample");
         Assert.AreEqual(expectedColor, paragraph.Descendants<RunProperties>().Select(static properties => properties.Color?.Val?.Value).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)));
     }
 
@@ -634,7 +632,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Alignment sample");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Alignment sample");
         var expectedValue = expectedJustification switch
         {
             "Left" => JustificationValues.Left,
@@ -666,7 +664,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Thank you for choosing .NET!");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Thank you for choosing .NET!");
         Assert.AreEqual(JustificationValues.Center, paragraph.ParagraphProperties?.Justification?.Val?.Value);
         Assert.IsTrue(paragraph.Descendants<Bold>().Any());
         Assert.IsTrue(paragraph.Descendants<Underline>().Any());
@@ -692,7 +690,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var run = document.MainDocumentPart!.Document.Body!.Descendants<Run>().Single(static value => value.InnerText == "underlined text");
+        var run = GetRequiredBody(document).Descendants<Run>().Single(static value => value.InnerText == "underlined text");
         Assert.IsTrue(run.RunProperties?.Underline is not null);
     }
 
@@ -716,7 +714,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         Assert.IsFalse(body.InnerText.Contains("[.text-purple]", StringComparison.Ordinal));
         Assert.IsFalse(body.InnerText.Contains("+Unified platform+", StringComparison.Ordinal));
 
@@ -754,7 +752,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var paragraphs = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>()
+        var paragraphs = GetRequiredBody(document).Elements<Paragraph>()
             .Select(static paragraph => paragraph.InnerText)
             .ToArray();
 
@@ -781,7 +779,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         var bulletParagraphs = body.Elements<Paragraph>()
             .Where(static paragraph => paragraph.InnerText.StartsWith("• ", StringComparison.Ordinal))
             .ToArray();
@@ -811,8 +809,8 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var mainPart = document.MainDocumentPart!;
-        var body = mainPart.Document.Body!;
+        var mainPart = GetRequiredMainDocumentPart(document);
+        var body = GetRequiredBody(mainPart);
         var bulletParagraphs = body.Elements<Paragraph>()
             .Where(static paragraph => paragraph.InnerText.StartsWith("• ", StringComparison.Ordinal))
             .ToArray();
@@ -882,10 +880,10 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var bodyText = document.MainDocumentPart!.Document.Body!.InnerText;
+        var bodyText = GetRequiredBody(document).InnerText;
         StringAssert.Contains(bodyText, "Newer C# improvements");
         Assert.IsFalse(bodyText.Contains("C\\#", StringComparison.Ordinal));
-        Assert.AreEqual(2, document.MainDocumentPart.Document.Body!.Elements<Paragraph>().Count(static paragraph => paragraph.InnerText == "Newer C# improvements"));
+        Assert.AreEqual(2, GetRequiredBody(document).Elements<Paragraph>().Count(static paragraph => paragraph.InnerText == "Newer C# improvements"));
     }
 
     [TestMethod]
@@ -908,10 +906,10 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var run = document.MainDocumentPart!.Document.Body!.Descendants<Run>().Single(static value => value.InnerText == "Bold/Underline");
+        var run = GetRequiredBody(document).Descendants<Run>().Single(static value => value.InnerText == "Bold/Underline");
         Assert.IsTrue(run.RunProperties?.Bold is not null);
         Assert.IsTrue(run.RunProperties?.Underline is not null);
-        Assert.IsFalse(document.MainDocumentPart.Document.Body!.InnerText.Contains("+++", StringComparison.Ordinal));
+        Assert.IsFalse(GetRequiredBody(document).InnerText.Contains("+++", StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -934,7 +932,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Important: Always keep your .NET SDK updated!");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Important: Always keep your .NET SDK updated!");
         Assert.AreEqual(JustificationValues.Center, paragraph.ParagraphProperties?.Justification?.Val?.Value);
         Assert.IsTrue(paragraph.Descendants<Bold>().Any());
         Assert.AreEqual("C00000", paragraph.Descendants<RunProperties>().Select(static properties => properties.Color?.Val?.Value).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)));
@@ -960,8 +958,8 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var mainPart = document.MainDocumentPart!;
-        var hyperlink = mainPart.Document.Body!.Descendants<Hyperlink>().Single(static value => value.InnerText == "GitHub Repository");
+        var mainPart = GetRequiredMainDocumentPart(document);
+        var hyperlink = GetRequiredBody(mainPart).Descendants<Hyperlink>().Single(static value => value.InnerText == "GitHub Repository");
         Assert.AreEqual(1, mainPart.HyperlinkRelationships.Count(static relationship => relationship.Uri.AbsoluteUri == "https://github.com/dotnet/runtime"));
         Assert.AreEqual("1F4E79", hyperlink.Descendants<RunProperties>().Select(static properties => properties.Color?.Val?.Value).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)));
     }
@@ -997,7 +995,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         Assert.IsFalse(body.InnerText.Contains("[.text-green]", StringComparison.Ordinal));
         Assert.IsFalse(body.InnerText.Contains("#Span", StringComparison.Ordinal));
 
@@ -1035,7 +1033,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var table = document.MainDocumentPart!.Document.Body!.Elements<Table>().Single();
+        var table = GetRequiredBody(document).Elements<Table>().Single();
         var rightAlignedCellParagraph = table.Elements<TableRow>().Skip(1).Single().Elements<TableCell>().First().Elements<Paragraph>().Single();
         Assert.AreEqual("Version", rightAlignedCellParagraph.InnerText);
         Assert.AreEqual(JustificationValues.Right, rightAlignedCellParagraph.ParagraphProperties?.Justification?.Val?.Value);
@@ -1070,7 +1068,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         Assert.IsFalse(body.InnerText.Contains("=.text-center", StringComparison.Ordinal));
 
         var firstHeaderCellParagraph = body.Elements<Table>().Single().Elements<TableRow>().First().Elements<TableCell>().First().Elements<Paragraph>().Single();
@@ -1108,7 +1106,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         Assert.IsFalse(body.InnerText.Contains("| Feature | Description", StringComparison.Ordinal));
 
         var table = body.Elements<Table>().Single();
@@ -1146,7 +1144,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         Assert.IsFalse(body.InnerText.Contains("[.text-blue]", StringComparison.Ordinal));
         var run = body.Descendants<Run>().Single(static value => value.InnerText == "right aligned text.");
         Assert.AreEqual("1F4E79", run.RunProperties?.Color?.Val?.Value);
@@ -1183,7 +1181,7 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        var body = document.MainDocumentPart!.Document.Body!;
+        var body = GetRequiredBody(document);
         var internalHyperlinks = body.Descendants<Hyperlink>()
             .Where(static hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor?.Value))
             .ToArray();
@@ -1219,8 +1217,8 @@ public class WordDocumentToolsTests
         Assert.IsTrue(writeResult.Success, writeResult.Message);
 
         using var document = WordprocessingDocument.Open(filePath, false);
-        Assert.IsFalse(document.MainDocumentPart!.Document.Body!.Descendants<FieldCode>().Any());
-        Assert.IsFalse(document.MainDocumentPart.DocumentSettingsPart?.Settings?.Descendants<UpdateFieldsOnOpen>().Any() == true);
+        Assert.IsFalse(GetRequiredBody(document).Descendants<FieldCode>().Any());
+        Assert.IsFalse(GetRequiredMainDocumentPart(document).DocumentSettingsPart?.Settings?.Descendants<UpdateFieldsOnOpen>().Any() == true);
     }
 
     [TestMethod]
@@ -1425,10 +1423,11 @@ public class WordDocumentToolsTests
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var body = context.MainDocumentPart.Document.Body;
+            var renderedDocument = GetRequiredDocument(context.MainDocumentPart);
+            var body = renderedDocument.Body;
             if (body is null)
             {
-                body = context.MainDocumentPart.Document.AppendChild(new Body());
+                body = renderedDocument.AppendChild(new Body());
             }
 
             body.AppendChild(new Paragraph(new Run(new Text(brandingText))));
@@ -1524,7 +1523,7 @@ public class WordDocumentToolsTests
             var mainPart = document.AddMainDocumentPart();
             WordAsciiDocRenderer.Write(mainPart, asciiDoc);
             WordAsciiDocPayload.Write(mainPart, asciiDoc);
-            mainPart.Document.Save();
+            SaveRequiredDocument(mainPart);
         }
 
         return stream.ToArray();
@@ -1548,6 +1547,23 @@ public class WordDocumentToolsTests
                     new TableRow(
                         new TableCell(new Paragraph(new Run(new Text("Alpha")))),
                         new TableCell(new Paragraph(new Run(new Text("One"))))))));
-        mainPart.Document.Save();
+        SaveRequiredDocument(mainPart);
+    }
+
+    private static MainDocumentPart GetRequiredMainDocumentPart(WordprocessingDocument document) =>
+        document.MainDocumentPart ?? throw new InvalidOperationException("Expected the Word package to contain a main document part.");
+
+    private static DocumentFormat.OpenXml.Wordprocessing.Document GetRequiredDocument(MainDocumentPart mainPart) =>
+        mainPart.Document ?? throw new InvalidOperationException("Expected the main document part to contain a Word document.");
+
+    private static Body GetRequiredBody(WordprocessingDocument document) =>
+        GetRequiredBody(GetRequiredMainDocumentPart(document));
+
+    private static Body GetRequiredBody(MainDocumentPart mainPart) =>
+        GetRequiredDocument(mainPart).Body ?? throw new InvalidOperationException("Expected the Word document to contain a body.");
+
+    private static void SaveRequiredDocument(MainDocumentPart mainPart)
+    {
+        GetRequiredDocument(mainPart).Save();
     }
 }

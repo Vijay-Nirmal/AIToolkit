@@ -24,6 +24,9 @@ dotnet pack src/AIToolkit.Tools/AIToolkit.Tools.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Document/AIToolkit.Tools.Document.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Document.GoogleDocs/AIToolkit.Tools.Document.GoogleDocs.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Document.Word/AIToolkit.Tools.Document.Word.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Workbook/AIToolkit.Tools.Workbook.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Workbook.Excel/AIToolkit.Tools.Workbook.Excel.csproj -c Release
+dotnet pack src/AIToolkit.Tools.Workbook.GoogleSheets/AIToolkit.Tools.Workbook.GoogleSheets.csproj -c Release
 dotnet pack src/AIToolkit.Tools.PDF/AIToolkit.Tools.PDF.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Web/AIToolkit.Tools.Web.csproj -c Release
 dotnet pack src/AIToolkit.Tools.Web.DuckDuckGo/AIToolkit.Tools.Web.DuckDuckGo.csproj -c Release
@@ -45,6 +48,9 @@ NuGet packages are emitted to `artifacts/packages/`.
 - `AIToolkit.Tools.Document`: see `docs/AIToolkit.Tools.Document.md`
 - `AIToolkit.Tools.Document.GoogleDocs`: see `docs/AIToolkit.Tools.Document.GoogleDocs.md`
 - `AIToolkit.Tools.Document.Word`: see `docs/AIToolkit.Tools.Document.Word.md`
+- `AIToolkit.Tools.Workbook`: see `docs/AIToolkit.Tools.Workbook.md`
+- `AIToolkit.Tools.Workbook.Excel`: see `docs/AIToolkit.Tools.Workbook.Excel.md`
+- `AIToolkit.Tools.Workbook.GoogleSheets`: see `docs/AIToolkit.Tools.Workbook.GoogleSheets.md`
 - `AIToolkit.Tools.PDF`: see `docs/AIToolkit.Tools.PDF.md`
 - `AIToolkit.Tools.Web`: see `docs/AIToolkit.Tools.Web.md`
 - `AIToolkit.Tools.Web.DuckDuckGo`: see `docs/AIToolkit.Tools.Web.DuckDuckGo.md`

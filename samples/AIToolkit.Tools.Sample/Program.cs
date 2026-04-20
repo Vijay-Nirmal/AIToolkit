@@ -1,6 +1,5 @@
 using AIToolkit.Tools;
 using AIToolkit.Tools.PDF;
-using Google.GenAI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

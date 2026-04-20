@@ -1,5 +1,3 @@
-using AIToolkit.Tools.Document;
-using AIToolkit.Tools.Document.GoogleDocs;
 using AIToolkit.Tools.Document.Word;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -227,7 +225,7 @@ public class GoogleDocsDocumentToolsTests
             new DocumentToolsOptions());
 
         StringAssert.Contains(prompt, "Base prompt");
-    Assert.IsFalse(prompt.Contains(".gdoc", StringComparison.Ordinal));
+        Assert.IsFalse(prompt.Contains(".gdoc", StringComparison.Ordinal));
         StringAssert.Contains(prompt, "gdocs://documents/{documentId}");
         StringAssert.Contains(prompt, "gdocs://folders/root/documents/{title}");
         StringAssert.Contains(prompt, "[.text-center]");
@@ -389,8 +387,8 @@ public class GoogleDocsDocumentToolsTests
 
         using var stream = new MemoryStream(workspace.GetDocumentBytes(writeResult.Path), writable: false);
         using var document = WordprocessingDocument.Open(stream, false);
-        var mainPart = document.MainDocumentPart!;
-        var body = mainPart.Document.Body!;
+        var mainPart = GetRequiredMainDocumentPart(document);
+        var body = GetRequiredBody(mainPart);
         var paragraphs = body.Elements<Paragraph>().ToArray();
         var paragraphTexts = paragraphs.Select(static paragraph => paragraph.InnerText).ToArray();
 
@@ -462,7 +460,7 @@ public class GoogleDocsDocumentToolsTests
 
         using var stream = new MemoryStream(workspace.GetDocumentBytes(writeResult.Path), writable: false);
         using var document = WordprocessingDocument.Open(stream, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Color sample");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Color sample");
         Assert.AreEqual(expectedColor, paragraph.Descendants<RunProperties>().Select(static properties => properties.Color?.Val?.Value).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)));
     }
 
@@ -489,7 +487,7 @@ public class GoogleDocsDocumentToolsTests
 
         using var stream = new MemoryStream(workspace.GetDocumentBytes(writeResult.Path), writable: false);
         using var document = WordprocessingDocument.Open(stream, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Alignment sample");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Alignment sample");
         var expectedValue = expectedJustification switch
         {
             "Left" => JustificationValues.Left,
@@ -521,7 +519,7 @@ public class GoogleDocsDocumentToolsTests
 
         using var stream = new MemoryStream(workspace.GetDocumentBytes(writeResult.Path), writable: false);
         using var document = WordprocessingDocument.Open(stream, false);
-        var paragraph = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single(static value => value.InnerText == "Thank you for choosing .NET!");
+        var paragraph = GetRequiredBody(document).Elements<Paragraph>().Single(static value => value.InnerText == "Thank you for choosing .NET!");
         Assert.AreEqual(JustificationValues.Center, paragraph.ParagraphProperties?.Justification?.Val?.Value);
         Assert.IsTrue(paragraph.Descendants<Bold>().Any());
         Assert.IsTrue(paragraph.Descendants<Underline>().Any());
@@ -547,7 +545,7 @@ public class GoogleDocsDocumentToolsTests
 
         using var stream = new MemoryStream(workspace.GetDocumentBytes(writeResult.Path), writable: false);
         using var document = WordprocessingDocument.Open(stream, false);
-        var run = document.MainDocumentPart!.Document.Body!.Descendants<Run>().Single(static value => value.InnerText == "underlined text");
+        var run = GetRequiredBody(document).Descendants<Run>().Single(static value => value.InnerText == "underlined text");
         Assert.IsTrue(run.RunProperties?.Underline is not null);
     }
 
@@ -575,7 +573,7 @@ public class GoogleDocsDocumentToolsTests
 
         using var stream = new MemoryStream(workspace.GetDocumentBytes(writeResult.Path), writable: false);
         using var document = WordprocessingDocument.Open(stream, false);
-        var paragraphs = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>()
+        var paragraphs = GetRequiredBody(document).Elements<Paragraph>()
             .Select(static paragraph => paragraph.InnerText)
             .ToArray();
 
@@ -849,10 +847,11 @@ public class GoogleDocsDocumentToolsTests
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var body = context.MainDocumentPart.Document.Body;
+            var renderedDocument = GetRequiredDocument(context.MainDocumentPart);
+            var body = renderedDocument.Body;
             if (body is null)
             {
-                body = context.MainDocumentPart.Document.AppendChild(new Body());
+                body = renderedDocument.AppendChild(new Body());
             }
 
             body.AppendChild(new Paragraph(new Run(new Text(brandingText))));
@@ -906,9 +905,26 @@ public class GoogleDocsDocumentToolsTests
                         new TableRow(
                             new TableCell(new Paragraph(new Run(new Text("Alpha")))),
                             new TableCell(new Paragraph(new Run(new Text("One"))))))));
-            mainPart.Document.Save();
+            SaveRequiredDocument(mainPart);
         }
 
         return stream.ToArray();
+    }
+
+    private static MainDocumentPart GetRequiredMainDocumentPart(WordprocessingDocument document) =>
+        document.MainDocumentPart ?? throw new InvalidOperationException("Expected the Word package to contain a main document part.");
+
+    private static DocumentFormat.OpenXml.Wordprocessing.Document GetRequiredDocument(MainDocumentPart mainPart) =>
+        mainPart.Document ?? throw new InvalidOperationException("Expected the main document part to contain a Word document.");
+
+    private static Body GetRequiredBody(WordprocessingDocument document) =>
+        GetRequiredBody(GetRequiredMainDocumentPart(document));
+
+    private static Body GetRequiredBody(MainDocumentPart mainPart) =>
+        GetRequiredDocument(mainPart).Body ?? throw new InvalidOperationException("Expected the Word document to contain a body.");
+
+    private static void SaveRequiredDocument(MainDocumentPart mainPart)
+    {
+        GetRequiredDocument(mainPart).Save();
     }
 }

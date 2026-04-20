@@ -564,7 +564,6 @@
 @A5 | February | [.currency] =SUM(Data!B6:B9) | [fmt="0.0%"] =B5/SUM(Data!C6:C9) | blank
 @A6 | March | [.currency] =SUM(Data!B10:B13) | [fmt="0.0%"] =B6/SUM(Data!C10:C13) | blank
 
-[validate A4:A14 list("January","February","March") reject dropdown]
 [cf C4:C14 when cell < 0.25 fill=#FFC7CE fg=#9C0006]
 [spark D4 source=B4:C4 type=line color=#4472C4]
 [spark D5 source=B5:C5 type=line color=#4472C4]

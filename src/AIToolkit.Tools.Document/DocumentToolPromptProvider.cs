@@ -10,8 +10,8 @@ namespace AIToolkit.Tools.Document;
 public interface IDocumentToolPromptProvider
 {
     /// <summary>
-     /// Gets the provider-specific prompt contribution.
-     /// </summary>
+    /// Gets the provider-specific prompt contribution.
+    /// </summary>
     /// <returns>The guidance fragment to merge into shared tool descriptions and system prompts.</returns>
     DocumentToolPromptContribution GetPromptContribution();
 }

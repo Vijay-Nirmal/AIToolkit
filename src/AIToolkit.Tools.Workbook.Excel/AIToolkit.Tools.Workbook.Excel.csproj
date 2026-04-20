@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Microsoft Excel workbook support for AIToolkit workbook tools, with canonical WorkbookDoc round-tripping for Open XML spreadsheet formats.</Description>
+    <PackageTags>$(PackageTags);workbook;excel;xlsx;openxml;workbookdoc;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="Microsoft.Graph" />
+    <ProjectReference Include="..\AIToolkit.Tools.Workbook\AIToolkit.Tools.Workbook.csproj" />
+  </ItemGroup>
+
+</Project>

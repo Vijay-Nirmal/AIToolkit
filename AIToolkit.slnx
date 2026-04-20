@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/samples/">
+    <Project Path="samples/AIToolkit.Tools.Workbook.Excel.Sample/AIToolkit.Tools.Workbook.Excel.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Document.GoogleDocs.Sample/AIToolkit.Tools.Document.GoogleDocs.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Document.Word.Sample/AIToolkit.Tools.Document.Word.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Sample/AIToolkit.Tools.Sample.csproj" />
@@ -8,11 +9,15 @@
     <Project Path="samples/AIToolkit.Tools.Sql.PostgreSql.Sample/AIToolkit.Tools.Sql.PostgreSql.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Sql.SqlServer.Sample/AIToolkit.Tools.Sql.SqlServer.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Sql.Sqlite.Sample/AIToolkit.Tools.Sql.Sqlite.Sample.csproj" />
+    <Project Path="samples/AIToolkit.Tools.Workbook.GoogleSheets.Sample/AIToolkit.Tools.Workbook.GoogleSheets.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AIToolkit.Tools.Document/AIToolkit.Tools.Document.csproj" />
+    <Project Path="src/AIToolkit.Tools.Workbook.Excel/AIToolkit.Tools.Workbook.Excel.csproj" />
     <Project Path="src/AIToolkit.Tools.Document.GoogleDocs/AIToolkit.Tools.Document.GoogleDocs.csproj" />
     <Project Path="src/AIToolkit.Tools.Document.Word/AIToolkit.Tools.Document.Word.csproj" />
+    <Project Path="src/AIToolkit.Tools.Workbook.GoogleSheets/AIToolkit.Tools.Workbook.GoogleSheets.csproj" />
+    <Project Path="src/AIToolkit.Tools.Workbook/AIToolkit.Tools.Workbook.csproj" />
     <Project Path="src/AIToolkit.Tools/AIToolkit.Tools.csproj" />
     <Project Path="src/AIToolkit.Tools.PDF/AIToolkit.Tools.PDF.csproj" />
     <Project Path="src/AIToolkit.Tools.Web/AIToolkit.Tools.Web.csproj" />
@@ -29,6 +34,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AIToolkit.Tools.Document.Tests/AIToolkit.Tools.Document.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Tools.Workbook.Excel.Tests/AIToolkit.Tools.Workbook.Excel.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Document.GoogleDocs.Tests/AIToolkit.Tools.Document.GoogleDocs.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Document.Word.Tests/AIToolkit.Tools.Document.Word.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Tests/AIToolkit.Tools.Tests.csproj" />
@@ -44,5 +50,7 @@
     <Project Path="tests/AIToolkit.Tools.Sql.Tests/AIToolkit.Tools.Sql.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Sql.SqlServer.Tests/AIToolkit.Tools.Sql.SqlServer.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Sql.Sqlite.Tests/AIToolkit.Tools.Sql.Sqlite.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Tools.Workbook.GoogleSheets.Tests/AIToolkit.Tools.Workbook.GoogleSheets.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Tools.Workbook.Tests/AIToolkit.Tools.Workbook.Tests.csproj" />
   </Folder>
 </Solution>
