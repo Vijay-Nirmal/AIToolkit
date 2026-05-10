@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/samples/">
     <Project Path="samples/AIToolkit.Tools.Workbook.Excel.Sample/AIToolkit.Tools.Workbook.Excel.Sample.csproj" />
+    <Project Path="samples/AIToolkit.Tools.Deck.PowerPoint.Sample/AIToolkit.Tools.Deck.PowerPoint.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Document.GoogleDocs.Sample/AIToolkit.Tools.Document.GoogleDocs.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Document.Word.Sample/AIToolkit.Tools.Document.Word.Sample.csproj" />
     <Project Path="samples/AIToolkit.Tools.Sample/AIToolkit.Tools.Sample.csproj" />
@@ -14,6 +15,8 @@
   <Folder Name="/src/">
     <Project Path="src/AIToolkit.Tools.Document/AIToolkit.Tools.Document.csproj" />
     <Project Path="src/AIToolkit.Tools.Workbook.Excel/AIToolkit.Tools.Workbook.Excel.csproj" />
+    <Project Path="src/AIToolkit.Tools.Deck.PowerPoint/AIToolkit.Tools.Deck.PowerPoint.csproj" />
+    <Project Path="src/AIToolkit.Tools.Deck/AIToolkit.Tools.Deck.csproj" />
     <Project Path="src/AIToolkit.Tools.Document.GoogleDocs/AIToolkit.Tools.Document.GoogleDocs.csproj" />
     <Project Path="src/AIToolkit.Tools.Document.Word/AIToolkit.Tools.Document.Word.csproj" />
     <Project Path="src/AIToolkit.Tools.Workbook.GoogleSheets/AIToolkit.Tools.Workbook.GoogleSheets.csproj" />
@@ -35,6 +38,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/AIToolkit.Tools.Document.Tests/AIToolkit.Tools.Document.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Workbook.Excel.Tests/AIToolkit.Tools.Workbook.Excel.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Tools.Deck.PowerPoint.Tests/AIToolkit.Tools.Deck.PowerPoint.Tests.csproj" />
+    <Project Path="tests/AIToolkit.Tools.Deck.Tests/AIToolkit.Tools.Deck.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Document.GoogleDocs.Tests/AIToolkit.Tools.Document.GoogleDocs.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Document.Word.Tests/AIToolkit.Tools.Document.Word.Tests.csproj" />
     <Project Path="tests/AIToolkit.Tools.Tests/AIToolkit.Tools.Tests.csproj" />

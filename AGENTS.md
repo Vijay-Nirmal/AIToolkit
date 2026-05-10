@@ -40,9 +40,11 @@ dotnet pack src/<PackageName>/<PackageName>.csproj -c Release
 - Start package docs with a high-level, beginner-friendly section that helps most users get running quickly.
 - Move detailed reference material lower in the document so the opening sections stay focused.
 - Prefer tables for configuration, tool surfaces, defaults, and behavior comparisons.
+- Package docs should cover every public type plus every public method and property, with short usage snippets for the main features.
 - Make docs reflect the real API surface and current behavior; do not document options or workflows the code does not support.
 - Call out provider-specific limitations and behavior differences explicitly, especially when they differ from SQL Server or from other providers.
 - Keep examples realistic and minimal, then add deeper detail later in the document when needed.
+- Keep `docs/DeckDoc-language-spec.md` and `src/AIToolkit.Tools.Deck/DeckDocSpecificationIndex.json` in sync whenever DeckDoc syntax changes.
 
 ## Publishing notes
 

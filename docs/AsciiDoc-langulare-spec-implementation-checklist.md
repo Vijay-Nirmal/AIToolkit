@@ -1,0 +1,12 @@
+- [ ] Document header and attributes round-trip
+- [ ] Section hierarchy renders with stable numbering
+- [ ] Paragraphs and inline emphasis render structurally
+- [ ] Admonition blocks retain semantic intent
+- [ ] Ordered, unordered, definition, and checklist lists are supported
+- [ ] Source, listing, literal, quote, sidebar, example, and open blocks are supported
+- [ ] Tables preserve header rows and cell content
+- [ ] Images, audio, and video macros preserve source and render when possible
+- [ ] Links, xrefs, anchors, footnotes, menu, button, and keyboard macros are preserved
+- [ ] Include directives and conditional blocks survive round-trips
+- [ ] References, callouts, passthrough content, and custom extensions are preserved
+- [ ] Deprecated syntax remains readable and round-trippable

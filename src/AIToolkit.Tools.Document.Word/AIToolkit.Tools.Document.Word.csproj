@@ -9,6 +9,7 @@
     <PackageReference Include="Azure.Core" />
     <PackageReference Include="DocumentFormat.OpenXml" />
     <PackageReference Include="Microsoft.Graph" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
     <ProjectReference Include="..\AIToolkit.Tools.Document\AIToolkit.Tools.Document.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,625 @@
+[
+  {
+    "sectionId": "document-header",
+    "title": "Document Header",
+    "keywords": ["document header", "header", "presentation title", "deck header", "presentation name"],
+    "content": [
+      "Start every DeckDoc file with '= Presentation Name'.",
+      "The document header must appear before attributes, shared directives, layout blocks, and slide headings.",
+      "Example: '= Quarterly Operations Review'."
+    ],
+    "commonlyUsedWith": ["document-attributes", "shared-theme", "layout-block", "slide-heading"]
+  },
+  {
+    "sectionId": "document-attributes",
+    "title": "Built-in Document Attributes",
+    "keywords": ["document attributes", "deckdoc attribute", "locale", "size", "grid", ":deckdoc:"],
+    "content": [
+      "Document-level settings use AsciiDoc-style attribute lines such as ':deckdoc: 1', ':locale: en-US', ':size: wide', and ':grid: 32x18'.",
+      "':deckdoc:' is required for canonical DeckDoc files.",
+      "':size:' may be 'wide', 'standard', or a custom '<width>x<height><unit>' value such as '13.333x7.5in'; ratio-only forms such as ':size: 16:9' are not canonical DeckDoc; ':grid:' defaults to '32x18' when omitted.",
+      "Document attributes belong only in the header before shared directives and slides; inside a layout block use bracket directives such as '[grid 40x22]' instead of ':grid: ...', and inside a slide use '[state hidden]' instead of ':state: hidden'.",
+      "Minimal header example: '= Demo', ':deckdoc: 1', ':locale: en-US', ':size: wide', ':grid: 32x18'."
+    ],
+    "commonlyUsedWith": ["document-header", "addressing-geometry", "layout-block-grid", "canonical-serialization"]
+  },
+  {
+    "sectionId": "shared-theme",
+    "title": "Shared Theme Directive",
+    "keywords": ["theme", "shared theme", "theme token", "brand colors", "fonts"],
+    "content": [
+      "Define reusable color and font tokens with '[theme <token>=<value>...]'.",
+      "Examples: '[theme primary=#0B5FFF accent=#F97316 ink=#0F172A surface=#F8FAFC]' and '[theme display=\"Aptos Display\" body=\"Aptos\"]'.",
+      "Later directives and attrlists can reference theme tokens with '$token'.",
+      "Each theme entry must be a named token such as 'primary=#0B5FFF' or 'display=\"Aptos Display\"'; raw value lists such as '[theme #2C3E50 #ECF0F1 #E74C3C]' are not valid DeckDoc."
+    ],
+    "commonlyUsedWith": ["shared-style", "slide-background", "layout-block-background", "pattern-shape"]
+  },
+  {
+    "sectionId": "shared-style",
+    "title": "Shared Style Directive",
+    "keywords": ["style", "shared style", "typography", "font size", "align"],
+    "content": [
+      "Define reusable object styles with '[style <name> <style-entry>...]'.",
+      "Style names may be declared either as bare identifiers such as '[style title ...]' or with the same dotted role form used at call sites such as '[style .title ...]'; both normalize to the same shared style.",
+      "Shared styles carry the same object-surface entries used by compact object lines; the most common built-in entries are 'size=<n>', 'fg=<color-or-token>', 'fill=<color-or-token>', 'stroke=<color-or-token>', 'bold', 'bullet=disc|dash|check|number', 'start=<n>', 'fit=contain|cover|stretch', 'crop=l,t,r,b', 'layer=back|front|<n>', 'alt=\"...\"', and 'name=<id>'.",
+      "Examples: '[style title size=28 bold fg=$ink]', '[style .title size=28 bold fg=$ink]', and '[style body size=16 fg=$ink]'.",
+      "Use 'fg=', 'fill=', and 'stroke=' for color-like properties; use 'fill=' instead of invented aliases such as 'bg='; ad hoc entries such as 'color=#2C3E50' are not part of the built-in shared style syntax."
+    ],
+    "commonlyUsedWith": ["shared-theme", "layout-slot-lines", "object-attrlists", "pattern-title"]
+  },
+  {
+    "sectionId": "shared-asset",
+    "title": "Shared Asset Directive",
+    "keywords": ["asset", "asset directive", "shared asset", "image asset", "media reference"],
+    "content": [
+      "Declare reusable assets with '[asset <name> <reference>]'.",
+      "References can be local paths such as './hero-team.png' or resolver-managed references such as 'brand://logo'.",
+      "Examples: '[asset hero \"./hero-team.png\"]' and '[asset logo \"brand://logo\"]'."
+    ],
+    "commonlyUsedWith": ["pattern-image", "pattern-icon", "layout-fixed-lines", "slide-background"]
+  },
+  {
+    "sectionId": "shared-motion",
+    "title": "Shared Motion Directive",
+    "keywords": ["motion", "shared motion", "animation preset", "motion preset"],
+    "content": [
+      "Define reusable animation presets with '[motion <name> <entry>...]'.",
+      "Do not wrap motion presets in a synthetic '[shared motion ...]' form; the canonical shared declaration is the bare '[motion ...]' directive.",
+      "Motion presets reuse the animate-entry surface except for the target token; supported entries include 'enter=appear|fade|wipe|zoom', 'emphasis=grow|pulse|spin|color', 'exit=fade|wipe|zoom', 'motion=from-left|from-right|from-top|from-bottom', optional 'dir=left|right|up|down' for directional wipe/fly behavior, plus 'dur=<time>', 'delay=<time>', 'order=<n>', and 'on=auto|click|after(<step>)'.",
+      "Examples: '[motion fade-in enter=fade dur=0.35s]', '[motion wipe-left enter=wipe dir=left dur=0.35s]', and '[motion lift-up motion=from-bottom dur=0.45s]'.",
+      "Animation directives can later reference the preset with 'preset=<motion-name>'; when both the preset and the slide-level '[animate ...]' directive specify the same property, the inline animate value is the effective one."
+    ],
+    "commonlyUsedWith": ["animate", "slide-transition", "shared-style", "object-lines-target"]
+  },
+  {
+    "sectionId": "layout-block",
+    "title": "Layout Block",
+    "keywords": ["layout", "layout block", "layout end", "reusable layout", "slots"],
+    "content": [
+      "Declare reusable layouts with '[layout <name>]' followed by layout directives, fixed lines, slot lines, optional extensions, and a closing '[end]'.",
+      "Layout blocks must be fully closed before the next slide heading appears.",
+      "Use layout blocks for recurring branded shells, placeholder geometry, repeated split compositions, gallery structures, and other reusable slide scaffolds.",
+      "Layouts do not inherit from other layouts with '[use ...]'; '[use <layout-name>]' is a slide directive only."
+    ],
+    "commonlyUsedWith": ["layout-slot-lines", "layout-fixed-lines", "slide-use", "layout-area", "layout-split", "layout-grid", "layout-stack"]
+  },
+  {
+    "sectionId": "slide-heading",
+    "title": "Slide Heading",
+    "keywords": ["slides", "slide", "slide heading", "slide title", "=="],
+    "content": [
+      "Each slide starts with '== Slide Title'.",
+      "Slide titles are logical identifiers and do not need to match visible on-slide title text.",
+      "DeckDoc must contain at least one slide heading."
+    ],
+    "commonlyUsedWith": ["slide-use", "slide-background", "slide-notes", "slide-transition", "object-lines-target"]
+  },
+  {
+    "sectionId": "slide-use",
+    "title": "Layout Use Directive",
+    "keywords": ["use", "layout use", "apply layout", "use cover"],
+    "content": [
+      "Apply a named layout to the current slide with '[use <layout-name>]'.",
+      "When a slide uses a layout, named slot lines such as '@title | ...' and '@hero [image ...]' bind to that layout's slot definitions.",
+      "Example: '[use cover]'.",
+      "Do not place '[use ...]' inside a layout block; layout composition is expressed by repeating layout directives, not by nesting layout use."
+    ],
+    "commonlyUsedWith": ["layout-block", "layout-slot-lines", "object-lines-target", "slide-section", "slide-transition"]
+  },
+  {
+    "sectionId": "slide-background",
+    "title": "Slide Background Directive",
+    "keywords": ["background", "slide background", "fill", "background asset", "background image"],
+    "content": [
+      "Set a slide background with '[background <entry>...]'.",
+      "Common entries include 'fill=#RRGGBB', 'fill=$token', and image references such as 'asset=hero fit=cover' when the slide differs from its layout default.",
+      "Examples: '[background fill=#0F172A]' and '[background asset=hero fit=cover]'.",
+      "Use 'fill=' for color backgrounds; forms such as '[background color=#0F172A]' or shorthand aliases such as '[bg fill=#0F172A]' are not part of the canonical built-in syntax."
+    ],
+    "commonlyUsedWith": ["shared-theme", "shared-asset", "layout-block-background", "slide-transition"]
+  },
+  {
+    "sectionId": "slide-notes",
+    "title": "Slide Notes Directive",
+    "keywords": ["notes", "speaker notes", "slide notes", "presenter notes"],
+    "content": [
+      "Attach presenter-only context with '[notes <quoted-text>]'.",
+      "Notes usually appear near the top of the slide below other slide directives and before the first object line.",
+      "Example: '[notes \"Lead with renewal quality, then show the proof chart.\"]'.",
+      "Notes are a single quoted directive line; do not open a multi-line '[notes]' block."
+    ],
+    "commonlyUsedWith": ["slide-heading", "slide-transition", "slide-section", "animate"]
+  },
+  {
+    "sectionId": "slide-transition",
+    "title": "Slide Transition Directive",
+    "keywords": ["transition", "fade", "push", "wipe", "morph", "advance after"],
+    "content": [
+      "Declare a slide transition with '[transition <type> <entry>...]'.",
+      "The current built-in PowerPoint-backed transition types are 'fade', 'push', and 'wipe'. Built-in entries are 'dur=<time>', 'advance=click|after(<time>)', and 'dir=left|right|up|down' for directional transitions such as push and wipe.",
+      "Examples: '[transition fade dur=0.35s]', '[transition push dir=left dur=0.3s]', and '[transition wipe dir=up advance=after(1.5s)]'.",
+      "If a workflow needs a provider-specific transition outside that built-in set, keep it in '[x ...]' instead of documenting it as a built-in transition type."
+    ],
+    "commonlyUsedWith": ["slide-use", "slide-notes", "animate", "shared-motion", "layout-block-transition"]
+  },
+  {
+    "sectionId": "slide-section",
+    "title": "Slide Section Directive",
+    "keywords": ["section", "slide section", "logical section", "section name"],
+    "content": [
+      "Associate the slide with a logical section using '[section <name>]'.",
+      "Use section names for logical grouping and navigation intent, not for visible slide text.",
+      "Example: '[section Highlights]'.",
+      "Bare section names such as '[section Highlights]' are the common form; quote the name only when it needs embedded spaces or characters that would otherwise split into multiple tokens."
+    ],
+    "commonlyUsedWith": ["slide-heading", "slide-state", "slide-transition", "layout-extraction"]
+  },
+  {
+    "sectionId": "slide-state",
+    "title": "Slide State Directive",
+    "keywords": ["state", "hidden slide", "slide visibility", "state hidden"],
+    "content": [
+      "Control slide visibility with '[state hidden]'.",
+      "The built-in slide state surface currently models hidden-slide intent.",
+      "Example: '[state hidden]'.",
+      "Slide state is a bracket directive inside the slide body, not a document attribute line such as ':state: hidden'."
+    ],
+    "commonlyUsedWith": ["slide-section", "slide-transition", "extensions"]
+  },
+  {
+    "sectionId": "layout-block-grid",
+    "title": "Layout Block Grid Directive",
+    "keywords": ["layout grid", "grid 40x22", "layout grid override", "layout block grid"],
+    "content": [
+      "Inside a layout block, override the logical layout grid with '[grid <cols>x<rows>]'.",
+      "This changes how later fixed lines, slot lines, and named layout targets inside that layout are interpreted.",
+      "Example: '[grid 40x22]'.",
+      "Do not use header-style attributes such as ':grid: 40x22' inside a layout block; layout-local grid override is always the bracket form '[grid <cols>x<rows>]'."
+    ],
+    "commonlyUsedWith": ["layout-block", "addressing-geometry", "layout-slot-lines", "layout-fixed-lines"]
+  },
+  {
+    "sectionId": "layout-block-background",
+    "title": "Layout Block Background Directive",
+    "keywords": ["layout background", "layout block background", "default layout background"],
+    "content": [
+      "Inside a layout block, define the default background with '[background <entry>...]'.",
+      "Layout backgrounds are typically shared by slides that later opt into the layout with '[use ...]'.",
+      "Example: '[background fill=$surface]'.",
+      "As with slide backgrounds, use 'fill=' or asset-oriented entries rather than a generic 'color=' key, and use '[background ...]' rather than shorthand aliases such as '[bg ...]'."
+    ],
+    "commonlyUsedWith": ["layout-block", "shared-theme", "slide-use", "slide-background"]
+  },
+  {
+    "sectionId": "layout-block-transition",
+    "title": "Layout Block Transition Directive",
+    "keywords": ["layout transition", "default transition", "layout block transition"],
+    "content": [
+      "Inside a layout block, define a default transition hint with '[transition <type> <entry>...]'.",
+      "Slides can inherit the layout transition or override it with their own slide-level '[transition ...]'.",
+      "Example: '[transition fade dur=0.25s]'."
+    ],
+    "commonlyUsedWith": ["layout-block", "slide-use", "slide-transition"]
+  },
+  {
+    "sectionId": "layout-area",
+    "title": "Area Directive",
+    "keywords": ["area", "named area", "layout area", "hero area"],
+    "content": [
+      "Define a named rectangular target with '[area <name> <range> [<entry>...]]'.",
+      "Examples: '[area rail B2:H14]', '[area main = B4:M20]', and '[area hero P3:Y12 image fit=cover]'.",
+      "Use areas for one-off named regions such as title zones, rails, image wells, footers, or quote boxes."
+    ],
+    "commonlyUsedWith": ["addressing-geometry", "object-lines-target", "layout-split", "layout-slot-lines"]
+  },
+  {
+    "sectionId": "layout-split",
+    "title": "Split Directive",
+    "keywords": ["split", "split cols", "split rows", "head body", "rail stage"],
+    "content": [
+      "Split a parent range or target with '[split <range-or-target> cols=(<part>,<part>,...) [gap=<n>] as=<name>,<name>,...]' or the equivalent 'rows=(...)' form. If the source is omitted, the split uses the current layout grid.",
+      "Part values may be raw grid counts such as '7', percentages such as '30%', or fractions such as '1fr'.",
+      "Examples: '[split B2:Y14 cols=(7,17) gap=1 as=rail,stage]', '[split stage rows=(3,11) gap=0.8 as=head,body]', and '[split cols=(16,24) gap=1 as=left,right]'.",
+      "Split is a standalone directive line, not an object line or slot attrlist. Write '[split B6:Z17 cols=(65%,30%) gap=5% as=left,right]' on its own line, then fill '@right ...' or '@left ...' on later lines rather than inventing forms such as '@insight B6:Z17 [split ...]'."
+    ],
+    "commonlyUsedWith": ["layout-area", "layout-grid", "layout-stack", "object-lines-target", "layout-slot-lines", "table-block", "chart-block"]
+  },
+  {
+    "sectionId": "layout-grid",
+    "title": "Grid Directive",
+    "keywords": ["grid", "repeated grid", "cards", "gallery", "grid cells"],
+    "content": [
+      "Create a repeated indexed target grid with '[grid <name> in=<range-or-target> cols=<n> [rows=<n>] [gap=<x>[x<y>]] [order=row|col] [<entry>...]]'.",
+      "Grid cells are referenced as '@cards[1]', '@cards[2]', or '@cards[r2c1]'.",
+      "Examples: '[grid cards in=body cols=3 rows=2 gap=0.5x0.5]' and '[grid gallery in=hero cols=4 gap=0.4 image fit=cover]'.",
+      "Grid is a standalone directive line, not an object line. Define the grid first, then fill '@cards[1]' or other resolved cells on following lines."
+    ],
+    "commonlyUsedWith": ["layout-split", "layout-stack", "object-lines-target", "pattern-image", "pattern-shape"]
+  },
+  {
+    "sectionId": "layout-stack",
+    "title": "Stack Directive",
+    "keywords": ["stack", "dir=down", "chips", "steps", "one-dimensional target"],
+    "content": [
+      "Create a repeated one-dimensional target stack with '[stack <name> in=<range-or-target> dir=down|up|left|right count=<n> [gap=<n>] [<entry>...]]'.",
+      "Stack items are referenced as '@steps[1]', '@steps[2]', and so on.",
+      "Examples: '[stack steps in=stage dir=down count=4 gap=0.5]' and '[stack chips in=rail dir=down count=3 gap=0.25]'.",
+      "Stack is a standalone directive line, not an object line or slot attrlist. Define the stack first, then fill the resolved indexed targets on later lines."
+    ],
+    "commonlyUsedWith": ["layout-split", "layout-grid", "object-lines-target", "pattern-bulleted-list"]
+  },
+  {
+    "sectionId": "addressing-geometry",
+    "title": "Addressing And Geometry",
+    "keywords": ["geometry", "anchor", "span", "range", "grid anchor", "B2", "24x2"],
+    "content": [
+      "DeckDoc uses slide-grid notation such as anchors 'B2', spans '24x2', and ranges 'B2:Y10'; the logical grid defaults to '32x18'.",
+      "Grid anchors are 1-based integer spreadsheet addresses such as 'B2' or 'AA14', grid spans are width-by-height counts, and named layout targets replace geometry when layouts define reusable regions.",
+      "Fractional coordinates such as 'B6.5' or 'AA10.25' are not valid grid anchors in DeckDoc.",
+      "Physical units such as px, pt, in, cm, and mm are only needed when an attribute requires exact fidelity."
+    ],
+    "commonlyUsedWith": ["document-attributes", "object-lines-geometry", "layout-area", "layout-slot-lines", "layout-fixed-lines", "grouping", "animate"]
+  },
+  {
+    "sectionId": "object-lines-geometry",
+    "title": "Compact Object Lines: Geometry Form",
+    "keywords": ["compact object", "geometry form", "@B2 24x2", "object line"],
+    "content": [
+      "The geometry form is '@<anchor> <span> [<object-attrlist>] | <payload>'.",
+      "Examples: '@B2 24x2 [.title] | Quarterly Operations', '@B5 12x7 [list .body bullet=disc] | Item A | Item B', and '@P4 10x8 [image asset=hero fit=cover alt=\"Workshop photo\"]'.",
+      "Use geometry form when the object does not bind to a named layout slot or named layout target. Geometry anchors are spreadsheet-style uppercase addresses such as 'B2' or 'AA14'.",
+      "If a geometry-addressed shape, image, or icon has no payload text, stop after the attrlist; do not add an empty trailing '|'."
+    ],
+    "commonlyUsedWith": ["addressing-geometry", "object-attrlists", "payload-forms", "pattern-image", "pattern-shape", "grouping", "animate"]
+  },
+  {
+    "sectionId": "object-lines-target",
+    "title": "Compact Object Lines: Named Target Form",
+    "keywords": ["named target", "@title", "@cards[2]", "target form", "slot fill"],
+    "content": [
+      "When a layout or slide defines named targets, the compact form can be '@<target-name> [<object-attrlist>] | <payload>'.",
+      "Examples: '@title | Quarterly Operations', '@body [list .body bullet=disc] | Lower churn | Raise renewal quality', '@row1 [list bullet=disc] | Morning | Afternoon', and '@cards[2] [image asset=shot-b fit=cover]'.",
+      "When a target-bound object also needs a stable identifier for grouping or animation, the tolerated shorthand '@<name> <target-name> [<object-attrlist>] | <payload>' is accepted and normalizes to the same target placement plus 'name=<name>'.",
+      "Inside slides, named targets are filled directly; do not use layout slot-binding syntax such as '@panel = right [shape ...]' or '@topic = left [text ...]'. Reserve '@name = ...' for layout slot lines only.",
+      "Targets may come from layout slots, areas, split outputs, grid cells, or stack items.",
+      "A named target is a single rectangle. If a card, sidebar, or panel needs multiple independent text, list, icon, or line elements, subdivide that target first with split/grid/stack or use explicit geometry; otherwise those objects share the same rectangle and visually overlap.",
+      "This also applies to layout slot bindings: avoid binding multiple semantic slots such as subtitle and body to the same source target unless that source target is subdivided first into separate child targets.",
+      "Geometry references prefer the canonical anchor-plus-span form like 'B4 29x3', but the tolerant shorthand 'B4:AD3' is also accepted and means anchor B4 spanning through column AD for 3 rows."
+    ],
+    "commonlyUsedWith": ["slide-use", "layout-area", "layout-split", "layout-grid", "layout-stack", "layout-slot-lines", "grouping", "animate"]
+  },
+  {
+    "sectionId": "layout-slot-lines",
+    "title": "Layout Slot Lines",
+    "keywords": ["slot", "layout slot", "@title =", "placeholder geometry"],
+    "content": [
+      "Define reusable placeholder geometry with '@<slot-name> = <anchor> <span> [<slot-attrlist>]', range shorthand such as '@<slot-name> = <range> [<slot-attrlist>]', or '@<slot-name> = <target-name> [<slot-attrlist>]'.",
+      "Examples: '@title = B2 24x2 [.title]', '@title = B2:Y3 [.title]', '@body = B5 14x9 [list .body bullet=disc]', and '@title = head [.title]'.",
+      "The slot name is the stable identifier that slides later fill with named target object lines.",
+      "Use slot lines for reusable content placeholders that a slide will fill, not for recurring decorative or always-visible brand chrome that should render even when a slide provides no replacement content.",
+      "A slot line binds to one already-defined rectangle; it does not create nested layout surfaces. Use standalone '[area ...]', '[split ...]', '[grid ...]', or '[stack ...]' directives first, then bind slots to the resulting targets instead of writing forms such as '@slot = target [stack ...]' or '@slot = target [grid ...]'.",
+      "If multiple slots point at the same target rectangle they overlap visually. When title, subtitle, logo, or other elements need separate regions, subdivide the space first and bind each slot to a distinct target."
+    ],
+    "commonlyUsedWith": ["layout-block", "object-lines-target", "shared-style", "layout-area", "layout-split", "layout-grid", "layout-stack", "slide-use"]
+  },
+  {
+    "sectionId": "layout-fixed-lines",
+    "title": "Layout Fixed Lines",
+    "keywords": ["fixed lines", "layout fixed", "!A1 32x18", "brand bar"],
+    "content": [
+      "Define recurring layout-owned objects with '!<anchor> <span> [<object-attrlist>]', range shorthand such as '!<range> [<object-attrlist>]', a named-placement form such as '!<name> <range> [<object-attrlist>]' or '!<name> <anchor> <span> [<object-attrlist>]', or '!<target-name> [<object-attrlist>]'.",
+      "Examples: '!A1 32x18 [shape rect fill=$surface layer=back]', '!A1 32x2 [shape rect fill=$primary layer=back]', '!X16 4x2 [image asset=logo fit=contain]', '!B2:Y22 [shape rect fill=$dark]', '!bg B2:Y22 [shape rect fill=$dark]', and '!right [shape rect fill=#E2E8F0 stroke=#94A3B8]'.",
+      "Use fixed lines for recurring brand bars, corner accents, watermarks, footer shells, and other non-content objects.",
+      "If a logo, badge, separator, or hero artwork should always appear whenever the layout is used, prefer a fixed line over a slot so the visual element renders without a slide-specific fill step."
+    ],
+    "commonlyUsedWith": ["layout-block", "shared-asset", "shared-theme", "object-lines-geometry"]
+  },
+  {
+    "sectionId": "object-attrlists",
+    "title": "Object Attrlists",
+    "keywords": ["attrlist", "object attrlist", "style-name", "asset=", "bullet=", "fit=cover"],
+    "content": [
+      "Attrlists use '[.style-name key=value flag]' and may declare object kind tokens such as text, list, image, shape, line, or icon.",
+      "The current built-in object-surface entries are '.style-name', 'asset=<name>', 'ref=<reference>', 'name=<id>', 'size=<n>', 'fg=<color-or-token>', 'fill=<color-or-token>', 'stroke=<color-or-token>', 'bold', 'bullet=disc|dash|check|number', 'start=<n>', 'fit=contain|cover|stretch', 'crop=l,t,r,b', 'layer=back|front|<n>', and 'alt=\"...\"'.",
+      "For shape objects, include a shape kind token after 'shape', such as 'rect', 'roundrect', 'ellipse', 'diamond', 'triangle', 'line', or 'arrow'.",
+      "Use the built-in names exactly: for example 'bullet=number' rather than 'bullet=numbered', and color-bearing entries such as 'fg=', 'fill=', or 'stroke=' rather than a generic 'color=' entry.",
+      "Icons currently use image-style sources such as 'asset=<name>' or 'ref=<reference>'; forms such as '[icon name=TrendingUp]' are not part of the built-in DeckDoc surface.",
+      "Color-like entries currently expect a six-digit hex color or a '$theme-token'. Forms such as 'stroke=none', 'fill=none', or ad hoc numeric styling like 'width=4' are not built-in object attrlist entries.",
+      "Use 'name=<id>' when a geometry-addressed object needs a stable identifier for grouping, animation, or provider-specific follow-up; the shorthand '@name B4 8x10 [...]' is normalized to geometry plus 'name=name'.",
+      "For grouped or animated compositions, prefer integer-grid named geometry such as '@box1 B6 13x5 [shape rect fill=#DBEAFE stroke=#3B82F6]' and '@txt1 B7 11x2 [text size=16 bold fg=#1E40AF] | Core Optimization' rather than fractional inset coordinates.",
+      "When a named geometry object needs the attrlist before placement, the tolerated shorthand '@name [<object-attrlist>] at=<range>' or '@name [<object-attrlist>] at=<anchor> <span>' is also accepted and normalizes to the same geometry-plus-name model.",
+      "Rich-text payload entries such as 'rich=...' and 'runs=...' belong to explicit '[obj ...]' overrides rather than ordinary compact object attrlists."
+    ],
+    "commonlyUsedWith": ["shared-style", "payload-forms", "pattern-image", "pattern-shape", "explicit-object-overrides", "grouping", "animate"]
+  },
+  {
+    "sectionId": "payload-forms",
+    "title": "Payload Forms",
+    "keywords": ["payload", "pipe separator", "quoted payload", "list payload"],
+    "content": [
+      "Compact object lines use a small set of payload forms: '| Quarterly Operations' for plain text, '| \"  Keep spaces  \"' for quoted text, '| A | B | C' for segmented list items, or no payload when attributes fully describe the object.",
+      "Compact payloads may continue on following lines that begin with '|'; list payloads may also continue on following '- ' lines when the object kind is 'list'.",
+      "Use quoted payloads when text needs leading or trailing spaces, literal pipes, literal leading '[' or '@', line breaks, or other content that would otherwise parse as tokens.",
+      "Keep payloads compact and move awkward rich-detail cases into '[obj ...]' when necessary.",
+      "List payload continuation lines such as '- item' are plain text items. Do not append inline object attrlists such as '- item [shape ...]' or '- item [icon ...]' to list-item text."
+    ],
+    "commonlyUsedWith": ["object-lines-geometry", "object-lines-target", "quoted-strings", "explicit-object-overrides"]
+  },
+  {
+    "sectionId": "pattern-title",
+    "title": "Common Compact Pattern: Title Text",
+    "keywords": ["title text", "title pattern", "@title", ".title"],
+    "content": [
+      "Canonical title text uses '@<anchor-or-target> [text .title] | <title-text>'.",
+      "Example: '@title [.title] | Quarterly Operations Review'.",
+      "Titles usually pair a shared '.title' style with either explicit geometry or a reusable layout slot named 'title'."
+    ],
+    "commonlyUsedWith": ["shared-style", "layout-slot-lines", "object-lines-target", "pattern-subtitle"]
+  },
+  {
+    "sectionId": "pattern-subtitle",
+    "title": "Common Compact Pattern: Subtitle Text",
+    "keywords": ["subtitle text", "subtitle pattern", ".subtitle"],
+    "content": [
+      "Canonical subtitle text uses '@<anchor-or-target> [text .subtitle] | <subtitle-text>'.",
+      "Example: '@subtitle [.subtitle] | Q4 highlights, risks, and next-quarter actions'.",
+      "Subtitle text usually appears beneath a title slot or in a secondary headline area."
+    ],
+    "commonlyUsedWith": ["pattern-title", "shared-style", "layout-slot-lines"]
+  },
+  {
+    "sectionId": "pattern-body-text",
+    "title": "Common Compact Pattern: Body Text",
+    "keywords": ["body text", "body pattern", ".body", "copy"],
+    "content": [
+      "Canonical body text uses '@<anchor-or-target> [text .body] | <body-text>'.",
+      "Example: '@copy [.body] | Cycle time fell 18% after the routing change.'.",
+      "Prefer body text for concise narrative paragraphs that do not need list semantics."
+    ],
+    "commonlyUsedWith": ["shared-style", "pattern-caption", "object-lines-target"]
+  },
+  {
+    "sectionId": "pattern-caption",
+    "title": "Common Compact Pattern: Caption Text",
+    "keywords": ["caption", "caption text", ".caption", "source line"],
+    "content": [
+      "Canonical caption text uses '@<anchor-or-target> [text .caption] | <caption-text>'.",
+      "Example: '@caption [.caption] | Source: FY2026 operating review'.",
+      "Captions typically accompany images, charts, or footers and use smaller typography than body text."
+    ],
+    "commonlyUsedWith": ["pattern-image", "chart-block", "shared-style"]
+  },
+  {
+    "sectionId": "pattern-bulleted-list",
+    "title": "Common Compact Pattern: Bulleted List",
+    "keywords": ["bulleted list", "bullet=disc", "list disc", "bullet list"],
+    "content": [
+      "Canonical bulleted lists use '@<anchor-or-target> [list bullet=disc] | <item> | <item> | <item>'.",
+      "Example: '@body [list .body bullet=disc] | Lower churn | Raise renewal quality | Simplify rollout'.",
+      "Use one payload segment per list item."
+    ],
+    "commonlyUsedWith": ["pattern-body-text", "object-attrlists", "layout-stack"]
+  },
+  {
+    "sectionId": "pattern-dash-list",
+    "title": "Common Compact Pattern: Dash List",
+    "keywords": ["dash list", "bullet=dash", "risks list"],
+    "content": [
+      "Dash lists use '@<anchor-or-target> [list bullet=dash] | <item> | <item>'.",
+      "Example: '@risks [list .body bullet=dash] | Vendor delay | Scope creep'.",
+      "Use dash lists when a lighter visual hierarchy is preferred over round bullets."
+    ],
+    "commonlyUsedWith": ["pattern-bulleted-list", "pattern-body-text", "layout-stack"]
+  },
+  {
+    "sectionId": "pattern-check-list",
+    "title": "Common Compact Pattern: Check List",
+    "keywords": ["check list", "bullet=check", "checklist"],
+    "content": [
+      "Check lists use '@<anchor-or-target> [list bullet=check] | <item> | <item>'.",
+      "Example: '@done [list .body bullet=check] | Security review complete | Demo approved'.",
+      "Use check lists for completion-state items or milestone confirmations."
+    ],
+    "commonlyUsedWith": ["pattern-bulleted-list", "pattern-numbered-list", "slide-notes"]
+  },
+  {
+    "sectionId": "pattern-numbered-list",
+    "title": "Common Compact Pattern: Numbered List",
+    "keywords": ["numbered list", "bullet=number", "start=", "steps"],
+    "content": [
+      "Numbered lists use '@<anchor-or-target> [list bullet=number [start=<n>]] | <step> | <step> | <step>'.",
+      "Examples: '@steps [list .body bullet=number] | Discover | Design | Deliver' and '@steps [list .body bullet=number start=4] | Launch | Measure | Iterate'.",
+      "Use 'start=<n>' to continue numbering from an earlier sequence.",
+      "The built-in numbered-list keyword is 'bullet=number'; variants such as 'bullet=numbered' are not canonical DeckDoc.",
+      "When the list object already declares 'bullet=number', provide plain step text such as 'Discover' and 'Design' rather than literal payload text like '1. Discover' or '2. Design'."
+    ],
+    "commonlyUsedWith": ["pattern-bulleted-list", "layout-stack", "animate"]
+  },
+  {
+    "sectionId": "pattern-image",
+    "title": "Common Compact Pattern: Image",
+    "keywords": ["image", "asset=hero", "fit=cover", "crop", "alt text"],
+    "content": [
+      "Canonical image objects use '@<anchor-or-target> [image asset=<name> fit=contain|cover|stretch [crop=l,t,r,b] [alt=\"...\"]]'.",
+      "Example: '@hero [image asset=hero fit=cover alt=\"Leadership workshop\"]'.",
+      "Use 'asset=<name>' for shared assets and 'ref=<reference>' when a one-off direct media reference is required."
+    ],
+    "commonlyUsedWith": ["shared-asset", "pattern-caption", "slide-background", "layout-fixed-lines"]
+  },
+  {
+    "sectionId": "pattern-icon",
+    "title": "Common Compact Pattern: Icon",
+    "keywords": ["icon", "icon asset", "badge", "fg icon"],
+    "content": [
+      "Canonical icon objects use '@<anchor-or-target> [icon asset=<name> fit=contain [fg=#RRGGBB]]'.",
+      "Example: '@badge [icon asset=rocket fit=contain fg=$primary]'.",
+      "Icons are usually treated as images or simple shapes with icon-specific fit and foreground color intent.",
+      "Use 'asset=' or 'ref=' for the icon source; forms such as '[icon name=TrendingUp]' are not built-in DeckDoc syntax."
+    ],
+    "commonlyUsedWith": ["shared-asset", "pattern-shape", "layout-grid"]
+  },
+  {
+    "sectionId": "pattern-shape",
+    "title": "Common Compact Pattern: Shape",
+    "keywords": ["shape", "roundrect", "rect", "fill", "stroke", "radius"],
+    "content": [
+      "Canonical shapes use '@<anchor-or-target> [shape <shape-kind> [fill=#RRGGBB] [stroke=#RRGGBB] [fg=#RRGGBB]] [| <text>]'.",
+      "Examples: '@card [shape roundrect fill=#F8FAFC stroke=#CBD5E1]' and '@pill [shape roundrect fill=$accent fg=#FFFFFF] | On Track'.",
+      "Supported built-in shape kinds include rect, roundrect, ellipse, diamond, triangle, line, and arrow.",
+      "Color-bearing shape entries follow the normal color surface such as hex colors or '$theme-token' values; literal values such as 'stroke=none' are not part of the built-in shape syntax."
+    ],
+    "commonlyUsedWith": ["shared-theme", "object-attrlists", "pattern-title", "layout-grid"]
+  },
+  {
+    "sectionId": "pattern-line",
+    "title": "Common Compact Pattern: Line Or Connector",
+    "keywords": ["line", "connector", "rule", "arrow", "stroke"],
+    "content": [
+      "Canonical plain lines use '@<anchor-or-target> [line stroke=#RRGGBB]'.",
+      "Example: '@rule [line stroke=#CBD5E1]'.",
+      "Use line objects for rules, separators, and simple connectors. When an arrow-ended shape is required, use a shape form such as '@arrow [shape arrow stroke=#CBD5E1 fill=#CBD5E1]'.",
+      "The current built-in line surface does not use ad hoc width properties such as 'width=4'; use the documented line form as-is rather than inventing additional numeric line-style keys.",
+      "Do not write standalone directives such as '[line ...]' inside slides; line is an object kind inside a compact object line or a slot/fixed-line definition rather than a standalone '[line ...] at=...' block."
+    ],
+    "commonlyUsedWith": ["pattern-shape", "layout-area", "shared-theme"]
+  },
+  {
+    "sectionId": "quoted-strings",
+    "title": "Quoted Strings And Escapes",
+    "keywords": ["quoted strings", "escapes", "literal pipe", "\\n", "\\|"],
+    "content": [
+      "Use double quotes when text needs leading or trailing spaces, a literal '|', a leading '[' or '@', line breaks, or content that would otherwise parse as tokens.",
+      "Supported escapes are '\"' for literal quotes, '\\\\' for backslash, '\\n' for line breaks, '\\t' for tabs, and '\\|' for literal pipes.",
+      "Quoted strings can appear in payloads and directive arguments such as '[notes \"...\"]' or 'alt=\"...\"'."
+    ],
+    "commonlyUsedWith": ["payload-forms", "slide-notes", "pattern-image", "chart-block"]
+  },
+  {
+    "sectionId": "explicit-object-overrides",
+    "title": "Explicit Object Overrides",
+    "keywords": ["obj", "explicit object override", "rich text", "run-level override"],
+    "content": [
+      "Prefer the canonical single-line form '[obj <anchor-or-target> <entry>...]' when a single object needs more detail than a compact object line should carry. Geometry may be written as an anchor plus span or as a range shorthand.",
+      "Examples: '[obj title rich=\"Quarterly [b]Operations[/b]\"]', '[obj B6 12x2 runs=\"[{text:'FY2026',bold:true},{text:' plan'}]\"]', '[obj B17:Y18 rich=\"Footer text\"]', '[obj hero alt=\"Workshop photo taken in Berlin\"]', and '[obj title at=U7:AL11]'.",
+      "Alternate supported single-line forms may place the object attrlist or text payload in a second bracket block, such as '[obj B6 12x2] [text .body rich=\"Quarterly Operations\"]', '[obj B6 12x2] [image asset=badge alt=\"Achievement badge\"]', '[obj footer] [Footer text]', or the nested form '[obj B6 12x2 [shape circle fill=#005A9C]]'. The canonical serializer still prefers the first form when generating new DeckDoc.",
+      "Recommended uses are rich text, exact run-level overrides, hidden metadata on an otherwise simple object, relocating or restyling an existing named or targeted object with entries such as 'at=...', 'size=...', or 'fg=...', or one-off accessibility detail.",
+      "Plain payload text remains literal. If inline emphasis is needed, put it in the looked-up 'rich=' or 'runs=' surface rather than writing markup tags such as '[b]...[/b]' inside a plain '| ...' payload.",
+      "'[obj ...]' is a single directive line, not a block form, and it is not followed by a closing '[end]'."
+    ],
+    "commonlyUsedWith": ["object-lines-target", "object-attrlists", "quoted-strings", "animate"]
+  },
+  {
+    "sectionId": "grouping",
+    "title": "Grouping Directive",
+    "keywords": ["group", "grouping", "group block", "member list", "group shape", "animate together"],
+    "content": [
+      "Use '[group <name> <member>...]' when multiple objects should move or animate together.",
+      "Examples: '[group summary title hero]' and '[group opening title hero cards[1] cards[2]]'.",
+      "Group members are usually target names, indexed targets such as 'cards[2]', named geometry object ids introduced with 'name=<id>' or the '@name B4 8x10 [...]' shorthand, or an earlier group name.",
+      "When the provider renders grouping natively, the group name becomes the stable identifier for later operations such as '[animate summary enter=fade ...]'.",
+      "Grouping is a single directive, not a block; do not open '[group ...]' and then emit nested object lines plus '[end]', and do not use a raw range as the group name when what you really need is an object, slot, or target identifier.",
+      "If grouped members need stable identifiers, define them first as named targets or named geometry objects such as '@cap B7 8x1 [text .caption]' and then group them with '[group sidebar cap box line]'."
+    ],
+    "commonlyUsedWith": ["animate", "object-lines-target", "object-lines-geometry", "object-attrlists", "pattern-shape"]
+  },
+  {
+    "sectionId": "table-block",
+    "title": "Table Block",
+    "keywords": ["table", "table block", "header row", "banded", "table cells"],
+    "content": [
+      "Start a table block with '[table <name> at=<anchor> size=<span> [<entry>...]]', range shorthand such as '[table <name> at=<range> [<entry>...]]', or a named-target form such as '[table <name> at=<target> [<entry>...]]', provide pipe-delimited rows, and close it with '[end]'.",
+      "The current built-in table entries are '.style-name', 'header', and 'banded'; a markdown-style separator row such as '| --- | --- | --- |' is also allowed after the header row and marks the first row as a header even without an explicit 'header' token.",
+      "Examples: '[table Risks at=B8 size=18x6 .body]', '[table Metrics at=H5:Y13 .body]', and '[table Costs at=visual .body banded]' followed by visible cell rows and a closing '[end]'.",
+      "Use exact named entries such as 'at=<anchor>' or 'at=<range>'; forms such as '[table Risks at B8 size=18x6]' are not valid because 'at' must be written with '='.",
+      "Tables are standalone blocks, not object attrlists; do not write '@slot [table ...]' and then continue with table rows.",
+      "Named-target placement is valid for tables, so forms such as 'at=top', 'at=left', or 'at=cards[2]' resolve against existing layout targets instead of requiring a concrete range or anchor-plus-size."
+    ],
+    "commonlyUsedWith": ["addressing-geometry", "shared-style", "pattern-caption", "quoted-strings", "layout-split", "object-lines-target"]
+  },
+  {
+    "sectionId": "chart-block",
+    "title": "Chart Block",
+    "keywords": ["chart", "chart block", "series", "axis", "combo chart", "labels"],
+    "content": [
+      "Start a chart block with '[chart \"<name>\" type=<type> at=<anchor> size=<span>]', range shorthand such as '[chart \"<name>\" type=<type> at=<range>]', or a named-target form such as '[chart \"<name>\" type=<type> at=<target>]' and close it with '[end]'.",
+      "Series rows use '- series <type> \"<label>\" cat=(...) val=(...) [axis=primary|secondary] [color=#RRGGBB] [labels]'.",
+      "The current built-in chart types are 'column', 'bar', 'line', 'pie', 'doughnut', and 'combo'. In combo charts, series with 'type=line' or 'axis=secondary' render as line-series on the secondary axis, while the remaining series render as clustered columns.",
+      "As with tables, chart placement uses exact named entries such as 'at=V6', 'size=7x8', or range shorthand like 'at=B13:M20'; do not switch to bare-token forms like 'at V6'.",
+      "Charts are standalone blocks, not object attrlists; do not write '@slot [chart ...]' and then emit '- series ...' rows below it.",
+      "Named-target placement is valid for charts, so forms such as 'at=bottom', 'at=right', or 'at=cards[2]' resolve against existing layout targets instead of requiring a concrete range or anchor-plus-size."
+    ],
+    "commonlyUsedWith": ["addressing-geometry", "shared-theme", "pattern-caption", "slide-notes", "quoted-strings", "layout-split", "object-lines-target"]
+  },
+  {
+    "sectionId": "animate",
+    "title": "Animate Directive",
+    "keywords": ["animate", "animation", "entry animation", "motion", "order", "delay"],
+    "content": [
+      "Attach object-level motion hints with '[animate <target> <entry>...]'.",
+      "Supported entries include 'enter=appear|fade|wipe|zoom', 'emphasis=grow|pulse|spin|color', 'exit=fade|wipe|zoom', 'motion=from-left|from-right|from-top|from-bottom', optional 'dir=left|right|up|down' for directional wipe/fly behavior, plus 'dur=<time>', 'delay=<time>', 'order=<n>', 'on=auto|click|after(<step>)', and 'preset=<motion-name>'.",
+      "Examples: '[animate title enter=fade dur=0.35s order=1]', '[animate hero motion=from-right dur=0.45s delay=0.1s order=2]', '[animate summary enter=wipe dir=left dur=0.35s]', and '[animate summary preset=fade-in on=click]'.",
+      "Use the target or object name directly, such as 'title' or 'hero'; the canonical form omits the compact-object prefix '@' inside '[animate ...]'.",
+      "The target can be a slot or named layout target, an indexed target, a named geometry object, or a previously declared group name; define the object or group first, then animate it.",
+      "A compact canonical slide excerpt is '[animate title preset=fade-in order=1]' after the relevant '@title ...' or '@hero ...' object line has already introduced that target on the slide.",
+      "When 'preset=<motion-name>' is used, the shared motion preset supplies the base animation properties and any inline animate entries on the same line override matching preset properties.",
+      "The current PowerPoint timing writer treats any syntactically valid 'after(...)' trigger as after-previous sequencing; the text inside 'after(...)' is preserved as DeckDoc syntax but is not resolved into a target-specific dependency graph."
+    ],
+    "commonlyUsedWith": ["shared-motion", "grouping", "slide-transition", "object-lines-target", "object-lines-geometry", "object-attrlists", "explicit-object-overrides"]
+  },
+  {
+    "sectionId": "layout-extraction",
+    "title": "Layout Extraction Guidance",
+    "keywords": ["layout extraction", "hoist repeated structure", "brand shell", "reusable layout"],
+    "content": [
+      "When converting a branded presentation into DeckDoc, hoist reusable theme tokens, layouts, slots, fixed decorations, layout targets, repeated grids, repeated logos, and default transitions into shared directives and layout blocks near the top of the file.",
+      "Keep one-off chart annotations, one slide's custom photo crop, ad hoc callouts, speaker-specific notes, and unsupported provider-specific details on the individual slide that needs them.",
+      "Prefer slot form and layout directives such as split, grid, and stack over repeating raw geometry on every slide."
+    ],
+    "commonlyUsedWith": ["layout-block", "shared-theme", "shared-style", "canonical-serialization"]
+  },
+  {
+    "sectionId": "extensions",
+    "title": "Extensions",
+    "keywords": ["extension", "[x ...]", "provider-specific", "unknown extensions"],
+    "content": [
+      "Provider-specific or intentionally non-built-in details should use '[x ...]'.",
+      "Examples: '[x powerpoint section-collapsed]', '[x google-slides speaker-id=\"abc123\"]', and '[x document direction=rtl]'.",
+      "Unknown extensions must round-trip unchanged."
+    ],
+    "commonlyUsedWith": ["unsupported-features", "slide-state", "layout-block", "canonical-serialization"]
+  },
+  {
+    "sectionId": "unsupported-features",
+    "title": "What Is Not Built In",
+    "keywords": ["not built in", "unsupported features", "comments", "smartart", "macros", "3d"],
+    "content": [
+      "The built-in DeckDoc surface intentionally excludes comments and review threads, presenter view state, exact guide coordinates, ink, SmartArt internals, 3D scene data, exact master-slide XML internals, macros and scripting, selection state, provider AI designer suggestions, custom start-slide metadata, document direction metadata, and exact video playback internals beyond common placeholders.",
+      "If a workflow needs those details, use '[x ...]' rather than inventing ad hoc built-in syntax.",
+      "Examples: '[x powerpoint smartart layout=\"hierarchy-1\"]', '[x powerpoint video autoplay loop trim=0:02-0:17]', and '[x view start=\"Proof Points\"]'."
+    ],
+    "commonlyUsedWith": ["extensions", "layout-extraction"]
+  },
+  {
+    "sectionId": "units",
+    "title": "Length And Time Units",
+    "keywords": ["units", "length units", "time units", "pt", "in", "ms", "s"],
+    "content": [
+      "Built-in length units are px, pt, in, cm, and mm.",
+      "Built-in time units are ms and s.",
+      "Use physical units only when exact fidelity matters; otherwise prefer grid anchors, spans, and compact defaults."
+    ],
+    "commonlyUsedWith": ["addressing-geometry", "slide-transition", "animate", "object-attrlists"]
+  },
+  {
+    "sectionId": "canonical-serialization",
+    "title": "Canonical Serialization Rules",
+    "keywords": ["canonical", "serialization", "formatting", "defaults", "ordering rules"],
+    "content": [
+      "Canonical DeckDoc writes document attributes first, then shared directives in the order theme, style, asset, motion, then layout blocks, then slides in document order.",
+      "Inside a layout block, emit grid size form, background, transition, area, split, named grid form, stack, then fixed lines, slot lines, layout extensions, and '[end]'; inside a slide, emit use, section, state, background, notes, transition, then area, split, grid, stack, then compact object lines, obj overrides, and standalone group, table, chart, animate, and x directives.",
+      "Omit formatting that only restates defaults, emit literal DeckDoc characters instead of JSON unicode escapes such as '\\u0022', keep shared branded shells in layout blocks, and prefer compact object lines over '[obj ...]' when possible."
+    ],
+    "commonlyUsedWith": ["document-attributes", "layout-block", "slide-heading", "layout-extraction"]
+  }
+]

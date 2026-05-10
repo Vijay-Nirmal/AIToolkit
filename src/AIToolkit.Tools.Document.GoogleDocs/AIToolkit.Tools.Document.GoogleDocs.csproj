@@ -9,6 +9,7 @@
     <PackageReference Include="DocumentFormat.OpenXml" />
     <PackageReference Include="Google.Apis.Auth" />
     <PackageReference Include="Google.Apis.Drive.v3" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
     <ProjectReference Include="..\AIToolkit.Tools.Document\AIToolkit.Tools.Document.csproj" />
     <ProjectReference Include="..\AIToolkit.Tools.Document.Word\AIToolkit.Tools.Document.Word.csproj" />
   </ItemGroup>

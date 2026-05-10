@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Microsoft PowerPoint presentation support for AIToolkit deck tools, with canonical DeckDoc round-tripping for Open XML presentation formats.</Description>
+    <PackageTags>$(PackageTags);deck;powerpoint;pptx;openxml;deckdoc;agent-tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="Microsoft.Graph" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <ProjectReference Include="..\AIToolkit.Tools.Deck\AIToolkit.Tools.Deck.csproj" />
+  </ItemGroup>
+
+</Project>

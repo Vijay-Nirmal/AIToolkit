@@ -1,0 +1,4339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeckDoc Studio</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #eef2f7;
+            --panel: #ffffff;
+            --panel-2: #f7fafc;
+            --border: #d7dfe8;
+            --text: #142033;
+            --muted: #5d6b7d;
+            --accent: #0b5fff;
+            --accent-strong: #0847bf;
+            --accent-soft: #dbe7ff;
+            --ok: #166534;
+            --warn: #92400e;
+            --error: #b91c1c;
+            --shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+            --font-sans: Aptos, "Segoe UI", sans-serif;
+            --font-mono: "Cascadia Code", Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(circle at top right, rgba(11, 95, 255, 0.08), transparent 26%),
+                linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+            color: var(--text);
+            font-family: var(--font-sans);
+        }
+
+        body {
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1700px;
+            margin: 0 auto;
+            padding: 22px;
+        }
+
+        .hero,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 22px 24px;
+            margin-bottom: 18px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+            max-width: 980px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(740px, 1.08fr) minmax(420px, 0.92fr);
+            gap: 18px;
+        }
+
+        .panel {
+            overflow: hidden;
+            min-height: 780px;
+        }
+
+        .panel-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #ffffff, #fbfdff);
+        }
+
+        .panel-header h2 {
+            margin: 0 0 6px;
+            font-size: 19px;
+        }
+
+        .panel-header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .panel-body {
+            padding: 16px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .editor-card {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .editor-card h3,
+        .preview-card h3 {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .editor-card p,
+        .preview-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .toolbar,
+        .action-row,
+        .import-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button,
+        input[type="file"]::file-selector-button {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text);
+            border-radius: 11px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: 0.15s ease;
+        }
+
+        button:hover,
+        input[type="file"]::file-selector-button:hover {
+            border-color: #bac6d5;
+            background: #f8fbff;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        button.primary:hover {
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+        }
+
+        button.soft {
+            background: var(--accent-soft);
+            border-color: #c2d5ff;
+            color: #1e3a8a;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 340px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font: 13.5px/1.55 var(--font-mono);
+            padding: 14px 16px;
+            tab-size: 4;
+        }
+
+        input[type="file"] {
+            max-width: 100%;
+        }
+
+        .status,
+        .warning-box,
+        .tip-box {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--panel-2);
+            white-space: pre-wrap;
+        }
+
+        .status {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .status.ok {
+            color: var(--ok);
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .status.error {
+            color: var(--error);
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .warning-box {
+            background: #fff8eb;
+            border-color: #f5d8a8;
+            color: var(--warn);
+            font-size: 13px;
+            line-height: 1.5;
+            min-height: 84px;
+        }
+
+        .tip-box {
+            color: var(--muted);
+            font-size: 12.5px;
+            line-height: 1.55;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .meta-card {
+            padding: 10px 12px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+
+        .meta-card .label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .meta-card .value {
+            display: block;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .preview-scroll {
+            min-height: 0;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding-right: 4px;
+        }
+
+        .preview-card {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--panel-2);
+            padding: 12px;
+        }
+
+        .slide-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .slide-index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: #274690;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .slide-canvas {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .slide-object,
+        .slide-table,
+        .slide-chart {
+            position: absolute;
+            overflow: hidden;
+        }
+
+        .slide-object.text,
+        .slide-object.list,
+        .slide-object.shape {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 6px 8px;
+        }
+
+        .slide-object.shape.ellipse {
+            border-radius: 999px;
+        }
+
+        .slide-object.shape.roundrect {
+            border-radius: 18px;
+        }
+
+        .slide-object.shape.diamond {
+            transform: rotate(45deg);
+            transform-origin: center center;
+        }
+
+        .slide-object.shape.triangle {
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .slide-object.line {
+            background: transparent;
+            padding: 0;
+        }
+
+        .slide-object.line::before {
+            content: "";
+            position: absolute;
+            inset: 50% 0 auto 0;
+            border-top: 2px solid currentColor;
+        }
+
+        .slide-object img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .slide-object .placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1px dashed rgba(20, 32, 51, 0.22);
+            background: rgba(11, 95, 255, 0.04);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.35;
+            padding: 8px;
+        }
+
+        .slide-object ul,
+        .slide-object ol {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .slide-object li + li {
+            margin-top: 4px;
+        }
+
+        .slide-table {
+            display: flex;
+            align-items: stretch;
+        }
+
+        .slide-table table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            background: #ffffff;
+        }
+
+        .slide-table td,
+        .slide-table th {
+            border: 1px solid rgba(20, 32, 51, 0.14);
+            padding: 4px 6px;
+            vertical-align: top;
+        }
+
+        .slide-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px;
+            border: 1px solid rgba(20, 32, 51, 0.12);
+            border-radius: 12px;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+        }
+
+        .slide-chart .chart-title {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .slide-chart .chart-meta {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .slide-chart .chart-series {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px;
+        }
+
+        .split-note {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .editor-grid.single {
+            grid-template-columns: 1fr;
+        }
+
+        .field {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 140px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .field input,
+        .field select {
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 9px 11px;
+            font: 14px/1.2 var(--font-sans);
+            color: var(--text);
+            background: #ffffff;
+        }
+
+        .feature-panel {
+            margin-top: 18px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .feature-card {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--panel-2);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .feature-card h3 {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .feature-card p,
+        .feature-card li {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .feature-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .support-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #eef4ff;
+            color: #274690;
+        }
+
+        .support-badge.partial {
+            background: #fff7e8;
+            color: #9a5b00;
+        }
+
+        .feature-card pre {
+            margin: 0;
+            padding: 12px;
+            border-radius: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font: 12.5px/1.5 var(--font-mono);
+            overflow: auto;
+        }
+
+        .feature-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.95em;
+        }
+
+        @media (max-width: 1360px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .editor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            textarea {
+                min-height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>DeckDoc Studio</h1>
+            <p>
+                Convert an uploaded <code>.pptx</code> into one compact DeckDoc document, preview the supported subset in the browser,
+                export the supported subset back to <code>.pptx</code>, and learn the language through interactive feature cards.
+                This is still a starter tool: common text, shape, image, table, chart, and reusable layout workflows are supported directly,
+                while fidelity-heavy features stay visible in the spec explorer and fall back to warnings or extensions when needed.
+            </p>
+        </section>
+
+        <div class="layout">
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Editors And Conversion</h2>
+                    <p>
+                        Author one DeckDoc file that contains shared theme tokens, reusable layout blocks, and slide content together.
+                        Import builds a single file. Export uses that same file.
+                    </p>
+                </div>
+
+                <div class="panel-body">
+                    <div class="import-row">
+                        <input type="file" id="pptxInput" accept=".pptx" />
+                        <label class="field" for="importGridInput">
+                            <span>Import Grid</span>
+                            <input id="importGridInput" list="gridPresets" value="32x18" placeholder="32x18" />
+                        </label>
+                        <datalist id="gridPresets">
+                            <option value="24x13"></option>
+                            <option value="32x18"></option>
+                            <option value="40x22"></option>
+                            <option value="48x27"></option>
+                        </datalist>
+                        <button class="primary" id="importButton">Import PPTX</button>
+                        <button id="renderButton">Render Preview</button>
+                        <button id="sampleButton">Load Sample</button>
+                        <button class="soft" id="exportButton">Export PPTX</button>
+                    </div>
+
+                    <div class="editor-grid single">
+                        <div class="editor-card">
+                            <h3>DeckDoc Document</h3>
+                            <p>Shared theme, assets, motions, layout blocks, slides, tables, charts, animations, and extensions in one human-readable file.</p>
+                            <div class="toolbar">
+                                <button id="downloadDocButton">Download DeckDoc</button>
+                                <button id="clearAssetsButton">Clear Imported Assets</button>
+                            </div>
+                            <textarea id="deckDocInput" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="status" id="statusBox">Ready.</div>
+                    <div class="warning-box" id="warningBox">No warnings.</div>
+                    <div class="tip-box">
+                        Tips: DeckDoc lines usually look like <code>@B2 24x2 [.title] | Quarterly Operations</code>,
+                        <code>@title | Quarterly Operations</code> when a layout slot is active, or <code>[layout cover]</code> ... <code>[end]</code>
+                        for reusable layout systems. Imported images stay compact in the text surface by using <code>[asset ...]</code> names and keeping binary data in browser memory for the current session.
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Preview</h2>
+                    <p>Browser-side preview of the supported DeckDoc subset, plus import/export metadata.</p>
+                </div>
+
+                <div class="panel-body">
+                    <div class="meta-grid" id="metaGrid"></div>
+                    <div class="split-note" id="assetNote"></div>
+                    <div class="preview-scroll" id="previewRoot"></div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel feature-panel">
+            <div class="panel-header">
+                <h2>Feature Explorer</h2>
+                <p>Every built-in DeckDoc feature and sub-feature gets a syntax card, an example, and an action so you can insert or replace snippets while learning.</p>
+            </div>
+
+            <div class="panel-body">
+                <div class="tip-box">
+                    The default sample covers the full built-in surface. Use <code>Insert Snippet</code> to add a focused example at the cursor, or <code>Load Focus Example</code> to replace the editor with one feature's minimal working sample.
+                </div>
+                <div class="feature-grid" id="featureExplorer"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs/dist/pptxgen.bundle.js"></script>
+    <script>
+        const SAMPLE_DOCUMENT = `= DeckDoc Feature Tour
+    :deckdoc: 1
+:locale: en-US
+:size: wide
+:grid: 32x18
+
+[theme primary=#0B5FFF accent=#F97316 ink=#0F172A muted=#64748B surface=#F8FAFC display="Aptos Display" body="Aptos"]
+[style title font=$display size=30 bold fg=$ink]
+[style subtitle font=$body size=14 fg=$muted]
+[style body font=$body size=16 fg=$ink align=left/top]
+[style caption font=$body size=11 fg=$muted]
+[style card fill=#FFFFFF stroke=#CBD5E1 radius=0.18in]
+[asset hero "./hero-team.png"]
+[asset shot "./feature-shot.png"]
+[asset rocket "./rocket.png"]
+[motion fade-in enter=fade dur=0.35s]
+[motion rise-up motion=from-bottom dur=0.45s]
+
+[layout cover]
+[background fill=$surface]
+[transition fade dur=0.25s]
+!A1 32x18 [shape rect fill=$surface layer=back]
+!A1 32x2 [shape rect fill=$primary layer=back]
+!A17 32x2 [shape rect fill=#E0F2FE layer=back]
+@title = B3 20x2 [.title]
+@subtitle = B5 18x1 [.subtitle]
+@hero = W3 8x10 [image fit=cover radius=0.18in]
+[end]
+
+[layout summary]
+[background fill=#FFFFFF]
+[grid 40x22]
+[split B2:AF18 rows=(3,13) gap=1 as=head,body]
+[split body cols=(18,18) gap=1 as=copy,visual]
+!A1 40x1 [shape rect fill=$primary layer=back]
+@title = B2 24x2 [.title]
+@subtitle = B4 24x1 [.subtitle]
+@body = B7 16x10 [list .body bullet=disc]
+@visual = X6 12x10 [image fit=contain]
+[end]
+
+[layout gallery]
+[background fill=#FFFFFF]
+[area rail B2:G15]
+[area hero I2:Y5]
+[grid cards in=I6:Y15 cols=2 rows=2 gap=0.5x0.5]
+[stack chips in=B6:G15 dir=down count=4 gap=0.35]
+!A1 32x18 [shape rect fill=#FFFFFF layer=back]
+@title = I2 12x2 [.title]
+@subtitle = I4 12x1 [.subtitle]
+@caption = B15 6x1 [.caption]
+[end]
+
+== Cover
+[use cover]
+[section Opening]
+[transition fade dur=0.35s]
+@title | DeckDoc Feature Tour
+@subtitle | Single-file layouts, compact content, and interactive learning
+@hero [image asset=hero fit=cover alt="Leadership workshop"]
+[animate title preset=fade-in order=1]
+[animate hero preset=rise-up order=2]
+
+== Summary
+[use summary]
+[section Highlights]
+[transition push dir=left dur=0.35s]
+@title | Built-ins at a glance
+@subtitle | Shared theme, reusable layouts, and compact slide text
+@body [list .body bullet=disc] | Inline shared theme tokens | Layout blocks and slots in one file | Tables, charts, motion, and notes
+@visual [image asset=shot fit=contain alt="Feature preview"]
+[notes "Walk through structure first, then show the explorer cards."]
+
+== Text Patterns
+[background fill=#FFFFFF]
+[transition wipe dir=up dur=0.3s]
+@B2 14x2 [.title] | Text patterns
+@B4 14x1 [.subtitle] | Titles, subtitles, body, captions, lists, icons, and shapes
+@B6 14x2 [.body] | DeckDoc keeps common content short without hiding slide meaning.
+@B8 14x1 [.caption] | Source: Feature sample
+@P3 6x2 [shape roundrect fill=#DBEAFE stroke=#93C5FD radius=0.18in] | On Track
+@P6 2x2 [icon asset=rocket fit=contain fg=$primary]
+@P9 12x1 [line stroke=#CBD5E1 weight=1]
+@B10 13x5 [list .body bullet=dash] | Shared directives first | Layout blocks next | Slides last
+@P10 13x5 [list .body bullet=check] | Tables stay readable | Charts keep series text | Extensions round-trip
+@B15 26x2 [list .body bullet=number start=4] | Launch | Measure | Iterate
+[group text-stack body-left body-right]
+[obj B6 rich="DeckDoc keeps [b]common content[/b] short without hiding slide meaning."]
+
+== Layout Controls
+[use gallery]
+[section Layout]
+[transition morph dur=0.45s]
+@title | Layout control surface
+@subtitle | Areas, splits, repeated grids, stacks, slots, and fixed shells
+@caption | Layout directives are defined once and reused across slides.
+@B6 6x2 [.body] | Rail area
+@B9 6x1 [.caption] | Stack target sample
+@I6 7x4 [shape roundrect fill=#F8FAFC stroke=#CBD5E1 radius=0.18in] | Card 1
+@Q6 7x4 [shape roundrect fill=#F8FAFC stroke=#CBD5E1 radius=0.18in] | Card 2
+@I11 7x4 [shape roundrect fill=#F8FAFC stroke=#CBD5E1 radius=0.18in] | Card 3
+@Q11 7x4 [shape roundrect fill=#F8FAFC stroke=#CBD5E1 radius=0.18in] | Card 4
+[area callout B6:H14]
+[split I6:Y15 cols=(1fr,1fr) gap=0.5 as=left,right]
+[stack milestones in=B10:H15 dir=down count=3 gap=0.35]
+[grid thumbs in=I6:Y15 cols=2 rows=2 gap=0.5x0.5]
+
+== Data Surface
+[section Data]
+[transition cut]
+@B2 15x2 [.title] | Tables and charts
+@B4 12x1 [.subtitle] | Markdown-like tables plus chart series that stay visible as text
+[table Risks at=B6 size=14x6 header banded]
+| Risk | Owner | Status |
+| --- | --- | --- |
+| Vendor delay | Ops | Open |
+| Scope creep | Product | Mitigated |
+| Data drift | Eng | Watching |
+[end]
+[chart "Revenue Trend" type=combo at=Q5 size=13x7]
+- series column "Revenue" cat=(Q1,Q2,Q3,Q4) val=(12,14,17,19) color=$primary
+- series line "Margin %" cat=(Q1,Q2,Q3,Q4) val=(0.22,0.24,0.27,0.29) axis=secondary color=$accent labels
+[end]
+
+== Chart Gallery
+[state hidden]
+[section Charts]
+[transition push dir=down dur=0.25s]
+@B2 12x2 [.title] | Built-in chart types
+[chart "Column" type=column at=B4 size=5x4]
+- series column "Revenue" cat=(Q1,Q2,Q3) val=(10,13,15)
+[end]
+[chart "Bar" type=bar at=H4 size=5x4]
+- series bar "Open" cat=(Ops,Eng,Prod) val=(3,5,2)
+[end]
+[chart "Line" type=line at=N4 size=5x4]
+- series line "Velocity" cat=(W1,W2,W3) val=(21,24,27)
+[end]
+[chart "Area" type=area at=T4 size=5x4]
+- series area "Usage" cat=(Jan,Feb,Mar) val=(42,55,68)
+[end]
+[chart "Pie" type=pie at=Z4 size=5x4]
+- series pie "Mix" cat=(Core,Add-on,Services) val=(54,28,18)
+[end]
+[chart "Doughnut" type=doughnut at=B10 size=5x4]
+- series pie "Share" cat=(A,B,C) val=(4,3,2)
+[end]
+[chart "Scatter" type=scatter at=H10 size=5x4]
+- series scatter "Latency" cat=(20,40,70) val=(2,4,6)
+[end]
+[chart "Bubble" type=bubble at=N10 size=5x4]
+- series bubble "Risk" cat=(20,45,70) val=(3,5,8) size=(6,9,12)
+[end]
+[chart "Combo" type=combo at=T10 size=11x4]
+- series column "Revenue" cat=(Q1,Q2,Q3,Q4) val=(12,14,17,19)
+- series line "Margin %" cat=(Q1,Q2,Q3,Q4) val=(0.22,0.24,0.27,0.29) axis=secondary
+[end]
+
+== Motion And Extensions
+[background asset=hero fit=cover]
+[section Motion]
+[transition wipe dir=left advance=after(2s)]
+@B2 17x2 [.title fg=#FFFFFF] | Motion, overrides, and extensions
+@B5 12x3 [shape roundrect fill=#FFFFFF opacity=0.92 radius=0.18in] | Primary callout
+@P5 12x3 [shape roundrect fill=#FFFFFF opacity=0.92 radius=0.18in] | Secondary callout
+[animate B5 enter=zoom dur=0.25s order=1]
+[animate P5 motion=from-right dur=0.35s delay=0.1s order=2]
+[animate P5 emphasis=pulse dur=0.2s on=click]
+[animate P5 exit=fade dur=0.2s order=3]
+[x document direction=rtl]
+`;
+
+        const FEATURE_CATALOG = [
+            {
+                category: "Header",
+                name: "Document Header",
+                support: "full",
+                syntax: `= Presentation Name\n:deckdoc: 1\n:locale: en-US\n:size: wide\n:grid: 32x18`,
+                example: `= Product Review\n:deckdoc: 1\n:locale: en-US\n:size: wide\n:grid: 40x22`,
+            },
+            {
+                category: "Shared",
+                name: "Theme, Style, Asset, Motion",
+                support: "full",
+                syntax: `[theme <token>=<value>...]\n[style <name> <entry>...]\n[asset <name> <reference>]\n[motion <name> <entry>...]`,
+                example: `[theme primary=#0B5FFF accent=#F97316 display="Aptos Display" body="Aptos"]\n[style title font=$display size=30 bold fg=#0F172A]\n[asset hero "./hero.png"]\n[motion fade-in enter=fade dur=0.35s]`,
+            },
+            {
+                category: "Layouts",
+                name: "Layout Block",
+                support: "full",
+                syntax: `[layout <name>]\n<layout-lines>\n[end]`,
+                example: `[layout cover]\n[background fill=#F8FAFC]\n!A1 32x18 [shape rect fill=#F8FAFC layer=back]\n@title = B3 20x2 [.title]\n[end]`,
+            },
+            {
+                category: "Layouts",
+                name: "Layout Slots And Fixed Lines",
+                support: "full",
+                syntax: `!<anchor> <span> [<object-attrlist>]\n@<slot-name> = <anchor> <span> [<slot-attrlist>]\n@<slot-name> = <target-name> [<slot-attrlist>]`,
+                example: `!A1 32x2 [shape rect fill=$primary layer=back]\n@title = B3 22x2 [.title]\n@body = head [list .body bullet=disc]`,
+            },
+            {
+                category: "Slides",
+                name: "Slide Directives",
+                support: "full",
+                syntax: `[use <layout>]\n[section <name>]\n[state hidden]\n[background <entry>...]\n[notes "..."]\n[transition <type> <entry>...]`,
+                example: `[use summary]\n[section Highlights]\n[background fill=#FFFFFF]\n[notes "Lead with the first proof point."]\n[transition push dir=left dur=0.35s]`,
+            },
+            {
+                category: "Layout Control",
+                name: "Area And Split",
+                support: "partial",
+                syntax: `[area <name> <range> [<entry>...]]\n[split <range-or-target> cols=(<part>,<part>,...) [gap=<n>] as=<name>,<name>,...]`,
+                example: `[area rail B2:H14]\n[split B2:Y14 cols=(7,17) gap=1 as=rail,stage]\n[split stage rows=(3,11) gap=0.8 as=head,body]`,
+            },
+            {
+                category: "Layout Control",
+                name: "Named Grid And Stack",
+                support: "partial",
+                syntax: `[grid <name> in=<range-or-target> cols=<n> [rows=<n>] [gap=<x>[x<y>]]]\n[stack <name> in=<range-or-target> dir=down|up|left|right count=<n> [gap=<n>]]`,
+                example: `[grid cards in=body cols=3 rows=2 gap=0.5x0.5]\n[stack steps in=rail dir=down count=4 gap=0.35]`,
+            },
+            {
+                category: "Objects",
+                name: "Text Roles",
+                support: "full",
+                syntax: `@<anchor-or-target> [text .title] | <title>\n@<anchor-or-target> [text .subtitle] | <subtitle>\n@<anchor-or-target> [text .body] | <body>\n@<anchor-or-target> [text .caption] | <caption>`,
+                example: `@title [.title] | Quarterly Operations Review\n@subtitle [.subtitle] | Risks, actions, and next-quarter steps\n@copy [.body] | DeckDoc keeps the common case short.\n@caption [.caption] | Source: FY2026 plan`,
+            },
+            {
+                category: "Objects",
+                name: "Lists",
+                support: "full",
+                syntax: `@<anchor-or-target> [list bullet=disc|dash|check|number [start=<n>]] | <item> | <item> | <item>`,
+                example: `@body [list .body bullet=disc] | Lower churn | Raise renewal quality\n@risks [list .body bullet=dash] | Vendor delay | Scope creep\n@done [list .body bullet=check] | Demo approved | Docs shipped\n@steps [list .body bullet=number start=4] | Launch | Measure | Iterate`,
+            },
+            {
+                category: "Objects",
+                name: "Images And Icons",
+                support: "full",
+                syntax: `@<anchor-or-target> [image asset=<name> fit=contain|cover|stretch [crop=l,t,r,b] [alt="..."]]\n@<anchor-or-target> [icon asset=<name> fit=contain [fg=#RRGGBB]]`,
+                example: `@hero [image asset=hero fit=cover alt="Leadership workshop"]\n@badge [icon asset=rocket fit=contain fg=$primary]`,
+            },
+            {
+                category: "Objects",
+                name: "Shapes And Lines",
+                support: "full",
+                syntax: `@<anchor-or-target> [shape rect|roundrect|ellipse|diamond|triangle|arrow ...] [| <text>]\n@<anchor-or-target> [line stroke=#RRGGBB [weight=<n>] [arrow]]`,
+                example: `@card [shape roundrect fill=#F8FAFC stroke=#CBD5E1 radius=0.18in] | On Track\n@rule [line stroke=#CBD5E1 weight=1]`,
+            },
+            {
+                category: "Objects",
+                name: "Overrides And Grouping",
+                support: "partial",
+                syntax: `[obj <anchor-or-target> <entry>...] [payload]\n[group <name> <member>...]`,
+                example: `[obj B6 rich="Quarterly [b]Operations[/b]"]\n[group metrics title card-a card-b card-c]`,
+            },
+            {
+                category: "Data",
+                name: "Table",
+                support: "full",
+                syntax: `[table <name> at=<anchor> size=<span> [<entry>...]]\n| cell | cell | cell |\n| --- | --- | --- |\n| cell | cell | cell |\n[end]`,
+                example: `[table Risks at=B8 size=18x6 header banded]\n| Risk | Owner | Status |\n| --- | --- | --- |\n| Vendor delay | Ops | Open |\n| Scope creep | Product | Mitigated |\n[end]`,
+            },
+            {
+                category: "Data",
+                name: "Chart Family",
+                support: "partial",
+                syntax: `[chart "<name>" type=<column|bar|line|area|pie|doughnut|scatter|bubble|combo> at=<anchor> size=<span>]\n- series <type> "<label>" cat=(...) val=(...) [size=(...)] [axis=secondary] [labels]\n[end]`,
+                example: `[chart "Revenue Trend" type=combo at=P5 size=12x7]\n- series column "Revenue" cat=(Q1,Q2,Q3,Q4) val=(12,14,17,19)\n- series line "Margin %" cat=(Q1,Q2,Q3,Q4) val=(0.22,0.24,0.27,0.29) axis=secondary labels\n[end]`,
+            },
+            {
+                category: "Motion",
+                name: "Animation And Motion Presets",
+                support: "partial",
+                syntax: `[motion <name> <entry>...]\n[animate <target> <entry>...]`,
+                example: `[motion fade-in enter=fade dur=0.35s]\n[animate title preset=fade-in order=1]\n[animate hero motion=from-right dur=0.45s delay=0.1s order=2]\n[animate hero emphasis=pulse dur=0.2s on=click]\n[animate hero exit=fade dur=0.2s order=3]`,
+            },
+            {
+                category: "Extensions",
+                name: "Extension Surface",
+                support: "partial",
+                syntax: `[x <provider-or-scope> <entry>...]`,
+                example: `[x document direction=rtl]\n[x powerpoint smartart layout="hierarchy-1"]`,
+            },
+        ];
+
+        const EMU_PER_INCH = 914400;
+        const KNOWN_OBJECT_KINDS = new Set(["text", "list", "image", "shape", "line", "icon"]);
+        const KNOWN_SHAPE_KINDS = new Set(["rect", "roundrect", "ellipse", "diamond", "triangle", "line", "arrow"]);
+        const POWERPOINT_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+        const deckDocInput = document.getElementById("deckDocInput");
+        const pptxInput = document.getElementById("pptxInput");
+        const importGridInput = document.getElementById("importGridInput");
+        const importButton = document.getElementById("importButton");
+        const renderButton = document.getElementById("renderButton");
+        const sampleButton = document.getElementById("sampleButton");
+        const exportButton = document.getElementById("exportButton");
+        const downloadDocButton = document.getElementById("downloadDocButton");
+        const clearAssetsButton = document.getElementById("clearAssetsButton");
+        const statusBox = document.getElementById("statusBox");
+        const warningBox = document.getElementById("warningBox");
+        const metaGrid = document.getElementById("metaGrid");
+        const previewRoot = document.getElementById("previewRoot");
+        const assetNote = document.getElementById("assetNote");
+        const featureExplorer = document.getElementById("featureExplorer");
+
+        const sessionAssets = new Map();
+        let lastWarnings = [];
+
+        deckDocInput.value = SAMPLE_DOCUMENT;
+
+        function setStatus(message, mode) {
+            statusBox.className = mode ? `status ${mode}` : "status";
+            statusBox.textContent = message;
+        }
+
+        function setWarnings(warnings) {
+            lastWarnings = warnings.slice();
+            if (!warnings.length) {
+                warningBox.textContent = "No warnings.";
+                return;
+            }
+
+            warningBox.textContent = warnings.map((warning, index) => `${index + 1}. ${warning}`).join("\n");
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;");
+        }
+
+        function tokenizeDirective(content) {
+            const tokens = [];
+            let current = "";
+            let inQuotes = false;
+            let escaping = false;
+
+            for (let i = 0; i < content.length; i++) {
+                const ch = content[i];
+
+                if (escaping) {
+                    current += ch;
+                    escaping = false;
+                    continue;
+                }
+
+                if (ch === "\\") {
+                    current += ch;
+                    escaping = true;
+                    continue;
+                }
+
+                if (ch === '"') {
+                    current += ch;
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes && /\s/.test(ch)) {
+                    if (current) {
+                        tokens.push(current);
+                        current = "";
+                    }
+                    continue;
+                }
+
+                current += ch;
+            }
+
+            if (current) {
+                tokens.push(current);
+            }
+
+            return tokens;
+        }
+
+        function splitTopLevel(input, separator) {
+            const items = [];
+            let current = "";
+            let inQuotes = false;
+            let escaping = false;
+            let bracketDepth = 0;
+            let parenDepth = 0;
+
+            for (let i = 0; i < input.length; i++) {
+                const ch = input[i];
+
+                if (escaping) {
+                    current += ch;
+                    escaping = false;
+                    continue;
+                }
+
+                if (ch === "\\") {
+                    current += ch;
+                    escaping = true;
+                    continue;
+                }
+
+                if (ch === '"') {
+                    current += ch;
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes) {
+                    if (ch === "[") {
+                        bracketDepth++;
+                    } else if (ch === "]") {
+                        bracketDepth = Math.max(0, bracketDepth - 1);
+                    } else if (ch === "(") {
+                        parenDepth++;
+                    } else if (ch === ")") {
+                        parenDepth = Math.max(0, parenDepth - 1);
+                    }
+
+                    if (ch === separator && bracketDepth === 0 && parenDepth === 0) {
+                        items.push(current.trim());
+                        current = "";
+                        continue;
+                    }
+                }
+
+                current += ch;
+            }
+
+            items.push(current.trim());
+            return items;
+        }
+
+        function findTopLevelChar(input, target) {
+            let inQuotes = false;
+            let escaping = false;
+            let bracketDepth = 0;
+            let parenDepth = 0;
+
+            for (let i = 0; i < input.length; i++) {
+                const ch = input[i];
+
+                if (escaping) {
+                    escaping = false;
+                    continue;
+                }
+
+                if (ch === "\\") {
+                    escaping = true;
+                    continue;
+                }
+
+                if (ch === '"') {
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes) {
+                    if (ch === "[") {
+                        bracketDepth++;
+                    } else if (ch === "]") {
+                        bracketDepth = Math.max(0, bracketDepth - 1);
+                    } else if (ch === "(") {
+                        parenDepth++;
+                    } else if (ch === ")") {
+                        parenDepth = Math.max(0, parenDepth - 1);
+                    } else if (ch === target && bracketDepth === 0 && parenDepth === 0) {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        function stripQuotes(value) {
+            if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+                return value.slice(1, -1);
+            }
+            return value;
+        }
+
+        function unescapeQuoted(value) {
+            return stripQuotes(value)
+                .replace(/\\n/g, "\n")
+                .replace(/\\t/g, "\t")
+                .replace(/\\\|/g, "|")
+                .replace(/\\\"/g, '"')
+                .replace(/\\\\/g, "\\");
+        }
+
+        function needsQuoting(value) {
+            return /(^\s|\s$|[|\[\]@]|\\n|\\t|\s{2,}|^$)/.test(value);
+        }
+
+        function quoteDeckDoc(value) {
+            return `"${String(value)
+                .replace(/\\/g, "\\\\")
+                .replace(/\n/g, "\\n")
+                .replace(/\t/g, "\\t")
+                .replace(/\|/g, "\\|")
+                .replace(/\"/g, '\\\"')}"`;
+        }
+
+        function maybeQuoteDeckDoc(value) {
+            const text = String(value);
+            return needsQuoting(text) ? quoteDeckDoc(text) : text;
+        }
+
+        function parseScalarToken(token) {
+            if (token == null) {
+                return "";
+            }
+
+            if (token.startsWith('"')) {
+                return unescapeQuoted(token);
+            }
+
+            return token;
+        }
+
+        function parseTupleLiteral(rawValue) {
+            const text = String(rawValue || "").trim();
+            if (!text.startsWith("(") || !text.endsWith(")")) {
+                return [];
+            }
+
+            return splitTopLevel(text.slice(1, -1), ",").map((item) => {
+                const scalar = parseScalarToken(item.trim());
+                const number = Number(scalar);
+                return Number.isFinite(number) && scalar !== "" ? number : scalar;
+            });
+        }
+
+        function formatTupleLiteral(values) {
+            return `(${values.map((value) => {
+                if (typeof value === "number") {
+                    return Number.isInteger(value) ? String(value) : String(value);
+                }
+
+                return maybeQuoteDeckDoc(String(value));
+            }).join(",")})`;
+        }
+
+        function colToIndex(columnText) {
+            let value = 0;
+            const upper = String(columnText || "").toUpperCase();
+
+            for (let i = 0; i < upper.length; i++) {
+                value = value * 26 + (upper.charCodeAt(i) - 64);
+            }
+
+            return value;
+        }
+
+        function indexToCol(index) {
+            let current = index;
+            let text = "";
+
+            while (current > 0) {
+                const remainder = (current - 1) % 26;
+                text = String.fromCharCode(65 + remainder) + text;
+                current = Math.floor((current - 1) / 26);
+            }
+
+            return text || "A";
+        }
+
+        function parseGridAddress(text) {
+            const match = /^([A-Z]+)(\d+)$/i.exec(String(text || "").trim());
+            if (!match) {
+                return null;
+            }
+
+            return { col: colToIndex(match[1]), row: Number(match[2]) };
+        }
+
+        function encodeGridAddress(address) {
+            return `${indexToCol(address.col)}${address.row}`;
+        }
+
+        function parseGridSpan(text) {
+            const match = /^(\d+)x(\d+)$/i.exec(String(text || "").trim());
+            if (!match) {
+                return null;
+            }
+
+            return { cols: Number(match[1]), rows: Number(match[2]) };
+        }
+
+        function parseGridSpec(text, fallbackCols, fallbackRows) {
+            const match = /^(\d+)x(\d+)$/i.exec(String(text || "").trim());
+            if (!match) {
+                return { cols: fallbackCols || 32, rows: fallbackRows || 18 };
+            }
+
+            return { cols: Number(match[1]), rows: Number(match[2]) };
+        }
+
+        function extractBracketSegment(text) {
+            const start = text.indexOf("[");
+            if (start < 0) {
+                return { before: text.trim(), inside: "", after: "" };
+            }
+
+            let depth = 0;
+            let inQuotes = false;
+            let escaping = false;
+
+            for (let i = start; i < text.length; i++) {
+                const ch = text[i];
+
+                if (escaping) {
+                    escaping = false;
+                    continue;
+                }
+
+                if (ch === "\\") {
+                    escaping = true;
+                    continue;
+                }
+
+                if (ch === '"') {
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+
+                if (!inQuotes) {
+                    if (ch === "[") {
+                        depth++;
+                    } else if (ch === "]") {
+                        depth--;
+                        if (depth === 0) {
+                            return {
+                                before: text.slice(0, start).trim(),
+                                inside: text.slice(start + 1, i).trim(),
+                                after: text.slice(i + 1).trim(),
+                            };
+                        }
+                    }
+                }
+            }
+
+            throw new Error(`Unclosed attrlist: ${text}`);
+        }
+
+        function emptyDescriptor() {
+            return { kind: "", shapeKind: "", styles: [], values: {}, flags: [] };
+        }
+
+        function cloneDescriptor(descriptor) {
+            return {
+                kind: descriptor.kind || "",
+                shapeKind: descriptor.shapeKind || "",
+                styles: (descriptor.styles || []).slice(),
+                values: { ...(descriptor.values || {}) },
+                flags: (descriptor.flags || []).slice(),
+            };
+        }
+
+        function descriptorHasEntries(descriptor) {
+            return !!(descriptor && (
+                descriptor.kind ||
+                descriptor.shapeKind ||
+                (descriptor.styles && descriptor.styles.length) ||
+                (descriptor.flags && descriptor.flags.length) ||
+                Object.keys(descriptor.values || {}).length
+            ));
+        }
+
+        function pushUnique(target, value) {
+            if (value && !target.includes(value)) {
+                target.push(value);
+            }
+        }
+
+        function mergeDescriptors(base, override) {
+            const merged = cloneDescriptor(base || emptyDescriptor());
+            const source = override || emptyDescriptor();
+
+            if (source.kind) {
+                merged.kind = source.kind;
+            }
+
+            if (source.shapeKind) {
+                merged.shapeKind = source.shapeKind;
+            }
+
+            for (const styleName of source.styles || []) {
+                pushUnique(merged.styles, styleName);
+            }
+
+            for (const flag of source.flags || []) {
+                pushUnique(merged.flags, flag);
+            }
+
+            Object.assign(merged.values, source.values || {});
+            return merged;
+        }
+
+        function parseDescriptorTokens(tokens) {
+            const descriptor = emptyDescriptor();
+
+            for (const token of tokens) {
+                if (!token) {
+                    continue;
+                }
+
+                if (token.startsWith(".")) {
+                    pushUnique(descriptor.styles, token.slice(1));
+                    continue;
+                }
+
+                const equalsIndex = token.indexOf("=");
+                if (equalsIndex > 0) {
+                    const key = token.slice(0, equalsIndex);
+                    const value = parseScalarToken(token.slice(equalsIndex + 1));
+                    descriptor.values[key] = value;
+                    continue;
+                }
+
+                if (KNOWN_OBJECT_KINDS.has(token)) {
+                    descriptor.kind = token;
+                    continue;
+                }
+
+                if (KNOWN_SHAPE_KINDS.has(token)) {
+                    if (!descriptor.kind) {
+                        descriptor.kind = token === "line" ? "line" : "shape";
+                    }
+                    descriptor.shapeKind = token;
+                    continue;
+                }
+
+                pushUnique(descriptor.flags, token);
+            }
+
+            return descriptor;
+        }
+
+        function parseDescriptorText(rawText) {
+            if (!rawText) {
+                return emptyDescriptor();
+            }
+
+            return parseDescriptorTokens(tokenizeDirective(rawText));
+        }
+
+        function resolveTokenValue(value, themeTokens) {
+            if (typeof value !== "string") {
+                return value;
+            }
+
+            if (value.startsWith("$") && themeTokens[value.slice(1)] != null) {
+                return themeTokens[value.slice(1)];
+            }
+
+            return value;
+        }
+
+        function resolveDescriptor(descriptor, styles, themeTokens) {
+            let resolved = emptyDescriptor();
+
+            for (const styleName of descriptor.styles || []) {
+                if (styles.has(styleName)) {
+                    resolved = mergeDescriptors(resolved, styles.get(styleName));
+                }
+            }
+
+            resolved = mergeDescriptors(resolved, descriptor);
+
+            const values = {};
+            for (const [key, value] of Object.entries(resolved.values || {})) {
+                values[key] = resolveTokenValue(value, themeTokens);
+            }
+
+            resolved.values = values;
+            return resolved;
+        }
+
+        function compactValueWithTheme(value, themeTokens) {
+            if (typeof value !== "string") {
+                return value;
+            }
+
+            for (const [token, tokenValue] of Object.entries(themeTokens || {})) {
+                if (tokenValue === value) {
+                    return `$${token}`;
+                }
+            }
+
+            return value;
+        }
+
+        function serializeDescriptor(descriptor, themeTokens) {
+            if (!descriptorHasEntries(descriptor)) {
+                return "";
+            }
+
+            const pieces = [];
+
+            if (descriptor.kind && !(descriptor.kind === "text" && descriptor.styles.length)) {
+                pieces.push(descriptor.kind);
+            }
+
+            if (descriptor.shapeKind) {
+                pieces.push(descriptor.shapeKind);
+            }
+
+            for (const styleName of descriptor.styles || []) {
+                pieces.push(`.${styleName}`);
+            }
+
+            const keys = Object.keys(descriptor.values || {}).sort();
+            for (const key of keys) {
+                const rawValue = compactValueWithTheme(descriptor.values[key], themeTokens);
+                pieces.push(`${key}=${maybeQuoteDeckDoc(rawValue)}`);
+            }
+
+            for (const flag of descriptor.flags || []) {
+                pieces.push(flag);
+            }
+
+            return pieces.length ? `[${pieces.join(" ")}]` : "";
+        }
+
+        function newDeck() {
+            return {
+                title: "",
+                attributes: {},
+                themeTokens: {},
+                styles: new Map(),
+                assets: new Map(),
+                motions: new Map(),
+                slides: [],
+                warnings: [],
+            };
+        }
+
+        function newTemplate() {
+            return {
+                title: "",
+                attributes: {},
+                themeTokens: {},
+                styles: new Map(),
+                assets: new Map(),
+                motions: new Map(),
+                layouts: [],
+                warnings: [],
+            };
+        }
+
+        function newDeckDocDocument() {
+            return {
+                title: "",
+                attributes: {},
+                themeTokens: {},
+                styles: new Map(),
+                assets: new Map(),
+                motions: new Map(),
+                layouts: [],
+                slides: [],
+                warnings: [],
+            };
+        }
+
+        function newLayoutBlock(name) {
+            return {
+                name,
+                directives: {},
+                layoutDirectives: [],
+                fixedObjects: [],
+                slots: [],
+                extensions: [],
+            };
+        }
+
+        function newSlideModel(title) {
+            return {
+                title,
+                directives: {},
+                layoutDirectives: [],
+                objects: [],
+                tables: [],
+                charts: [],
+                groups: [],
+                animations: [],
+                overrides: [],
+                extensions: [],
+            };
+        }
+
+        function isGridLiteral(value) {
+            return /^\d+x\d+$/i.test(String(value || "").trim());
+        }
+
+        function normalizeGridLiteral(value) {
+            return isGridLiteral(value) ? String(value).trim() : "32x18";
+        }
+
+        function cloneLayoutBlock(layout) {
+            return {
+                name: layout.name,
+                directives: { ...(layout.directives || {}) },
+                layoutDirectives: (layout.layoutDirectives || []).slice(),
+                fixedObjects: (layout.fixedObjects || []).map((object) => ({
+                    ...object,
+                    anchor: object.anchor ? { ...object.anchor } : null,
+                    span: object.span ? { ...object.span } : null,
+                    descriptor: cloneDescriptor(object.descriptor),
+                    payloadSegments: (object.payloadSegments || []).slice(),
+                })),
+                slots: (layout.slots || []).map((slot) => ({
+                    ...slot,
+                    anchor: slot.anchor ? { ...slot.anchor } : null,
+                    span: slot.span ? { ...slot.span } : null,
+                    descriptor: cloneDescriptor(slot.descriptor),
+                })),
+                extensions: (layout.extensions || []).slice(),
+            };
+        }
+
+        function cloneSlideModel(slide) {
+            return {
+                title: slide.title,
+                directives: { ...(slide.directives || {}) },
+                layoutDirectives: (slide.layoutDirectives || []).slice(),
+                objects: (slide.objects || []).map((object) => ({
+                    ...object,
+                    anchor: object.anchor ? { ...object.anchor } : null,
+                    span: object.span ? { ...object.span } : null,
+                    descriptor: cloneDescriptor(object.descriptor),
+                    payloadSegments: (object.payloadSegments || []).slice(),
+                })),
+                tables: (slide.tables || []).map((table) => ({
+                    ...table,
+                    anchor: table.anchor ? { ...table.anchor } : null,
+                    span: table.span ? { ...table.span } : null,
+                    descriptor: cloneDescriptor(table.descriptor),
+                    rows: (table.rows || []).map((row) => row.slice()),
+                })),
+                charts: (slide.charts || []).map((chart) => ({
+                    ...chart,
+                    anchor: chart.anchor ? { ...chart.anchor } : null,
+                    span: chart.span ? { ...chart.span } : null,
+                    descriptor: cloneDescriptor(chart.descriptor),
+                    series: (chart.series || []).map((series) => ({
+                        ...series,
+                        categories: (series.categories || []).slice(),
+                        values: (series.values || []).slice(),
+                        sizeValues: (series.sizeValues || []).slice(),
+                        descriptor: cloneDescriptor(series.descriptor),
+                    })),
+                })),
+                groups: (slide.groups || []).map((group) => ({ ...group, members: (group.members || []).slice() })),
+                animations: (slide.animations || []).map((animation) => ({ ...animation, descriptor: cloneDescriptor(animation.descriptor) })),
+                overrides: (slide.overrides || []).slice(),
+                extensions: (slide.extensions || []).slice(),
+            };
+        }
+
+        function ensureTitle(documentModel, line, lineNumber) {
+            if (documentModel.title) {
+                throw new Error(`Only one document title is allowed. Line ${lineNumber}.`);
+            }
+            documentModel.title = line.slice(2).trim();
+        }
+
+        function parseAttributeLine(line, attributes) {
+            const match = /^:([^:]+):\s*(.*)$/.exec(line.trim());
+            if (!match) {
+                return false;
+            }
+
+            attributes[match[1].trim()] = match[2].trim();
+            return true;
+        }
+
+        function parseThemeDirective(tokens, target) {
+            for (let i = 1; i < tokens.length; i++) {
+                const token = tokens[i];
+                const equalsIndex = token.indexOf("=");
+                if (equalsIndex <= 0) {
+                    continue;
+                }
+                target[token.slice(0, equalsIndex)] = parseScalarToken(token.slice(equalsIndex + 1));
+            }
+        }
+
+        function parseStyleDirective(tokens, styles) {
+            const name = tokens[1];
+            if (!name) {
+                throw new Error("[style ...] requires a style name.");
+            }
+            styles.set(name, parseDescriptorTokens(tokens.slice(2)));
+        }
+
+        function parseAssetDirective(tokens, assets) {
+            const name = tokens[1];
+            const reference = tokens[2];
+            if (!name || !reference) {
+                throw new Error("[asset ...] requires a name and a reference.");
+            }
+
+            assets.set(name, parseScalarToken(reference));
+        }
+
+        function parseMotionDirective(tokens, motions) {
+            const name = tokens[1];
+            if (!name) {
+                throw new Error("[motion ...] requires a name.");
+            }
+            motions.set(name, parseDescriptorTokens(tokens.slice(2)));
+        }
+
+        function parseBackgroundDirective(tokens) {
+            return parseDescriptorTokens(tokens.slice(1));
+        }
+
+        function parseTransitionDirective(tokens) {
+            return {
+                type: tokens[1] || "none",
+                descriptor: parseDescriptorTokens(tokens.slice(2)),
+            };
+        }
+
+        function parseAnimateDirective(tokens) {
+            return {
+                target: tokens[1] || "",
+                descriptor: parseDescriptorTokens(tokens.slice(2)),
+            };
+        }
+
+        function parseDirectiveTokens(rawLine) {
+            const trimmed = rawLine.trim();
+            if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+                return [];
+            }
+            return tokenizeDirective(trimmed.slice(1, -1).trim());
+        }
+
+        function parsePayloadSegments(payloadText) {
+            if (!payloadText) {
+                return [];
+            }
+
+            return splitTopLevel(payloadText, "|").map((segment) => parseScalarToken(segment.trim()));
+        }
+
+        function inferObjectKind(descriptor, payloadSegments) {
+            if (descriptor.kind) {
+                return descriptor.kind;
+            }
+
+            if (payloadSegments.length > 1) {
+                return "list";
+            }
+
+            return "text";
+        }
+
+        function parseDeckObjectLine(line) {
+            const body = line.slice(1).trim();
+            const pipeIndex = findTopLevelChar(body, "|");
+            const head = pipeIndex >= 0 ? body.slice(0, pipeIndex).trim() : body;
+            const payload = pipeIndex >= 0 ? body.slice(pipeIndex + 1).trim() : "";
+            const bracket = extractBracketSegment(head);
+            const headText = `${bracket.before} ${bracket.after}`.trim();
+            const headParts = headText.split(/\s+/).filter(Boolean);
+            const descriptor = parseDescriptorText(bracket.inside);
+            const payloadSegments = parsePayloadSegments(payload);
+            const object = {
+                refType: "slot",
+                slotName: "",
+                anchor: null,
+                span: null,
+                descriptor,
+                payloadSegments,
+                kind: inferObjectKind(descriptor, payloadSegments),
+            };
+
+            if (headParts.length >= 2 && parseGridAddress(headParts[0]) && parseGridSpan(headParts[1])) {
+                object.refType = "grid";
+                object.anchor = parseGridAddress(headParts[0]);
+                object.span = parseGridSpan(headParts[1]);
+            } else if (headParts.length >= 1) {
+                object.slotName = headParts[0];
+            } else {
+                throw new Error(`Invalid object line: ${line}`);
+            }
+
+            if (!object.descriptor.kind) {
+                object.descriptor.kind = object.kind;
+            }
+
+            return object;
+        }
+
+        function parseTemplateSlotLine(line) {
+            const raw = line.slice(1).trim();
+            const equalsIndex = findTopLevelChar(raw, "=");
+            if (equalsIndex < 0) {
+                throw new Error(`Invalid template slot line: ${line}`);
+            }
+
+            const slotName = raw.slice(0, equalsIndex).trim();
+            const remainder = raw.slice(equalsIndex + 1).trim();
+            const bracket = extractBracketSegment(remainder);
+            const parts = `${bracket.before} ${bracket.after}`.trim().split(/\s+/).filter(Boolean);
+
+            const descriptor = parseDescriptorText(bracket.inside);
+
+            if (parts.length === 1 && !parseGridAddress(parts[0])) {
+                return {
+                    slotName,
+                    targetName: parts[0],
+                    anchor: null,
+                    span: null,
+                    descriptor,
+                    kind: descriptor.kind || "text",
+                };
+            }
+
+            if (parts.length < 2 || !parseGridAddress(parts[0]) || !parseGridSpan(parts[1])) {
+                throw new Error(`Invalid template slot geometry: ${line}`);
+            }
+
+            return {
+                slotName,
+                targetName: "",
+                anchor: parseGridAddress(parts[0]),
+                span: parseGridSpan(parts[1]),
+                descriptor,
+                kind: descriptor.kind || "text",
+            };
+        }
+
+        function parseTemplateFixedLine(line) {
+            const raw = line.slice(1).trim();
+            const bracket = extractBracketSegment(raw);
+            const parts = `${bracket.before} ${bracket.after}`.trim().split(/\s+/).filter(Boolean);
+            if (parts.length < 2 || !parseGridAddress(parts[0]) || !parseGridSpan(parts[1])) {
+                throw new Error(`Invalid template fixed line: ${line}`);
+            }
+
+            const descriptor = parseDescriptorText(bracket.inside);
+            return {
+                anchor: parseGridAddress(parts[0]),
+                span: parseGridSpan(parts[1]),
+                descriptor,
+                kind: descriptor.kind || (descriptor.shapeKind ? "shape" : "text"),
+                payloadSegments: [],
+            };
+        }
+
+        function parseTableBlock(lines, startIndex, headerTokens) {
+            const name = headerTokens[1] || "Table";
+            const descriptor = parseDescriptorTokens(headerTokens.slice(2));
+            const table = {
+                name,
+                anchor: parseGridAddress(descriptor.values.at || "A1"),
+                span: parseGridSpan(descriptor.values.size || "8x4") || { cols: 8, rows: 4 },
+                descriptor,
+                rows: [],
+            };
+
+            let index = startIndex + 1;
+            for (; index < lines.length; index++) {
+                const trimmed = lines[index].trim();
+                if (!trimmed) {
+                    continue;
+                }
+                if (trimmed === "[end]") {
+                    return { table, nextIndex: index };
+                }
+                if (!trimmed.startsWith("|")) {
+                    throw new Error(`Table rows must start with '|'. Line ${index + 1}.`);
+                }
+                const cells = splitTopLevel(trimmed.slice(1), "|").map((cell) => parseScalarToken(cell.trim()));
+                const isSeparatorRow = cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(String(cell).trim()));
+                if (isSeparatorRow) {
+                    if (table.rows.length === 1 && !table.descriptor.flags.includes("header")) {
+                        table.descriptor.flags.push("header");
+                    }
+                    continue;
+                }
+                table.rows.push(cells);
+            }
+
+            throw new Error("Unclosed [table ...] block.");
+        }
+
+        function parseChartBlock(lines, startIndex, headerTokens) {
+            const title = parseScalarToken(headerTokens[1] || quoteDeckDoc("Chart"));
+            const descriptor = parseDescriptorTokens(headerTokens.slice(2));
+            const chart = {
+                title,
+                type: descriptor.values.type || "column",
+                anchor: parseGridAddress(descriptor.values.at || "A1"),
+                span: parseGridSpan(descriptor.values.size || "10x6") || { cols: 10, rows: 6 },
+                descriptor,
+                series: [],
+            };
+
+            let index = startIndex + 1;
+            for (; index < lines.length; index++) {
+                const trimmed = lines[index].trim();
+                if (!trimmed) {
+                    continue;
+                }
+                if (trimmed === "[end]") {
+                    return { chart, nextIndex: index };
+                }
+                if (!trimmed.startsWith("-")) {
+                    throw new Error(`Chart series lines must start with '-'. Line ${index + 1}.`);
+                }
+
+                const tokens = tokenizeDirective(trimmed.slice(1).trim());
+                if (tokens[0] !== "series") {
+                    throw new Error(`Unknown chart line at ${index + 1}.`);
+                }
+
+                const seriesType = tokens[1] || chart.type;
+                const label = parseScalarToken(tokens[2] || quoteDeckDoc("Series"));
+                const seriesDescriptor = parseDescriptorTokens(tokens.slice(3));
+                chart.series.push({
+                    type: seriesType,
+                    label,
+                    categories: parseTupleLiteral(seriesDescriptor.values.cat || "()"),
+                    values: parseTupleLiteral(seriesDescriptor.values.val || "()"),
+                    sizeValues: parseTupleLiteral(seriesDescriptor.values.size || "()"),
+                    descriptor: seriesDescriptor,
+                });
+            }
+
+            throw new Error("Unclosed [chart ...] block.");
+        }
+
+        function parseDeck(text) {
+            const deck = newDeck();
+            const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+            let currentSlide = null;
+
+            for (let index = 0; index < lines.length; index++) {
+                const rawLine = lines[index];
+                const line = rawLine.trim();
+
+                if (!line) {
+                    continue;
+                }
+
+                if (!deck.title && line.startsWith("= ")) {
+                    ensureTitle(deck, line, index + 1);
+                    continue;
+                }
+
+                if (line.startsWith("== ")) {
+                    currentSlide = {
+                        title: line.slice(3).trim(),
+                        directives: {},
+                        objects: [],
+                        tables: [],
+                        charts: [],
+                        groups: [],
+                        animations: [],
+                        overrides: [],
+                        extensions: [],
+                    };
+                    deck.slides.push(currentSlide);
+                    continue;
+                }
+
+                if (parseAttributeLine(line, deck.attributes)) {
+                    continue;
+                }
+
+                if (line.startsWith("@")) {
+                    if (!currentSlide) {
+                        throw new Error(`Object lines require a slide heading. Line ${index + 1}.`);
+                    }
+                    currentSlide.objects.push(parseDeckObjectLine(line));
+                    continue;
+                }
+
+                if (line.startsWith("[")) {
+                    const tokens = parseDirectiveTokens(line);
+                    const directiveName = tokens[0];
+
+                    if (!directiveName) {
+                        continue;
+                    }
+
+                    if (directiveName === "theme") {
+                        parseThemeDirective(tokens, deck.themeTokens);
+                        continue;
+                    }
+
+                    if (directiveName === "style") {
+                        parseStyleDirective(tokens, deck.styles);
+                        continue;
+                    }
+
+                    if (directiveName === "asset") {
+                        parseAssetDirective(tokens, deck.assets);
+                        continue;
+                    }
+
+                    if (directiveName === "motion") {
+                        parseMotionDirective(tokens, deck.motions);
+                        continue;
+                    }
+
+                    if (!currentSlide) {
+                        throw new Error(`Directive '${directiveName}' requires a slide. Line ${index + 1}.`);
+                    }
+
+                    if (directiveName === "use") {
+                        currentSlide.directives.use = parseScalarToken(tokens[1] || "");
+                        continue;
+                    }
+
+                    if (directiveName === "background") {
+                        currentSlide.directives.background = parseBackgroundDirective(tokens);
+                        continue;
+                    }
+
+                    if (directiveName === "transition") {
+                        currentSlide.directives.transition = parseTransitionDirective(tokens);
+                        continue;
+                    }
+
+                    if (directiveName === "notes") {
+                        currentSlide.directives.notes = parseScalarToken(tokens.slice(1).join(" "));
+                        continue;
+                    }
+
+                    if (directiveName === "section") {
+                        currentSlide.directives.section = parseScalarToken(tokens.slice(1).join(" "));
+                        continue;
+                    }
+
+                    if (directiveName === "state") {
+                        currentSlide.directives.state = parseScalarToken(tokens[1] || "");
+                        continue;
+                    }
+
+                    if (directiveName === "animate") {
+                        currentSlide.animations.push(parseAnimateDirective(tokens));
+                        continue;
+                    }
+
+                    if (directiveName === "group") {
+                        currentSlide.groups.push({ name: tokens[1] || "group", members: tokens.slice(2) });
+                        continue;
+                    }
+
+                    if (directiveName === "obj") {
+                        currentSlide.overrides.push(line);
+                        continue;
+                    }
+
+                    if (directiveName === "table") {
+                        const parsed = parseTableBlock(lines, index, tokens);
+                        currentSlide.tables.push(parsed.table);
+                        index = parsed.nextIndex;
+                        continue;
+                    }
+
+                    if (directiveName === "chart") {
+                        const parsed = parseChartBlock(lines, index, tokens);
+                        currentSlide.charts.push(parsed.chart);
+                        index = parsed.nextIndex;
+                        continue;
+                    }
+
+                    if (directiveName === "x") {
+                        currentSlide.extensions.push(line);
+                        continue;
+                    }
+
+                    currentSlide.extensions.push(line);
+                }
+            }
+
+            if (!deck.title) {
+                throw new Error("DeckDoc deck text must start with '= Deck Name'.");
+            }
+
+            return deck;
+        }
+
+        function parseTemplate(text) {
+            const template = newTemplate();
+            const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+            let currentLayout = null;
+
+            for (let index = 0; index < lines.length; index++) {
+                const rawLine = lines[index];
+                const line = rawLine.trim();
+
+                if (!line) {
+                    continue;
+                }
+
+                if (!template.title && line.startsWith("= ")) {
+                    ensureTitle(template, line, index + 1);
+                    continue;
+                }
+
+                if (line.startsWith("== ")) {
+                    currentLayout = {
+                        name: line.slice(3).trim(),
+                        directives: {},
+                        fixedObjects: [],
+                        slots: [],
+                        extensions: [],
+                    };
+                    template.layouts.push(currentLayout);
+                    continue;
+                }
+
+                if (parseAttributeLine(line, template.attributes)) {
+                    continue;
+                }
+
+                if (line.startsWith("!")) {
+                    if (!currentLayout) {
+                        throw new Error(`Template fixed lines require a layout heading. Line ${index + 1}.`);
+                    }
+                    currentLayout.fixedObjects.push(parseTemplateFixedLine(line));
+                    continue;
+                }
+
+                if (line.startsWith("@")) {
+                    if (!currentLayout) {
+                        throw new Error(`Template slot lines require a layout heading. Line ${index + 1}.`);
+                    }
+                    currentLayout.slots.push(parseTemplateSlotLine(line));
+                    continue;
+                }
+
+                if (line.startsWith("[")) {
+                    const tokens = parseDirectiveTokens(line);
+                    const directiveName = tokens[0];
+
+                    if (!directiveName) {
+                        continue;
+                    }
+
+                    if (directiveName === "theme") {
+                        parseThemeDirective(tokens, template.themeTokens);
+                        continue;
+                    }
+
+                    if (directiveName === "style") {
+                        parseStyleDirective(tokens, template.styles);
+                        continue;
+                    }
+
+                    if (directiveName === "asset") {
+                        parseAssetDirective(tokens, template.assets);
+                        continue;
+                    }
+
+                    if (directiveName === "motion") {
+                        parseMotionDirective(tokens, template.motions);
+                        continue;
+                    }
+
+                    if (!currentLayout) {
+                        throw new Error(`Directive '${directiveName}' requires a layout. Line ${index + 1}.`);
+                    }
+
+                    if (directiveName === "grid") {
+                        currentLayout.directives.grid = parseScalarToken(tokens[1] || "32x18");
+                        continue;
+                    }
+
+                    if (directiveName === "background") {
+                        currentLayout.directives.background = parseBackgroundDirective(tokens);
+                        continue;
+                    }
+
+                    if (directiveName === "transition") {
+                        currentLayout.directives.transition = parseTransitionDirective(tokens);
+                        continue;
+                    }
+
+                    if (directiveName === "x") {
+                        currentLayout.extensions.push(line);
+                        continue;
+                    }
+
+                    currentLayout.extensions.push(line);
+                }
+            }
+
+            if (!template.title) {
+                throw new Error("DeckDoc template text must start with '= Template Name'.");
+            }
+
+            return template;
+        }
+
+        function serializeAttributes(attributes) {
+            return Object.keys(attributes).sort().map((key) => `:${key}: ${attributes[key]}`);
+        }
+
+        function serializeTheme(themeTokens) {
+            const keys = Object.keys(themeTokens);
+            if (!keys.length) {
+                return [];
+            }
+            const pieces = keys.sort().map((key) => `${key}=${maybeQuoteDeckDoc(themeTokens[key])}`);
+            return [`[theme ${pieces.join(" ")}]`];
+        }
+
+        function serializeStyles(styles, themeTokens) {
+            return Array.from(styles.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([name, descriptor]) => `[style ${name} ${serializeDescriptor(descriptor, themeTokens).slice(1, -1)}]`)
+                .map((line) => line.replace(/\s+\]/g, "]"));
+        }
+
+        function serializeAssets(assets) {
+            return Array.from(assets.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([name, reference]) => `[asset ${name} ${maybeQuoteDeckDoc(reference)}]`);
+        }
+
+        function serializeMotions(motions, themeTokens) {
+            return Array.from(motions.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([name, descriptor]) => `[motion ${name} ${serializeDescriptor(descriptor, themeTokens).slice(1, -1)}]`)
+                .map((line) => line.replace(/\s+\]/g, "]"));
+        }
+
+        function serializePayloadSegments(segments) {
+            return segments.map((segment) => maybeQuoteDeckDoc(segment)).join(" | ");
+        }
+
+        function serializeDeckObject(object, themeTokens) {
+            const descriptor = cloneDescriptor(object.descriptor);
+            if (descriptor.kind === "text" && descriptor.styles.length) {
+                descriptor.kind = "";
+            }
+
+            const attrText = serializeDescriptor(descriptor, themeTokens);
+            const head = object.refType === "grid"
+                ? `@${encodeGridAddress(object.anchor)} ${object.span.cols}x${object.span.rows}`
+                : `@${object.slotName}`;
+            const payload = object.payloadSegments.length ? ` | ${serializePayloadSegments(object.payloadSegments)}` : "";
+            return `${head}${attrText ? ` ${attrText}` : ""}${payload}`;
+        }
+
+        function serializeTemplateFixedObject(object, themeTokens) {
+            const attrText = serializeDescriptor(object.descriptor, themeTokens);
+            return `!${encodeGridAddress(object.anchor)} ${object.span.cols}x${object.span.rows}${attrText ? ` ${attrText}` : ""}`;
+        }
+
+        function serializeTemplateSlot(slot, themeTokens) {
+            const attrText = serializeDescriptor(slot.descriptor, themeTokens);
+            if (slot.targetName) {
+                return `@${slot.slotName} = ${slot.targetName}${attrText ? ` ${attrText}` : ""}`;
+            }
+            return `@${slot.slotName} = ${encodeGridAddress(slot.anchor)} ${slot.span.cols}x${slot.span.rows}${attrText ? ` ${attrText}` : ""}`;
+        }
+
+        function serializeTable(table, themeTokens) {
+            const attrText = serializeDescriptor(table.descriptor, themeTokens);
+            const header = `[table ${table.name} at=${encodeGridAddress(table.anchor)} size=${table.span.cols}x${table.span.rows}${attrText ? ` ${attrText.slice(1, -1)}` : ""}]`;
+            const lines = [header.replace(/\s+\]/g, "]")];
+            for (const row of table.rows) {
+                lines.push(`| ${row.map((cell) => maybeQuoteDeckDoc(cell)).join(" | ")} |`);
+            }
+            lines.push("[end]");
+            return lines;
+        }
+
+        function serializeChart(chart, themeTokens) {
+            const lines = [`[chart ${quoteDeckDoc(chart.title)} type=${chart.type} at=${encodeGridAddress(chart.anchor)} size=${chart.span.cols}x${chart.span.rows}]`];
+            for (const series of chart.series) {
+                const extra = [];
+                const values = { ...(series.descriptor.values || {}) };
+                delete values.cat;
+                delete values.val;
+                delete values.size;
+                const descriptor = {
+                    kind: "",
+                    shapeKind: "",
+                    styles: [],
+                    values,
+                    flags: (series.descriptor.flags || []).slice(),
+                };
+                extra.push(`cat=${formatTupleLiteral(series.categories || [])}`);
+                extra.push(`val=${formatTupleLiteral(series.values || [])}`);
+                if ((series.sizeValues || []).length) {
+                    extra.push(`size=${formatTupleLiteral(series.sizeValues)}`);
+                }
+                const descriptorText = serializeDescriptor(descriptor, themeTokens).slice(1, -1);
+                const suffix = descriptorText ? ` ${descriptorText}` : "";
+                lines.push(`- series ${series.type} ${quoteDeckDoc(series.label)} ${extra.join(" ")}${suffix}`.trim());
+            }
+            lines.push("[end]");
+            return lines;
+        }
+
+        function serializeDeck(deck) {
+            const lines = [`= ${deck.title}`];
+            lines.push(...serializeAttributes(deck.attributes));
+            if (lines.length) {
+                lines.push("");
+            }
+            lines.push(...serializeTheme(deck.themeTokens));
+            lines.push(...serializeStyles(deck.styles, deck.themeTokens));
+            lines.push(...serializeAssets(deck.assets));
+            lines.push(...serializeMotions(deck.motions, deck.themeTokens));
+            if (lines[lines.length - 1] !== "") {
+                lines.push("");
+            }
+
+            for (const slide of deck.slides) {
+                lines.push(`== ${slide.title}`);
+                if (slide.directives.use) {
+                    lines.push(`[use ${maybeQuoteDeckDoc(slide.directives.use)}]`);
+                }
+                if (slide.directives.section) {
+                    lines.push(`[section ${maybeQuoteDeckDoc(slide.directives.section)}]`);
+                }
+                if (slide.directives.state) {
+                    lines.push(`[state ${slide.directives.state}]`);
+                }
+                if (slide.directives.background) {
+                    const backgroundText = serializeDescriptor(slide.directives.background, deck.themeTokens);
+                    lines.push(`[background ${backgroundText.slice(1, -1)}]`.replace(/\s+\]/g, "]"));
+                }
+                if (slide.directives.notes) {
+                    lines.push(`[notes ${quoteDeckDoc(slide.directives.notes)}]`);
+                }
+                if (slide.directives.transition) {
+                    const transitionText = serializeDescriptor(slide.directives.transition.descriptor, deck.themeTokens);
+                    lines.push(`[transition ${slide.directives.transition.type}${transitionText ? ` ${transitionText.slice(1, -1)}` : ""}]`.replace(/\s+\]/g, "]"));
+                }
+                for (const object of slide.objects) {
+                    lines.push(serializeDeckObject(object, deck.themeTokens));
+                }
+                for (const override of slide.overrides) {
+                    lines.push(override);
+                }
+                for (const group of slide.groups) {
+                    lines.push(`[group ${group.name} ${group.members.join(" ")}]`.trim());
+                }
+                for (const table of slide.tables) {
+                    lines.push(...serializeTable(table, deck.themeTokens));
+                }
+                for (const chart of slide.charts) {
+                    lines.push(...serializeChart(chart, deck.themeTokens));
+                }
+                for (const animation of slide.animations) {
+                    const animationText = serializeDescriptor(animation.descriptor, deck.themeTokens);
+                    lines.push(`[animate ${animation.target}${animationText ? ` ${animationText.slice(1, -1)}` : ""}]`.replace(/\s+\]/g, "]"));
+                }
+                for (const extension of slide.extensions) {
+                    lines.push(extension);
+                }
+                lines.push("");
+            }
+
+            return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+        }
+
+        function serializeTemplate(template) {
+            const lines = [`= ${template.title}`];
+            lines.push(...serializeAttributes(template.attributes));
+            lines.push("");
+            lines.push(...serializeTheme(template.themeTokens));
+            lines.push(...serializeStyles(template.styles, template.themeTokens));
+            lines.push(...serializeAssets(template.assets));
+            lines.push(...serializeMotions(template.motions, template.themeTokens));
+            if (lines[lines.length - 1] !== "") {
+                lines.push("");
+            }
+
+            for (const layout of template.layouts) {
+                lines.push(`== ${layout.name}`);
+                if (layout.directives.grid) {
+                    lines.push(`[grid ${layout.directives.grid}]`);
+                }
+                if (layout.directives.background) {
+                    const backgroundText = serializeDescriptor(layout.directives.background, template.themeTokens);
+                    lines.push(`[background ${backgroundText.slice(1, -1)}]`.replace(/\s+\]/g, "]"));
+                }
+                if (layout.directives.transition) {
+                    const transitionText = serializeDescriptor(layout.directives.transition.descriptor, template.themeTokens);
+                    lines.push(`[transition ${layout.directives.transition.type}${transitionText ? ` ${transitionText.slice(1, -1)}` : ""}]`.replace(/\s+\]/g, "]"));
+                }
+                for (const fixedObject of layout.fixedObjects) {
+                    lines.push(serializeTemplateFixedObject(fixedObject, template.themeTokens));
+                }
+                for (const slot of layout.slots) {
+                    lines.push(serializeTemplateSlot(slot, template.themeTokens));
+                }
+                for (const extension of layout.extensions) {
+                    lines.push(extension);
+                }
+                lines.push("");
+            }
+
+            return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+        }
+
+        function mergeMaps(primary, secondary) {
+            const merged = new Map();
+            for (const [key, value] of primary.entries()) {
+                merged.set(key, value);
+            }
+            for (const [key, value] of secondary.entries()) {
+                merged.set(key, value);
+            }
+            return merged;
+        }
+
+        function parseDeckDoc(text) {
+            const doc = newDeckDocDocument();
+            const lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+            let currentLayout = null;
+            let currentSlide = null;
+
+            for (let index = 0; index < lines.length; index++) {
+                const rawLine = lines[index];
+                const line = rawLine.trim();
+
+                if (!line) {
+                    continue;
+                }
+
+                if (!doc.title && line.startsWith("= ")) {
+                    ensureTitle(doc, line, index + 1);
+                    continue;
+                }
+
+                if (currentLayout && line === "[end]") {
+                    doc.layouts.push(currentLayout);
+                    currentLayout = null;
+                    continue;
+                }
+
+                if (!currentLayout && line.startsWith("[layout ") && line.endsWith("]")) {
+                    const tokens = parseDirectiveTokens(line);
+                    const layoutName = parseScalarToken(tokens.slice(1).join(" ")) || `layout-${doc.layouts.length + 1}`;
+                    currentLayout = newLayoutBlock(layoutName);
+                    continue;
+                }
+
+                if (!currentLayout && line.startsWith("== ")) {
+                    currentSlide = newSlideModel(line.slice(3).trim());
+                    doc.slides.push(currentSlide);
+                    continue;
+                }
+
+                if (!currentLayout && !currentSlide && parseAttributeLine(line, doc.attributes)) {
+                    continue;
+                }
+
+                if (line.startsWith("!")) {
+                    if (!currentLayout) {
+                        throw new Error(`Fixed layout lines require a [layout ...] block. Line ${index + 1}.`);
+                    }
+                    currentLayout.fixedObjects.push(parseTemplateFixedLine(line));
+                    continue;
+                }
+
+                if (line.startsWith("@")) {
+                    if (currentLayout) {
+                        currentLayout.slots.push(parseTemplateSlotLine(line));
+                        continue;
+                    }
+                    if (currentSlide) {
+                        currentSlide.objects.push(parseDeckObjectLine(line));
+                        continue;
+                    }
+                    throw new Error(`Object lines require a slide or layout block. Line ${index + 1}.`);
+                }
+
+                if (!line.startsWith("[")) {
+                    if (currentLayout) {
+                        currentLayout.extensions.push(line);
+                        continue;
+                    }
+                    if (currentSlide) {
+                        currentSlide.extensions.push(line);
+                        continue;
+                    }
+                    throw new Error(`Unexpected text outside a slide or layout block. Line ${index + 1}.`);
+                }
+
+                const tokens = parseDirectiveTokens(line);
+                const directiveName = tokens[0];
+
+                if (!directiveName) {
+                    continue;
+                }
+
+                if (!currentLayout && !currentSlide) {
+                    if (directiveName === "theme") {
+                        parseThemeDirective(tokens, doc.themeTokens);
+                        continue;
+                    }
+                    if (directiveName === "style") {
+                        parseStyleDirective(tokens, doc.styles);
+                        continue;
+                    }
+                    if (directiveName === "asset") {
+                        parseAssetDirective(tokens, doc.assets);
+                        continue;
+                    }
+                    if (directiveName === "motion") {
+                        parseMotionDirective(tokens, doc.motions);
+                        continue;
+                    }
+                    throw new Error(`Directive '${directiveName}' must appear in shared scope, a layout block, or a slide. Line ${index + 1}.`);
+                }
+
+                if (currentLayout) {
+                    if (directiveName === "grid" && tokens.length === 2 && isGridLiteral(tokens[1])) {
+                        currentLayout.directives.grid = normalizeGridLiteral(tokens[1]);
+                        continue;
+                    }
+                    if (directiveName === "background") {
+                        currentLayout.directives.background = parseBackgroundDirective(tokens);
+                        continue;
+                    }
+                    if (directiveName === "transition") {
+                        currentLayout.directives.transition = parseTransitionDirective(tokens);
+                        continue;
+                    }
+                    if (["area", "split", "grid", "stack"].includes(directiveName)) {
+                        currentLayout.layoutDirectives.push(line);
+                        continue;
+                    }
+                    if (directiveName === "x") {
+                        currentLayout.extensions.push(line);
+                        continue;
+                    }
+                    currentLayout.extensions.push(line);
+                    continue;
+                }
+
+                if (directiveName === "use") {
+                    currentSlide.directives.use = parseScalarToken(tokens[1] || "");
+                    continue;
+                }
+
+                if (directiveName === "background") {
+                    currentSlide.directives.background = parseBackgroundDirective(tokens);
+                    continue;
+                }
+
+                if (directiveName === "transition") {
+                    currentSlide.directives.transition = parseTransitionDirective(tokens);
+                    continue;
+                }
+
+                if (directiveName === "notes") {
+                    currentSlide.directives.notes = parseScalarToken(tokens.slice(1).join(" "));
+                    continue;
+                }
+
+                if (directiveName === "section") {
+                    currentSlide.directives.section = parseScalarToken(tokens.slice(1).join(" "));
+                    continue;
+                }
+
+                if (directiveName === "state") {
+                    currentSlide.directives.state = parseScalarToken(tokens[1] || "");
+                    continue;
+                }
+
+                if (["area", "split", "grid", "stack"].includes(directiveName)) {
+                    currentSlide.layoutDirectives.push(line);
+                    continue;
+                }
+
+                if (directiveName === "animate") {
+                    currentSlide.animations.push(parseAnimateDirective(tokens));
+                    continue;
+                }
+
+                if (directiveName === "group") {
+                    currentSlide.groups.push({ name: tokens[1] || "group", members: tokens.slice(2) });
+                    continue;
+                }
+
+                if (directiveName === "obj") {
+                    currentSlide.overrides.push(line);
+                    continue;
+                }
+
+                if (directiveName === "table") {
+                    const parsed = parseTableBlock(lines, index, tokens);
+                    currentSlide.tables.push(parsed.table);
+                    index = parsed.nextIndex;
+                    continue;
+                }
+
+                if (directiveName === "chart") {
+                    const parsed = parseChartBlock(lines, index, tokens);
+                    currentSlide.charts.push(parsed.chart);
+                    index = parsed.nextIndex;
+                    continue;
+                }
+
+                if (directiveName === "x") {
+                    currentSlide.extensions.push(line);
+                    continue;
+                }
+
+                currentSlide.extensions.push(line);
+            }
+
+            if (currentLayout) {
+                throw new Error(`Unclosed [layout ${currentLayout.name}] block.`);
+            }
+
+            if (!doc.title) {
+                throw new Error("DeckDoc text must start with '= Presentation Name'.");
+            }
+
+            return doc;
+        }
+
+        function serializeDeckDoc(doc) {
+            const lines = [`= ${doc.title}`];
+            lines.push(...serializeAttributes(doc.attributes));
+            if (lines.length) {
+                lines.push("");
+            }
+            lines.push(...serializeTheme(doc.themeTokens));
+            lines.push(...serializeStyles(doc.styles, doc.themeTokens));
+            lines.push(...serializeAssets(doc.assets));
+            lines.push(...serializeMotions(doc.motions, doc.themeTokens));
+            if (lines[lines.length - 1] !== "") {
+                lines.push("");
+            }
+
+            for (const layout of doc.layouts) {
+                lines.push(`[layout ${maybeQuoteDeckDoc(layout.name)}]`);
+                if (layout.directives.grid) {
+                    lines.push(`[grid ${layout.directives.grid}]`);
+                }
+                if (layout.directives.background) {
+                    const backgroundText = serializeDescriptor(layout.directives.background, doc.themeTokens);
+                    lines.push(`[background ${backgroundText.slice(1, -1)}]`.replace(/\s+\]/g, "]"));
+                }
+                if (layout.directives.transition) {
+                    const transitionText = serializeDescriptor(layout.directives.transition.descriptor, doc.themeTokens);
+                    lines.push(`[transition ${layout.directives.transition.type}${transitionText ? ` ${transitionText.slice(1, -1)}` : ""}]`.replace(/\s+\]/g, "]"));
+                }
+                for (const layoutDirective of layout.layoutDirectives || []) {
+                    lines.push(layoutDirective);
+                }
+                for (const fixedObject of layout.fixedObjects || []) {
+                    lines.push(serializeTemplateFixedObject(fixedObject, doc.themeTokens));
+                }
+                for (const slot of layout.slots || []) {
+                    lines.push(serializeTemplateSlot(slot, doc.themeTokens));
+                }
+                for (const extension of layout.extensions || []) {
+                    lines.push(extension);
+                }
+                lines.push("[end]");
+                lines.push("");
+            }
+
+            for (const slide of doc.slides) {
+                lines.push(`== ${slide.title}`);
+                if (slide.directives.use) {
+                    lines.push(`[use ${maybeQuoteDeckDoc(slide.directives.use)}]`);
+                }
+                if (slide.directives.section) {
+                    lines.push(`[section ${maybeQuoteDeckDoc(slide.directives.section)}]`);
+                }
+                if (slide.directives.state) {
+                    lines.push(`[state ${slide.directives.state}]`);
+                }
+                if (slide.directives.background) {
+                    const backgroundText = serializeDescriptor(slide.directives.background, doc.themeTokens);
+                    lines.push(`[background ${backgroundText.slice(1, -1)}]`.replace(/\s+\]/g, "]"));
+                }
+                if (slide.directives.notes) {
+                    lines.push(`[notes ${quoteDeckDoc(slide.directives.notes)}]`);
+                }
+                if (slide.directives.transition) {
+                    const transitionText = serializeDescriptor(slide.directives.transition.descriptor, doc.themeTokens);
+                    lines.push(`[transition ${slide.directives.transition.type}${transitionText ? ` ${transitionText.slice(1, -1)}` : ""}]`.replace(/\s+\]/g, "]"));
+                }
+                for (const layoutDirective of slide.layoutDirectives || []) {
+                    lines.push(layoutDirective);
+                }
+                for (const object of slide.objects || []) {
+                    lines.push(serializeDeckObject(object, doc.themeTokens));
+                }
+                for (const override of slide.overrides || []) {
+                    lines.push(override);
+                }
+                for (const group of slide.groups || []) {
+                    lines.push(`[group ${group.name} ${group.members.join(" ")}]`.trim());
+                }
+                for (const table of slide.tables || []) {
+                    lines.push(...serializeTable(table, doc.themeTokens));
+                }
+                for (const chart of slide.charts || []) {
+                    lines.push(...serializeChart(chart, doc.themeTokens));
+                }
+                for (const animation of slide.animations || []) {
+                    const animationText = serializeDescriptor(animation.descriptor, doc.themeTokens);
+                    lines.push(`[animate ${animation.target}${animationText ? ` ${animationText.slice(1, -1)}` : ""}]`.replace(/\s+\]/g, "]"));
+                }
+                for (const extension of slide.extensions || []) {
+                    lines.push(extension);
+                }
+                lines.push("");
+            }
+
+            return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+        }
+
+        function mergeImportedModels(deck, template) {
+            const doc = newDeckDocDocument();
+            doc.title = deck.title || template.title || "Presentation";
+            doc.attributes = {
+                ...(template.attributes || {}),
+                ...(deck.attributes || {}),
+            };
+            delete doc.attributes.template;
+            delete doc.attributes["deckdoc-template"];
+            doc.attributes.deckdoc = doc.attributes.deckdoc || "1";
+            doc.attributes.grid = normalizeGridLiteral(doc.attributes.grid || template.attributes.grid || deck.attributes.grid || "32x18");
+            doc.themeTokens = { ...(template.themeTokens || {}), ...(deck.themeTokens || {}) };
+            doc.styles = mergeMaps(template.styles, deck.styles);
+            doc.assets = mergeMaps(template.assets, deck.assets);
+            doc.motions = mergeMaps(template.motions, deck.motions);
+            doc.layouts = (template.layouts || []).map(cloneLayoutBlock);
+            doc.slides = (deck.slides || []).map(cloneSlideModel);
+            doc.warnings = [...(template.warnings || []), ...(deck.warnings || [])];
+            return doc;
+        }
+
+        function splitDocumentForRendering(doc) {
+            const deck = newDeck();
+            const template = newTemplate();
+
+            deck.title = doc.title;
+            deck.attributes = { ...(doc.attributes || {}) };
+            deck.attributes.deckdoc = deck.attributes.deckdoc || "1";
+            deck.attributes.grid = normalizeGridLiteral(deck.attributes.grid || "32x18");
+            delete deck.attributes.template;
+            delete deck.attributes["deckdoc-template"];
+            deck.slides = (doc.slides || []).map(cloneSlideModel);
+
+            template.title = `${doc.title} Layouts`;
+            template.attributes = {
+                locale: deck.attributes.locale || "",
+                size: deck.attributes.size || "wide",
+                grid: deck.attributes.grid,
+            };
+            template.themeTokens = { ...(doc.themeTokens || {}) };
+            template.styles = new Map(doc.styles || []);
+            template.assets = new Map(doc.assets || []);
+            template.motions = new Map(doc.motions || []);
+            template.layouts = (doc.layouts || []).map(cloneLayoutBlock);
+
+            return { deck, template };
+        }
+
+        function layoutGrid(layout, template) {
+            return parseGridSpec(layout?.directives.grid || template.attributes.grid || "32x18", 32, 18);
+        }
+
+        function sizePresetToInches(sizeText) {
+            const raw = String(sizeText || "wide").trim().toLowerCase();
+            if (raw === "wide") {
+                return { width: 13.333, height: 7.5, label: "wide" };
+            }
+            if (raw === "standard") {
+                return { width: 10, height: 7.5, label: "standard" };
+            }
+
+            const match = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)(px|pt|in|cm|mm)$/i.exec(raw);
+            if (!match) {
+                return { width: 13.333, height: 7.5, label: "wide" };
+            }
+
+            const width = Number(match[1]);
+            const height = Number(match[2]);
+            const unit = match[3].toLowerCase();
+            const toInches = unit === "in" ? 1 : unit === "cm" ? 1 / 2.54 : unit === "mm" ? 1 / 25.4 : unit === "pt" ? 1 / 72 : 1 / 96;
+            return { width: width * toInches, height: height * toInches, label: raw };
+        }
+
+        function buildResolvedPresentation(deck, template) {
+            const themeTokens = { ...(template.themeTokens || {}), ...(deck.themeTokens || {}) };
+            const styles = mergeMaps(template.styles, deck.styles);
+            const assets = mergeMaps(template.assets, deck.assets);
+            const size = sizePresetToInches(deck.attributes.size || template.attributes.size || "wide");
+            const warnings = [];
+            const layoutsByName = new Map(template.layouts.map((layout) => [layout.name, layout]));
+            const slides = [];
+
+            for (let slideIndex = 0; slideIndex < deck.slides.length; slideIndex++) {
+                const slide = deck.slides[slideIndex];
+                const layout = slide.directives.use ? layoutsByName.get(slide.directives.use) : null;
+                const grid = layoutGrid(layout, template);
+                const resolvedObjects = [];
+
+                if (layout) {
+                    for (const fixedObject of layout.fixedObjects) {
+                        resolvedObjects.push({
+                            source: "template-fixed",
+                            kind: fixedObject.kind,
+                            anchor: fixedObject.anchor,
+                            span: fixedObject.span,
+                            descriptor: resolveDescriptor(fixedObject.descriptor, styles, themeTokens),
+                            payloadSegments: fixedObject.payloadSegments || [],
+                        });
+                    }
+                }
+
+                const slotsByName = new Map((layout?.slots || []).map((slot) => [slot.slotName, slot]));
+
+                for (const object of slide.objects) {
+                    if (object.refType === "slot") {
+                        const slot = slotsByName.get(object.slotName);
+                        if (!slot) {
+                            warnings.push(`Slide '${slide.title}' references unknown slot '${object.slotName}'.`);
+                            continue;
+                        }
+
+                        const merged = mergeDescriptors(slot.descriptor, object.descriptor);
+                        resolvedObjects.push({
+                            source: "slot",
+                            slotName: object.slotName,
+                            kind: merged.kind || slot.kind || object.kind,
+                            anchor: slot.anchor,
+                            span: slot.span,
+                            descriptor: resolveDescriptor(merged, styles, themeTokens),
+                            payloadSegments: object.payloadSegments || [],
+                        });
+                        continue;
+                    }
+
+                    resolvedObjects.push({
+                        source: "slide",
+                        kind: object.kind,
+                        anchor: object.anchor,
+                        span: object.span,
+                        descriptor: resolveDescriptor(object.descriptor, styles, themeTokens),
+                        payloadSegments: object.payloadSegments || [],
+                    });
+                }
+
+                const resolvedBackground = slide.directives.background
+                    ? resolveDescriptor(slide.directives.background, styles, themeTokens)
+                    : layout?.directives.background
+                        ? resolveDescriptor(layout.directives.background, styles, themeTokens)
+                        : null;
+
+                const resolvedTables = slide.tables.map((table) => ({
+                    ...table,
+                    descriptor: resolveDescriptor(table.descriptor, styles, themeTokens),
+                }));
+
+                const resolvedCharts = slide.charts.map((chart) => ({
+                    ...chart,
+                    descriptor: resolveDescriptor(chart.descriptor, styles, themeTokens),
+                    series: chart.series.map((series) => ({
+                        ...series,
+                        descriptor: resolveDescriptor(series.descriptor, styles, themeTokens),
+                    })),
+                }));
+
+                slides.push({
+                    index: slideIndex + 1,
+                    title: slide.title,
+                    section: slide.directives.section || "",
+                    layoutName: layout?.name || "",
+                    grid,
+                    size,
+                    background: resolvedBackground,
+                    objects: resolvedObjects,
+                    tables: resolvedTables,
+                    charts: resolvedCharts,
+                    notes: slide.directives.notes || "",
+                    state: slide.directives.state || "",
+                    transition: slide.directives.transition || layout?.directives.transition || null,
+                    animations: slide.animations.slice(),
+                });
+            }
+
+            return {
+                title: deck.title,
+                templateTitle: template.title,
+                themeTokens,
+                styles,
+                assets,
+                size,
+                slides,
+                warnings,
+            };
+        }
+
+        function rectToPercent(anchor, span, grid) {
+            return {
+                left: ((anchor.col - 1) / grid.cols) * 100,
+                top: ((anchor.row - 1) / grid.rows) * 100,
+                width: (span.cols / grid.cols) * 100,
+                height: (span.rows / grid.rows) * 100,
+            };
+        }
+
+        function applyDescriptorStyle(element, descriptor) {
+            const values = descriptor.values || {};
+
+            if (values.fill) {
+                element.style.background = values.fill;
+            }
+            if (values.stroke) {
+                element.style.border = `${values.weight || 1}px solid ${values.stroke}`;
+            }
+            if (values.fg) {
+                element.style.color = values.fg;
+            }
+            if (values.font) {
+                element.style.fontFamily = values.font;
+            }
+            if (values.size) {
+                element.style.fontSize = `${Number(values.size) * 1.333}px`;
+            }
+            if (descriptor.flags.includes("bold")) {
+                element.style.fontWeight = "700";
+            }
+            if (descriptor.flags.includes("italic")) {
+                element.style.fontStyle = "italic";
+            }
+            if (descriptor.flags.includes("underline")) {
+                element.style.textDecoration = "underline";
+            }
+            if (descriptor.flags.includes("strike")) {
+                element.style.textDecoration = element.style.textDecoration ? `${element.style.textDecoration} line-through` : "line-through";
+            }
+            if (values.opacity != null) {
+                element.style.opacity = String(values.opacity);
+            }
+            if (values.rotate != null) {
+                element.style.transform = `rotate(${values.rotate}deg)`;
+            }
+            if (values.align) {
+                const parts = String(values.align).split("/");
+                if (parts[0]) {
+                    element.style.textAlign = parts[0] === "middle" ? "center" : parts[0];
+                }
+                if (parts[1]) {
+                    const justify = parts[1] === "middle" ? "center" : parts[1] === "bottom" ? "flex-end" : "flex-start";
+                    element.style.justifyContent = justify;
+                }
+            }
+            if (values.radius) {
+                element.style.borderRadius = values.radius;
+            }
+        }
+
+        function renderObject(resolvedObject, grid, assets) {
+            const rect = rectToPercent(resolvedObject.anchor, resolvedObject.span, grid);
+            const descriptor = resolvedObject.descriptor;
+            const values = descriptor.values || {};
+            const shapeKind = descriptor.shapeKind || (resolvedObject.kind === "shape" ? "rect" : "");
+            const kind = resolvedObject.kind || descriptor.kind || "text";
+            const element = document.createElement("div");
+            element.className = `slide-object ${kind}${shapeKind ? ` ${shapeKind}` : ""}`;
+            element.style.left = `${rect.left}%`;
+            element.style.top = `${rect.top}%`;
+            element.style.width = `${rect.width}%`;
+            element.style.height = `${rect.height}%`;
+
+            applyDescriptorStyle(element, descriptor);
+
+            if (kind === "line") {
+                element.style.color = values.stroke || values.fg || "#64748b";
+                return element;
+            }
+
+            if (kind === "image" || kind === "icon") {
+                const assetName = values.asset || values.ref || "";
+                const assetReference = assetName ? assets.get(assetName) : "";
+                const sessionAsset = sessionAssets.get(assetReference) || sessionAssets.get(assetName);
+
+                if (sessionAsset && sessionAsset.dataUrl) {
+                    const image = document.createElement("img");
+                    image.src = sessionAsset.dataUrl;
+                    image.alt = values.alt || assetName || "image";
+                    image.style.objectFit = values.fit === "contain" ? "contain" : values.fit === "stretch" ? "fill" : "cover";
+                    element.appendChild(image);
+                } else {
+                    const placeholder = document.createElement("div");
+                    placeholder.className = "placeholder";
+                    placeholder.innerHTML = `Image<br>${escapeHtml(assetName || assetReference || "missing asset")}`;
+                    element.appendChild(placeholder);
+                }
+
+                return element;
+            }
+
+            if (kind === "shape" && !resolvedObject.payloadSegments.length) {
+                return element;
+            }
+
+            if (kind === "list") {
+                const ordered = values.bullet === "number";
+                const list = document.createElement(ordered ? "ol" : "ul");
+                for (const segment of resolvedObject.payloadSegments) {
+                    const item = document.createElement("li");
+                    item.textContent = segment;
+                    list.appendChild(item);
+                }
+                element.appendChild(list);
+                return element;
+            }
+
+            const text = document.createElement("div");
+            text.textContent = resolvedObject.payloadSegments.join(" ");
+            element.appendChild(text);
+            return element;
+        }
+
+        function renderTable(table, grid) {
+            const rect = rectToPercent(table.anchor, table.span, grid);
+            const wrapper = document.createElement("div");
+            wrapper.className = "slide-table";
+            wrapper.style.left = `${rect.left}%`;
+            wrapper.style.top = `${rect.top}%`;
+            wrapper.style.width = `${rect.width}%`;
+            wrapper.style.height = `${rect.height}%`;
+
+            const tableElement = document.createElement("table");
+            table.rows.forEach((row, rowIndex) => {
+                const tr = document.createElement("tr");
+                row.forEach((cell) => {
+                    const cellElement = document.createElement(rowIndex === 0 && table.descriptor.flags.includes("header") ? "th" : "td");
+                    cellElement.textContent = cell;
+                    tr.appendChild(cellElement);
+                });
+                tableElement.appendChild(tr);
+            });
+
+            wrapper.appendChild(tableElement);
+            return wrapper;
+        }
+
+        function renderChart(chart, grid) {
+            const rect = rectToPercent(chart.anchor, chart.span, grid);
+            const card = document.createElement("div");
+            card.className = "slide-chart";
+            card.style.left = `${rect.left}%`;
+            card.style.top = `${rect.top}%`;
+            card.style.width = `${rect.width}%`;
+            card.style.height = `${rect.height}%`;
+
+            const title = document.createElement("div");
+            title.className = "chart-title";
+            title.textContent = chart.title;
+            card.appendChild(title);
+
+            const meta = document.createElement("div");
+            meta.className = "chart-meta";
+            meta.textContent = `${chart.type} chart, ${chart.series.length} series`;
+            card.appendChild(meta);
+
+            const seriesBox = document.createElement("div");
+            seriesBox.className = "chart-series";
+            for (const series of chart.series) {
+                const row = document.createElement("div");
+                row.textContent = `${series.label}: ${series.values.join(", ")}`;
+                seriesBox.appendChild(row);
+            }
+            card.appendChild(seriesBox);
+            return card;
+        }
+
+        function renderPresentation(resolved) {
+            metaGrid.innerHTML = "";
+            previewRoot.innerHTML = "";
+
+            const meta = [
+                ["Document", resolved.title],
+                ["Layouts", String(resolved.layoutCount || 0)],
+                ["Slides", String(resolved.slides.length)],
+                ["Assets in session", String(sessionAssets.size)],
+                ["Warnings", String(resolved.warnings.length + lastWarnings.length)],
+                ["Size", `${resolved.size.width.toFixed(3)} x ${resolved.size.height.toFixed(3)} in`],
+            ];
+
+            for (const [label, value] of meta) {
+                const card = document.createElement("div");
+                card.className = "meta-card";
+                card.innerHTML = `<span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span>`;
+                metaGrid.appendChild(card);
+            }
+
+            assetNote.textContent = sessionAssets.size
+                ? `Imported media is kept in browser memory for this tab so image export can stay compact in the text surface.`
+                : `No imported media is currently held in browser memory.`;
+
+            if (!resolved.slides.length) {
+                previewRoot.innerHTML = `<div class="preview-card"><p>No slides found in the current DeckDoc text.</p></div>`;
+                return;
+            }
+
+            for (const slide of resolved.slides) {
+                const card = document.createElement("div");
+                card.className = "preview-card";
+
+                const metaRow = document.createElement("div");
+                metaRow.className = "slide-meta";
+                metaRow.innerHTML = `
+                    <span class="slide-index">${slide.index}</span>
+                    <span class="badge">${escapeHtml(slide.title)}</span>
+                    ${slide.layoutName ? `<span class="badge">layout: ${escapeHtml(slide.layoutName)}</span>` : ""}
+                    ${slide.section ? `<span class="badge">section: ${escapeHtml(slide.section)}</span>` : ""}
+                    ${slide.state === "hidden" ? `<span class="badge">hidden</span>` : ""}
+                `;
+                card.appendChild(metaRow);
+
+                const canvas = document.createElement("div");
+                canvas.className = "slide-canvas";
+
+                if (slide.background) {
+                    const backgroundDescriptor = slide.background;
+                    const values = backgroundDescriptor.values || {};
+                    if (values.fill) {
+                        canvas.style.background = values.fill;
+                    }
+                    if (values.asset) {
+                        const reference = resolved.assets.get(values.asset) || values.asset;
+                        const sessionAsset = sessionAssets.get(reference) || sessionAssets.get(values.asset);
+                        if (sessionAsset && sessionAsset.dataUrl) {
+                            canvas.style.backgroundImage = `url(${sessionAsset.dataUrl})`;
+                            canvas.style.backgroundSize = values.fit === "contain" ? "contain" : "cover";
+                            canvas.style.backgroundPosition = "center center";
+                            canvas.style.backgroundRepeat = "no-repeat";
+                        }
+                    }
+                }
+
+                for (const object of slide.objects) {
+                    canvas.appendChild(renderObject(object, slide.grid, resolved.assets));
+                }
+                for (const table of slide.tables) {
+                    canvas.appendChild(renderTable(table, slide.grid));
+                }
+                for (const chart of slide.charts) {
+                    canvas.appendChild(renderChart(chart, slide.grid));
+                }
+
+                card.appendChild(canvas);
+
+                if (slide.notes || slide.transition || slide.animations.length) {
+                    const details = document.createElement("p");
+                    details.className = "split-note";
+                    const pieces = [];
+                    if (slide.transition) {
+                        pieces.push(`transition: ${slide.transition.type}`);
+                    }
+                    if (slide.notes) {
+                        pieces.push(`notes: ${slide.notes}`);
+                    }
+                    if (slide.animations.length) {
+                        pieces.push(`animations: ${slide.animations.length}`);
+                    }
+                    details.textContent = pieces.join(" | ");
+                    card.appendChild(details);
+                }
+
+                previewRoot.appendChild(card);
+            }
+        }
+
+        function parseCurrentTexts() {
+            const doc = parseDeckDoc(deckDocInput.value);
+            const { deck, template } = splitDocumentForRendering(doc);
+            const resolved = buildResolvedPresentation(deck, template);
+            resolved.layoutCount = doc.layouts.length;
+            const warnings = [...doc.warnings, ...deck.warnings, ...template.warnings, ...resolved.warnings];
+            return { doc, deck, template, resolved, warnings };
+        }
+
+        function buildFocusDoc(feature) {
+            const header = `= ${feature.name} Example\n:deckdoc: 1\n:locale: en-US\n:size: wide\n:grid: 32x18\n\n`;
+
+            if (feature.name === "Document Header") {
+                return `${feature.example}\n\n== Example\n@B3 18x2 [.title] | Header example\n`;
+            }
+
+            if (feature.category === "Shared") {
+                return `${header}${feature.example}\n\n== Example\n@B3 18x2 [.title] | Shared directives example\n`;
+            }
+
+            if (feature.name === "Layout Block") {
+                return `${header}[layout cover]\n[background fill=#F8FAFC]\n!A1 32x18 [shape rect fill=#F8FAFC layer=back]\n@title = B3 20x2 [.title]\n[end]\n\n== Example\n[use cover]\n@title | Layout block example\n`;
+            }
+
+            if (feature.name === "Layout Slots And Fixed Lines") {
+                return `${header}[layout cover]\n!A1 32x2 [shape rect fill=#0B5FFF layer=back]\n@title = B3 20x2 [.title]\n@body = B6 18x6 [list .body bullet=disc]\n[end]\n\n== Example\n[use cover]\n@title | Slot example\n@body | One | Two | Three\n`;
+            }
+
+            if (feature.category === "Slides") {
+                return `${header}== Example\n${feature.example}\n@B3 18x2 [.title] | Slide directive example\n@B6 18x3 [.body] | This slide exists to isolate one directive set.\n`;
+            }
+
+            if (feature.category === "Layout Control") {
+                return `${header}== Example\n@B2 18x2 [.title] | Layout control example\n${feature.example}\n@B5 10x4 [shape roundrect fill=#FFFFFF stroke=#CBD5E1 radius=0.18in] | Explicit fallback card\n`;
+            }
+
+            if (feature.category === "Objects") {
+                return `${header}== Example\n${feature.example}\n`;
+            }
+
+            if (feature.category === "Data") {
+                return `${header}== Example\n@B2 18x2 [.title] | Data example\n${feature.example}\n`;
+            }
+
+            if (feature.category === "Motion") {
+                return `${header}${feature.example}\n\n== Example\n@B3 18x2 [.title] | Motion example\n@B6 12x4 [shape roundrect fill=#FFFFFF stroke=#CBD5E1 radius=0.18in] | Animate me\n`;
+            }
+
+            return `${header}== Example\n@B3 18x2 [.title] | Extension example\n${feature.example}\n`;
+        }
+
+        function insertSnippetAtCursor(textarea, snippet) {
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            const before = textarea.value.slice(0, start);
+            const after = textarea.value.slice(end);
+            const prefix = before && !before.endsWith("\n") ? "\n\n" : before ? "\n" : "";
+            const suffix = after && !after.startsWith("\n") ? "\n\n" : "\n";
+            const inserted = `${prefix}${snippet}${suffix}`;
+            textarea.setRangeText(inserted, start, end, "end");
+            textarea.focus();
+        }
+
+        function renderFeatureExplorer() {
+            featureExplorer.innerHTML = "";
+
+            for (const feature of FEATURE_CATALOG) {
+                const card = document.createElement("article");
+                card.className = "feature-card";
+
+                const supportClass = feature.support === "partial" ? "support-badge partial" : "support-badge";
+                card.innerHTML = `
+                    <div class="feature-meta">
+                        <span class="badge">${escapeHtml(feature.category)}</span>
+                        <span class="${supportClass}">${escapeHtml(feature.support === "partial" ? "Preview/export: partial" : "Preview/export: full")}</span>
+                    </div>
+                    <h3>${escapeHtml(feature.name)}</h3>
+                    <p>Syntax</p>
+                    <pre>${escapeHtml(feature.syntax)}</pre>
+                    <p>Example</p>
+                    <pre>${escapeHtml(feature.example)}</pre>
+                `;
+
+                const actions = document.createElement("div");
+                actions.className = "feature-actions";
+
+                const insertButton = document.createElement("button");
+                insertButton.textContent = "Insert Snippet";
+                insertButton.addEventListener("click", () => {
+                    insertSnippetAtCursor(deckDocInput, feature.example);
+                    setStatus(`Inserted ${feature.name} example into the editor.`, "ok");
+                    renderCurrentTexts();
+                });
+
+                const loadButton = document.createElement("button");
+                loadButton.className = "soft";
+                loadButton.textContent = "Load Focus Example";
+                loadButton.addEventListener("click", () => {
+                    deckDocInput.value = buildFocusDoc(feature);
+                    setWarnings([]);
+                    renderCurrentTexts();
+                    setStatus(`Loaded focused ${feature.name} example.`, "ok");
+                });
+
+                actions.appendChild(insertButton);
+                actions.appendChild(loadButton);
+                card.appendChild(actions);
+                featureExplorer.appendChild(card);
+            }
+        }
+
+        function downloadText(text, filename) {
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function sanitizeStem(text) {
+            return String(text || "output").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "") || "output";
+        }
+
+        function pointStringToNumber(value, fallback) {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : fallback;
+        }
+
+        function rectToInches(anchor, span, grid, size) {
+            return {
+                x: ((anchor.col - 1) / grid.cols) * size.width,
+                y: ((anchor.row - 1) / grid.rows) * size.height,
+                w: (span.cols / grid.cols) * size.width,
+                h: (span.rows / grid.rows) * size.height,
+            };
+        }
+
+        function colorForPpt(value, fallback) {
+            const text = String(value || fallback || "").replace(/^#/, "");
+            return text || undefined;
+        }
+
+        function mapShapeType(pptx, shapeKind) {
+            const name = {
+                rect: "rect",
+                roundrect: "roundRect",
+                ellipse: "ellipse",
+                diamond: "diamond",
+                triangle: "triangle",
+                line: "line",
+                arrow: "rightArrow",
+            }[shapeKind || "rect"] || "rect";
+
+            return (pptx.ShapeType && pptx.ShapeType[name]) || (pptx.ShapeType && pptx.ShapeType.rect) || name;
+        }
+
+        function mapChartType(pptx, type) {
+            const name = {
+                column: "bar",
+                bar: "bar",
+                line: "line",
+                area: "area",
+                pie: "pie",
+                doughnut: "doughnut",
+                scatter: "scatter",
+                bubble: "bubble",
+            }[type] || "bar";
+            return (pptx.ChartType && pptx.ChartType[name]) || name;
+        }
+
+        function addTextObjectToPpt(slide, box, descriptor, text, isList) {
+            const values = descriptor.values || {};
+            const lines = isList
+                ? text.map((item, index) => values.bullet === "number" ? `${index + 1}. ${item}` : `• ${item}`).join("\n")
+                : text.join(" ");
+
+            const options = {
+                x: box.x,
+                y: box.y,
+                w: box.w,
+                h: box.h,
+                fontFace: values.font || undefined,
+                fontSize: values.size ? pointStringToNumber(values.size, 16) : undefined,
+                bold: descriptor.flags.includes("bold") || undefined,
+                italic: descriptor.flags.includes("italic") || undefined,
+                underline: descriptor.flags.includes("underline") || undefined,
+                color: colorForPpt(values.fg),
+                margin: 0.05,
+                breakLine: false,
+                align: values.align ? String(values.align).split("/")[0] : undefined,
+                valign: values.align ? String(values.align).split("/")[1] : undefined,
+            };
+
+            if (values.fill) {
+                options.fill = { color: colorForPpt(values.fill) };
+            }
+            if (values.stroke) {
+                options.line = { color: colorForPpt(values.stroke), pt: pointStringToNumber(values.weight, 1) };
+            }
+            if (values.rotate != null) {
+                options.rotate = pointStringToNumber(values.rotate, 0);
+            }
+            if (values.fit === "shrink") {
+                options.fit = "shrink";
+            }
+            if (values.link) {
+                options.hyperlink = { url: values.link };
+            }
+
+            slide.addText(lines, options);
+        }
+
+        function addResolvedObjectToPpt(pptx, slide, object, grid, size, assets, warnings) {
+            const box = rectToInches(object.anchor, object.span, grid, size);
+            const descriptor = object.descriptor;
+            const values = descriptor.values || {};
+            const kind = object.kind || descriptor.kind || "text";
+
+            if (kind === "image" || kind === "icon") {
+                const reference = assets.get(values.asset || values.ref || "") || values.asset || values.ref;
+                const sessionAsset = sessionAssets.get(reference) || sessionAssets.get(values.asset || "");
+                if (!sessionAsset || !sessionAsset.dataUrl) {
+                    warnings.push(`Missing image asset '${values.asset || values.ref || reference || "unknown"}' during export.`);
+                    addTextObjectToPpt(slide, box, descriptor, [values.alt || "Missing image"], false);
+                    return;
+                }
+                slide.addImage({ data: sessionAsset.dataUrl, x: box.x, y: box.y, w: box.w, h: box.h });
+                return;
+            }
+
+            if (kind === "shape") {
+                slide.addShape(mapShapeType(pptx, descriptor.shapeKind || "rect"), {
+                    x: box.x,
+                    y: box.y,
+                    w: box.w,
+                    h: box.h,
+                    fill: { color: colorForPpt(values.fill, "FFFFFF"), transparency: values.opacity != null ? Math.max(0, Math.min(100, (1 - Number(values.opacity)) * 100)) : 0 },
+                    line: { color: colorForPpt(values.stroke, values.fill || "D7DFE8"), pt: pointStringToNumber(values.weight, 1) },
+                    rotate: values.rotate != null ? pointStringToNumber(values.rotate, 0) : undefined,
+                });
+                if (object.payloadSegments.length) {
+                    addTextObjectToPpt(slide, box, descriptor, object.payloadSegments, false);
+                }
+                return;
+            }
+
+            if (kind === "line") {
+                slide.addShape(mapShapeType(pptx, "line"), {
+                    x: box.x,
+                    y: box.y,
+                    w: box.w,
+                    h: box.h,
+                    line: { color: colorForPpt(values.stroke, values.fg || "64748B"), pt: pointStringToNumber(values.weight, 1.5) },
+                });
+                return;
+            }
+
+            addTextObjectToPpt(slide, box, descriptor, object.payloadSegments, kind === "list");
+        }
+
+        function addTableToPpt(slide, table, grid, size) {
+            const box = rectToInches(table.anchor, table.span, grid, size);
+            slide.addTable(table.rows, {
+                x: box.x,
+                y: box.y,
+                w: box.w,
+                h: box.h,
+                fontFace: table.descriptor.values.font || undefined,
+                fontSize: table.descriptor.values.size ? pointStringToNumber(table.descriptor.values.size, 11) : 11,
+                color: colorForPpt(table.descriptor.values.fg, "142033"),
+                border: { type: "solid", color: "D7DFE8", pt: 1 },
+                fill: colorForPpt(table.descriptor.values.fill, "FFFFFF"),
+                margin: 0.03,
+                autoFit: false,
+            });
+        }
+
+        function addChartToPpt(pptx, slide, chart, grid, size, warnings) {
+            const box = rectToInches(chart.anchor, chart.span, grid, size);
+            if (chart.type === "combo") {
+                warnings.push(`Chart '${chart.title}' uses combo. Starter export downgrades it to '${chart.series[0]?.type || "column"}'.`);
+            }
+            const exportType = chart.type === "combo" ? (chart.series[0]?.type || "column") : chart.type;
+            const data = chart.series.map((series) => ({
+                name: series.label,
+                labels: series.categories || [],
+                values: series.values || [],
+            }));
+            slide.addChart(mapChartType(pptx, exportType), data, {
+                x: box.x,
+                y: box.y,
+                w: box.w,
+                h: box.h,
+                showTitle: true,
+                title: chart.title,
+                showLegend: true,
+                legendPos: "b",
+                showValue: chart.series.some((series) => series.descriptor.flags.includes("labels")),
+            });
+        }
+
+        async function exportToPptx() {
+            try {
+                const { resolved, warnings } = parseCurrentTexts();
+                const pptx = new PptxGenJS();
+                const exportWarnings = warnings.slice();
+
+                if (resolved.size.label === "wide") {
+                    pptx.layout = "LAYOUT_WIDE";
+                } else if (resolved.size.label === "standard") {
+                    pptx.layout = "LAYOUT_STANDARD";
+                } else {
+                    pptx.defineLayout({ name: "DECKDOC_CUSTOM", width: resolved.size.width, height: resolved.size.height });
+                    pptx.layout = "DECKDOC_CUSTOM";
+                }
+
+                for (const slideModel of resolved.slides) {
+                    const slide = pptx.addSlide();
+
+                    if (slideModel.background) {
+                        const values = slideModel.background.values || {};
+                        if (values.fill) {
+                            slide.addShape(mapShapeType(pptx, "rect"), {
+                                x: 0,
+                                y: 0,
+                                w: resolved.size.width,
+                                h: resolved.size.height,
+                                fill: { color: colorForPpt(values.fill, "FFFFFF") },
+                                line: { color: colorForPpt(values.fill, "FFFFFF"), pt: 0 },
+                            });
+                        }
+                        if (values.asset) {
+                            const reference = resolved.assets.get(values.asset) || values.asset;
+                            const sessionAsset = sessionAssets.get(reference) || sessionAssets.get(values.asset);
+                            if (sessionAsset && sessionAsset.dataUrl) {
+                                slide.addImage({ data: sessionAsset.dataUrl, x: 0, y: 0, w: resolved.size.width, h: resolved.size.height });
+                            } else {
+                                exportWarnings.push(`Missing background asset '${values.asset}' during export.`);
+                            }
+                        }
+                    }
+
+                    const sortedObjects = slideModel.objects.slice().sort((a, b) => {
+                        const aLayer = a.descriptor.values.layer === "front" ? 1000 : a.descriptor.values.layer === "back" ? -1000 : Number(a.descriptor.values.layer || 0);
+                        const bLayer = b.descriptor.values.layer === "front" ? 1000 : b.descriptor.values.layer === "back" ? -1000 : Number(b.descriptor.values.layer || 0);
+                        return aLayer - bLayer;
+                    });
+
+                    for (const object of sortedObjects) {
+                        addResolvedObjectToPpt(pptx, slide, object, slideModel.grid, resolved.size, resolved.assets, exportWarnings);
+                    }
+                    for (const table of slideModel.tables) {
+                        addTableToPpt(slide, table, slideModel.grid, resolved.size);
+                    }
+                    for (const chart of slideModel.charts) {
+                        addChartToPpt(pptx, slide, chart, slideModel.grid, resolved.size, exportWarnings);
+                    }
+
+                    if (slideModel.notes && typeof slide.addNotes === "function") {
+                        slide.addNotes(slideModel.notes);
+                    } else if (slideModel.notes) {
+                        exportWarnings.push(`Speaker notes on slide '${slideModel.title}' were not written because this browser build does not expose slide.addNotes.`);
+                    }
+
+                    if (slideModel.transition) {
+                        exportWarnings.push(`Slide transition '${slideModel.transition.type}' on '${slideModel.title}' is not yet emitted by the starter exporter.`);
+                    }
+                    if (slideModel.animations.length) {
+                        exportWarnings.push(`Object animations on '${slideModel.title}' are not yet emitted by the starter exporter.`);
+                    }
+                }
+
+                await pptx.writeFile({ fileName: `${sanitizeStem(resolved.title)}.pptx` });
+                setWarnings(exportWarnings);
+                setStatus(`Exported ${resolved.slides.length} slide(s) to PPTX.`, "ok");
+            } catch (error) {
+                setStatus(`Failed to export PPTX.\n${error.message}`, "error");
+            }
+        }
+
+        function xmlChildElements(node) {
+            return Array.from(node?.childNodes || []).filter((child) => child.nodeType === 1);
+        }
+
+        function xmlChildrenByLocalName(node, localName) {
+            return xmlChildElements(node).filter((child) => child.localName === localName);
+        }
+
+        function xmlFirstChildByLocalName(node, localName) {
+            return xmlChildrenByLocalName(node, localName)[0] || null;
+        }
+
+        function xmlDescendantsByLocalName(node, localName) {
+            return Array.from(node?.getElementsByTagNameNS("*", localName) || []);
+        }
+
+        function xmlAttr(node, ...names) {
+            for (const name of names) {
+                if (!node || !node.hasAttribute) {
+                    continue;
+                }
+                if (node.hasAttribute(name)) {
+                    return node.getAttribute(name);
+                }
+                const bare = name.includes(":") ? name.split(":").pop() : name;
+                for (const attr of Array.from(node.attributes || [])) {
+                    if (attr.name === name || attr.localName === bare) {
+                        return attr.value;
+                    }
+                }
+            }
+            return "";
+        }
+
+        function parseXmlDocument(xmlText) {
+            const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+            const parserError = xml.getElementsByTagName("parsererror")[0];
+            if (parserError) {
+                throw new Error(`XML parse error: ${parserError.textContent}`);
+            }
+            return xml;
+        }
+
+        function relsPathForPart(partPath) {
+            const normalized = partPath.replace(/^\//, "");
+            const slashIndex = normalized.lastIndexOf("/");
+            if (slashIndex < 0) {
+                return `_rels/${normalized}.rels`;
+            }
+            return `${normalized.slice(0, slashIndex)}/_rels/${normalized.slice(slashIndex + 1)}.rels`;
+        }
+
+        function resolveZipPath(basePath, target) {
+            if (!target) {
+                return "";
+            }
+            if (!basePath || target.startsWith("/")) {
+                return target.replace(/^\//, "");
+            }
+
+            const baseParts = basePath.split("/");
+            baseParts.pop();
+            for (const part of target.split("/")) {
+                if (!part || part === ".") {
+                    continue;
+                }
+                if (part === "..") {
+                    baseParts.pop();
+                } else {
+                    baseParts.push(part);
+                }
+            }
+            return baseParts.join("/");
+        }
+
+        async function loadZipText(zip, path) {
+            const file = zip.file(path);
+            if (!file) {
+                return "";
+            }
+            return await file.async("text");
+        }
+
+        async function loadZipXml(zip, path) {
+            const xmlText = await loadZipText(zip, path);
+            return xmlText ? parseXmlDocument(xmlText) : null;
+        }
+
+        async function loadRelationships(zip, ownerPath) {
+            const relsDoc = await loadZipXml(zip, relsPathForPart(ownerPath));
+            const map = new Map();
+            if (!relsDoc) {
+                return map;
+            }
+
+            for (const relNode of xmlDescendantsByLocalName(relsDoc, "Relationship")) {
+                const id = xmlAttr(relNode, "Id");
+                if (!id) {
+                    continue;
+                }
+                map.set(id, {
+                    type: xmlAttr(relNode, "Type"),
+                    target: resolveZipPath(ownerPath, xmlAttr(relNode, "Target")),
+                });
+            }
+            return map;
+        }
+
+        function mimeTypeFromPath(path) {
+            const lower = String(path || "").toLowerCase();
+            if (lower.endsWith(".png")) {
+                return "image/png";
+            }
+            if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                return "image/jpeg";
+            }
+            if (lower.endsWith(".gif")) {
+                return "image/gif";
+            }
+            if (lower.endsWith(".svg")) {
+                return "image/svg+xml";
+            }
+            if (lower.endsWith(".webp")) {
+                return "image/webp";
+            }
+            return "application/octet-stream";
+        }
+
+        async function registerZipAsset(zip, path, preferredName) {
+            if (sessionAssets.has(path)) {
+                return path;
+            }
+            const file = zip.file(path);
+            if (!file) {
+                return "";
+            }
+            const base64 = await file.async("base64");
+            sessionAssets.set(path, {
+                path,
+                name: preferredName || path.split("/").pop() || "asset",
+                dataUrl: `data:${mimeTypeFromPath(path)};base64,${base64}`,
+            });
+            return path;
+        }
+
+        function emuToGridPosition(x, y, cx, cy, slideSizeEmu, grid) {
+            const col = Math.max(1, Math.min(grid.cols, Math.floor((x / slideSizeEmu.cx) * grid.cols) + 1));
+            const row = Math.max(1, Math.min(grid.rows, Math.floor((y / slideSizeEmu.cy) * grid.rows) + 1));
+            const cols = Math.max(1, Math.min(grid.cols - col + 1, Math.round((cx / slideSizeEmu.cx) * grid.cols) || 1));
+            const rows = Math.max(1, Math.min(grid.rows - row + 1, Math.round((cy / slideSizeEmu.cy) * grid.rows) || 1));
+            return {
+                anchor: { col, row },
+                span: { cols, rows },
+            };
+        }
+
+        function extractSolidColor(node) {
+            if (!node) {
+                return "";
+            }
+            const rgbNode = xmlFirstChildByLocalName(node, "srgbClr");
+            if (rgbNode) {
+                return `#${xmlAttr(rgbNode, "val")}`;
+            }
+            const systemNode = xmlFirstChildByLocalName(node, "sysClr");
+            if (systemNode) {
+                return `#${xmlAttr(systemNode, "lastClr")}`;
+            }
+            const schemeNode = xmlFirstChildByLocalName(node, "schemeClr");
+            if (schemeNode) {
+                return `$${xmlAttr(schemeNode, "val")}`;
+            }
+            return "";
+        }
+
+        function parseThemeTokens(themeDoc) {
+            const tokens = {};
+            if (!themeDoc) {
+                return tokens;
+            }
+
+            const colorScheme = xmlDescendantsByLocalName(themeDoc, "clrScheme")[0];
+            if (colorScheme) {
+                const colorMap = {
+                    dk1: "ink",
+                    lt1: "surface",
+                    accent1: "primary",
+                    accent2: "accent",
+                    accent3: "accent-3",
+                    accent4: "accent-4",
+                    accent5: "accent-5",
+                    accent6: "accent-6",
+                };
+                for (const child of xmlChildElements(colorScheme)) {
+                    const name = colorMap[child.localName] || child.localName;
+                    const color = extractSolidColor(child);
+                    if (color) {
+                        tokens[name] = color;
+                    }
+                }
+            }
+
+            const fontScheme = xmlDescendantsByLocalName(themeDoc, "fontScheme")[0];
+            if (fontScheme) {
+                const major = xmlFirstChildByLocalName(fontScheme, "majorFont");
+                const minor = xmlFirstChildByLocalName(fontScheme, "minorFont");
+                const majorLatin = xmlFirstChildByLocalName(major, "latin");
+                const minorLatin = xmlFirstChildByLocalName(minor, "latin");
+                if (majorLatin) {
+                    tokens.display = xmlAttr(majorLatin, "typeface");
+                }
+                if (minorLatin) {
+                    tokens.body = xmlAttr(minorLatin, "typeface");
+                }
+            }
+
+            return tokens;
+        }
+
+        function parseShapeText(spNode) {
+            const txBody = xmlDescendantsByLocalName(spNode, "txBody")[0];
+            if (!txBody) {
+                return { paragraphs: [], descriptor: emptyDescriptor() };
+            }
+
+            const descriptor = emptyDescriptor();
+            const paragraphs = [];
+            const paragraphNodes = xmlChildrenByLocalName(txBody, "p");
+
+            for (const pNode of paragraphNodes) {
+                const textParts = xmlDescendantsByLocalName(pNode, "t").map((node) => node.textContent || "");
+                const paragraphText = textParts.join("").trim();
+                if (paragraphText) {
+                    paragraphs.push(paragraphText);
+                }
+
+                const pPr = xmlFirstChildByLocalName(pNode, "pPr");
+                if (pPr && xmlAttr(pPr, "algn")) {
+                    descriptor.values.align = `${xmlAttr(pPr, "algn")}/top`;
+                }
+                if (pPr && (xmlFirstChildByLocalName(pPr, "buChar") || xmlFirstChildByLocalName(pPr, "buAutoNum"))) {
+                    descriptor.values.bullet = xmlFirstChildByLocalName(pPr, "buAutoNum") ? "number" : "disc";
+                }
+
+                const runProps = xmlDescendantsByLocalName(pNode, "rPr")[0] || xmlDescendantsByLocalName(pNode, "defRPr")[0];
+                if (runProps) {
+                    if (xmlAttr(runProps, "sz")) {
+                        descriptor.values.size = String(Number(xmlAttr(runProps, "sz")) / 100);
+                    }
+                    if (xmlAttr(runProps, "b") === "1") {
+                        descriptor.flags.push("bold");
+                    }
+                    if (xmlAttr(runProps, "i") === "1") {
+                        descriptor.flags.push("italic");
+                    }
+                    const solidFill = xmlFirstChildByLocalName(runProps, "solidFill");
+                    if (solidFill) {
+                        descriptor.values.fg = extractSolidColor(solidFill);
+                    }
+                    const latin = xmlFirstChildByLocalName(runProps, "latin");
+                    if (latin && xmlAttr(latin, "typeface")) {
+                        descriptor.values.font = xmlAttr(latin, "typeface");
+                    }
+                }
+            }
+
+            return { paragraphs, descriptor };
+        }
+
+        function parseCommonShapeDescriptor(shapeNode) {
+            const descriptor = emptyDescriptor();
+            const spPr = xmlDescendantsByLocalName(shapeNode, "spPr")[0];
+            if (!spPr) {
+                return descriptor;
+            }
+
+            const solidFill = xmlFirstChildByLocalName(spPr, "solidFill");
+            if (solidFill) {
+                descriptor.values.fill = extractSolidColor(solidFill);
+            }
+            const lineNode = xmlFirstChildByLocalName(spPr, "ln");
+            if (lineNode) {
+                const lineFill = xmlFirstChildByLocalName(lineNode, "solidFill");
+                if (lineFill) {
+                    descriptor.values.stroke = extractSolidColor(lineFill);
+                }
+                if (xmlAttr(lineNode, "w")) {
+                    descriptor.values.weight = String(Math.round(Number(xmlAttr(lineNode, "w")) / 12700) / 1.0);
+                }
+            }
+            const xfrm = xmlFirstChildByLocalName(spPr, "xfrm");
+            if (xfrm && xmlAttr(xfrm, "rot")) {
+                descriptor.values.rotate = String(Number(xmlAttr(xfrm, "rot")) / 60000);
+            }
+            const geom = xmlFirstChildByLocalName(spPr, "prstGeom");
+            if (geom) {
+                const prst = xmlAttr(geom, "prst");
+                const mapped = { roundRect: "roundrect", rect: "rect", ellipse: "ellipse", diamond: "diamond", triangle: "triangle", line: "line" }[prst] || "rect";
+                descriptor.kind = mapped === "line" ? "line" : "shape";
+                descriptor.shapeKind = mapped;
+            }
+            return descriptor;
+        }
+
+        function parseShapeTransform(shapeNode) {
+            const xfrm = xmlDescendantsByLocalName(shapeNode, "xfrm")[0];
+            if (!xfrm) {
+                return { x: 0, y: 0, cx: 0, cy: 0 };
+            }
+            const off = xmlFirstChildByLocalName(xfrm, "off");
+            const ext = xmlFirstChildByLocalName(xfrm, "ext");
+            return {
+                x: Number(xmlAttr(off, "x") || 0),
+                y: Number(xmlAttr(off, "y") || 0),
+                cx: Number(xmlAttr(ext, "cx") || 0),
+                cy: Number(xmlAttr(ext, "cy") || 0),
+            };
+        }
+
+        function placeholderInfo(node) {
+            const phNode = xmlDescendantsByLocalName(node, "ph")[0];
+            if (!phNode) {
+                return null;
+            }
+            const type = xmlAttr(phNode, "type") || "obj";
+            const idx = xmlAttr(phNode, "idx") || "0";
+            return { type, idx, key: `${type}:${idx}` };
+        }
+
+        function suggestSlotName(type, existing) {
+            const base = {
+                title: "title",
+                ctrTitle: "title",
+                subTitle: "subtitle",
+                body: "body",
+                pic: "image",
+                chart: "chart",
+                tbl: "table",
+                obj: "content",
+                ftr: "footer",
+                hdr: "header",
+                dt: "date",
+                sldNum: "slide-number",
+            }[type] || type || "slot";
+
+            let name = base;
+            let counter = 2;
+            while (existing.has(name)) {
+                name = `${base}-${counter}`;
+                counter++;
+            }
+            existing.add(name);
+            return name;
+        }
+
+        function learnNamedStyle(styleMap, name, descriptor) {
+            if (!descriptorHasEntries(descriptor) || styleMap.has(name)) {
+                return;
+            }
+            styleMap.set(name, cloneDescriptor(descriptor));
+        }
+
+        async function parseLayoutPart(zip, layoutPath, template, slideSizeEmu, context) {
+            if (context.layoutCache.has(layoutPath)) {
+                return context.layoutCache.get(layoutPath);
+            }
+
+            const layoutDoc = await loadZipXml(zip, layoutPath);
+            if (!layoutDoc) {
+                return null;
+            }
+
+            const layoutName = xmlAttr(xmlDescendantsByLocalName(layoutDoc, "cSld")[0], "name") || layoutPath.split("/").pop().replace(/\.xml$/i, "");
+            const layout = {
+                name: layoutName,
+                directives: {},
+                fixedObjects: [],
+                slots: [],
+                extensions: [],
+                slotMap: new Map(),
+            };
+
+            const bgNode = xmlDescendantsByLocalName(layoutDoc, "bgPr")[0];
+            if (bgNode) {
+                const fill = extractSolidColor(xmlFirstChildByLocalName(bgNode, "solidFill"));
+                if (fill) {
+                    layout.directives.background = parseDescriptorText(`fill=${fill}`);
+                }
+            }
+
+            const spTree = xmlDescendantsByLocalName(layoutDoc, "spTree")[0];
+            const usedNames = new Set();
+            const grid = parseGridSpec(template.attributes.grid || "32x18", 32, 18);
+
+            for (const child of xmlChildElements(spTree)) {
+                if (!["sp", "pic"].includes(child.localName)) {
+                    continue;
+                }
+
+                const placeholder = placeholderInfo(child);
+                const transform = parseShapeTransform(child);
+                const geometry = emuToGridPosition(transform.x, transform.y, transform.cx, transform.cy, slideSizeEmu, grid);
+
+                if (child.localName === "sp") {
+                    const textInfo = parseShapeText(child);
+                    const shapeDescriptor = mergeDescriptors(parseCommonShapeDescriptor(child), textInfo.descriptor);
+                    const objectKind = placeholder
+                        ? (textInfo.paragraphs.length > 1 ? "list" : textInfo.paragraphs.length ? "text" : (shapeDescriptor.kind || "text"))
+                        : (textInfo.paragraphs.length ? (textInfo.paragraphs.length > 1 ? "list" : "text") : (shapeDescriptor.kind || "shape"));
+
+                    if (placeholder) {
+                        const slotName = suggestSlotName(placeholder.type, usedNames);
+                        const slotDescriptor = cloneDescriptor(shapeDescriptor);
+                        slotDescriptor.kind = objectKind;
+                        if (["title", "ctrTitle"].includes(placeholder.type)) {
+                            pushUnique(slotDescriptor.styles, "title");
+                            learnNamedStyle(template.styles, "title", slotDescriptor);
+                        } else if (placeholder.type === "subTitle") {
+                            pushUnique(slotDescriptor.styles, "subtitle");
+                            learnNamedStyle(template.styles, "subtitle", slotDescriptor);
+                        } else if (placeholder.type === "body") {
+                            pushUnique(slotDescriptor.styles, "body");
+                            learnNamedStyle(template.styles, "body", slotDescriptor);
+                        }
+                        layout.slots.push({ slotName, anchor: geometry.anchor, span: geometry.span, descriptor: slotDescriptor, kind: objectKind, placeholder });
+                        layout.slotMap.set(placeholder.key, slotName);
+                    } else {
+                        layout.fixedObjects.push({
+                            anchor: geometry.anchor,
+                            span: geometry.span,
+                            descriptor: shapeDescriptor,
+                            kind: objectKind,
+                            payloadSegments: textInfo.paragraphs,
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (child.localName === "pic") {
+                    const blip = xmlDescendantsByLocalName(child, "blip")[0];
+                    const relId = xmlAttr(blip, "r:embed", "embed");
+                    const rels = await loadRelationships(zip, layoutPath);
+                    const relation = rels.get(relId);
+                    const assetPath = relation ? await registerZipAsset(zip, relation.target, relation.target.split("/").pop()) : "";
+                    const assetName = `template-asset-${template.assets.size + 1}`;
+                    if (assetPath) {
+                        template.assets.set(assetName, assetPath);
+                    }
+                    const descriptor = parseDescriptorText(`image asset=${assetName}`);
+
+                    if (placeholder) {
+                        const slotName = suggestSlotName(placeholder.type, usedNames);
+                        layout.slots.push({ slotName, anchor: geometry.anchor, span: geometry.span, descriptor, kind: "image", placeholder });
+                        layout.slotMap.set(placeholder.key, slotName);
+                    } else {
+                        layout.fixedObjects.push({ anchor: geometry.anchor, span: geometry.span, descriptor, kind: "image", payloadSegments: [] });
+                    }
+                }
+            }
+
+            template.layouts.push(layout);
+            context.layoutCache.set(layoutPath, layout);
+            return layout;
+        }
+
+        async function parseChartPart(zip, chartPath) {
+            const chartDoc = await loadZipXml(zip, chartPath);
+            if (!chartDoc) {
+                return null;
+            }
+
+            const chartSpace = xmlDescendantsByLocalName(chartDoc, "chart")[0] || chartDoc.documentElement;
+            const titleNode = xmlDescendantsByLocalName(chartSpace, "title")[0];
+            const title = titleNode ? xmlDescendantsByLocalName(titleNode, "t").map((node) => node.textContent || "").join("").trim() : "Chart";
+            let type = "column";
+            const chartTypeNode = [
+                ["barChart", () => {
+                    const barDir = xmlDescendantsByLocalName(chartSpace, "barDir")[0];
+                    return xmlAttr(barDir, "val") === "bar" ? "bar" : "column";
+                }],
+                ["lineChart", () => "line"],
+                ["areaChart", () => "area"],
+                ["pieChart", () => "pie"],
+                ["doughnutChart", () => "doughnut"],
+                ["scatterChart", () => "scatter"],
+                ["bubbleChart", () => "bubble"],
+            ].find(([name]) => xmlDescendantsByLocalName(chartSpace, name)[0]);
+
+            if (chartTypeNode) {
+                type = chartTypeNode[1]();
+            }
+
+            const chartContainer = xmlDescendantsByLocalName(chartSpace, chartTypeNode ? chartTypeNode[0] : "barChart")[0] || chartSpace;
+            const series = [];
+            for (const serNode of xmlChildrenByLocalName(chartContainer, "ser")) {
+                const labelText = xmlDescendantsByLocalName(serNode, "tx").length
+                    ? xmlDescendantsByLocalName(serNode, "tx")[0].textContent || "Series"
+                    : "Series";
+                const categories = xmlDescendantsByLocalName(serNode, "cat")[0]
+                    ? xmlDescendantsByLocalName(xmlDescendantsByLocalName(serNode, "cat")[0], "pt").map((point) => xmlDescendantsByLocalName(point, "v")[0]?.textContent || "")
+                    : [];
+                const values = xmlDescendantsByLocalName(serNode, "val")[0]
+                    ? xmlDescendantsByLocalName(xmlDescendantsByLocalName(serNode, "val")[0], "pt").map((point) => Number(xmlDescendantsByLocalName(point, "v")[0]?.textContent || 0))
+                    : [];
+                const bubbleSizes = xmlDescendantsByLocalName(serNode, "bubbleSize")[0]
+                    ? xmlDescendantsByLocalName(xmlDescendantsByLocalName(serNode, "bubbleSize")[0], "pt").map((point) => Number(xmlDescendantsByLocalName(point, "v")[0]?.textContent || 0))
+                    : [];
+                series.push({ type, label: labelText.trim() || "Series", categories, values, sizeValues: bubbleSizes, descriptor: emptyDescriptor() });
+            }
+
+            return { title, type, series };
+        }
+
+        async function importPptxFile() {
+            const file = pptxInput.files && pptxInput.files[0];
+            if (!file) {
+                setStatus("Choose a .pptx file first.", "error");
+                return;
+            }
+
+            const importGrid = normalizeGridLiteral(importGridInput.value);
+            importGridInput.value = importGrid;
+
+            try {
+                setStatus(`Reading ${file.name}...`);
+                const buffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(buffer);
+                const deck = newDeck();
+                const template = newTemplate();
+                const importWarnings = [];
+                const context = { layoutCache: new Map() };
+
+                deck.title = file.name.replace(/\.pptx$/i, "");
+                template.title = `${deck.title} Template`;
+                deck.attributes.deckdoc = "1";
+                template.attributes["deckdoc-template"] = "1";
+
+                const coreDoc = await loadZipXml(zip, "docProps/core.xml");
+                if (coreDoc) {
+                    const titleNode = xmlDescendantsByLocalName(coreDoc, "title")[0];
+                    if (titleNode && titleNode.textContent.trim()) {
+                        deck.title = titleNode.textContent.trim();
+                    }
+                }
+
+                const presentationDoc = await loadZipXml(zip, "ppt/presentation.xml");
+                const presentationRels = await loadRelationships(zip, "ppt/presentation.xml");
+                if (!presentationDoc) {
+                    throw new Error("The uploaded file does not contain ppt/presentation.xml.");
+                }
+
+                const sldSz = xmlDescendantsByLocalName(presentationDoc, "sldSz")[0];
+                const slideSizeEmu = {
+                    cx: Number(xmlAttr(sldSz, "cx") || 12192000),
+                    cy: Number(xmlAttr(sldSz, "cy") || 6858000),
+                };
+                const ratio = slideSizeEmu.cx / slideSizeEmu.cy;
+                const sizeLabel = Math.abs(ratio - (16 / 9)) < 0.08 ? "wide" : Math.abs(ratio - (4 / 3)) < 0.08 ? "standard" : `${(slideSizeEmu.cx / EMU_PER_INCH).toFixed(3)}x${(slideSizeEmu.cy / EMU_PER_INCH).toFixed(3)}in`;
+                deck.attributes.size = sizeLabel;
+                template.attributes.size = sizeLabel;
+                deck.attributes.grid = importGrid;
+                template.attributes.grid = importGrid;
+                deck.attributes.template = template.title;
+
+                const themeDoc = await loadZipXml(zip, "ppt/theme/theme1.xml");
+                template.themeTokens = parseThemeTokens(themeDoc);
+
+                const slideIds = xmlDescendantsByLocalName(presentationDoc, "sldId");
+                for (let slideIndex = 0; slideIndex < slideIds.length; slideIndex++) {
+                    const slideIdNode = slideIds[slideIndex];
+                    const relId = xmlAttr(slideIdNode, "r:id", "id");
+                    const slideRel = presentationRels.get(relId);
+                    if (!slideRel) {
+                        continue;
+                    }
+
+                    const slidePath = slideRel.target;
+                    const slideXmlDoc = await loadZipXml(zip, slidePath);
+                    if (!slideXmlDoc) {
+                        continue;
+                    }
+                    const slideRels = await loadRelationships(zip, slidePath);
+                    const layoutRel = Array.from(slideRels.values()).find((rel) => rel.type.endsWith("/slideLayout"));
+                    const layout = layoutRel ? await parseLayoutPart(zip, layoutRel.target, template, slideSizeEmu, context) : null;
+                    const grid = parseGridSpec(deck.attributes.grid, 32, 18);
+                    const slide = {
+                        title: `Slide ${slideIndex + 1}`,
+                        directives: {},
+                        objects: [],
+                        tables: [],
+                        charts: [],
+                        groups: [],
+                        animations: [],
+                        overrides: [],
+                        extensions: [],
+                    };
+
+                    if (layout) {
+                        slide.directives.use = layout.name;
+                    }
+
+                    const transitionNode = xmlDescendantsByLocalName(slideXmlDoc, "transition")[0];
+                    if (transitionNode) {
+                        const transitionTypeNode = xmlChildElements(transitionNode)[0];
+                        slide.directives.transition = { type: transitionTypeNode ? transitionTypeNode.localName : "cut", descriptor: emptyDescriptor() };
+                    }
+
+                    const bgNode = xmlDescendantsByLocalName(slideXmlDoc, "bgPr")[0];
+                    if (bgNode) {
+                        const fill = extractSolidColor(xmlFirstChildByLocalName(bgNode, "solidFill"));
+                        if (fill) {
+                            slide.directives.background = parseDescriptorText(`fill=${fill}`);
+                        }
+                    }
+
+                    const spTree = xmlDescendantsByLocalName(slideXmlDoc, "spTree")[0];
+                    const candidateTitleTexts = [];
+
+                    for (const child of xmlChildElements(spTree)) {
+                        const transform = parseShapeTransform(child);
+                        const geometry = emuToGridPosition(transform.x, transform.y, transform.cx, transform.cy, slideSizeEmu, grid);
+                        const ph = placeholderInfo(child);
+                        const slotName = ph && layout ? layout.slotMap.get(ph.key) : "";
+
+                        if (child.localName === "sp") {
+                            const textInfo = parseShapeText(child);
+                            const commonDescriptor = mergeDescriptors(parseCommonShapeDescriptor(child), textInfo.descriptor);
+                            const isList = textInfo.paragraphs.length > 1 && !!commonDescriptor.values.bullet;
+                            const objectDescriptor = cloneDescriptor(commonDescriptor);
+                            objectDescriptor.kind = isList ? "list" : textInfo.paragraphs.length ? "text" : (commonDescriptor.kind || "shape");
+                            const targetObject = {
+                                refType: slotName ? "slot" : "grid",
+                                slotName: slotName || "",
+                                anchor: slotName ? null : geometry.anchor,
+                                span: slotName ? null : geometry.span,
+                                descriptor: objectDescriptor,
+                                payloadSegments: textInfo.paragraphs,
+                                kind: objectDescriptor.kind,
+                            };
+                            if (slotName) {
+                                if (textInfo.paragraphs.length || objectDescriptor.kind === "shape") {
+                                    slide.objects.push(targetObject);
+                                }
+                            } else {
+                                if (objectDescriptor.kind === "shape" || textInfo.paragraphs.length) {
+                                    slide.objects.push(targetObject);
+                                }
+                            }
+                            if (ph && ["title", "ctrTitle"].includes(ph.type) && textInfo.paragraphs[0]) {
+                                candidateTitleTexts.push(textInfo.paragraphs[0]);
+                            }
+                            continue;
+                        }
+
+                        if (child.localName === "pic") {
+                            const blip = xmlDescendantsByLocalName(child, "blip")[0];
+                            const relIdPic = xmlAttr(blip, "r:embed", "embed");
+                            const relation = slideRels.get(relIdPic);
+                            const assetPath = relation ? await registerZipAsset(zip, relation.target, relation.target.split("/").pop()) : "";
+                            const assetName = `deck-asset-${deck.assets.size + 1}`;
+                            if (assetPath) {
+                                deck.assets.set(assetName, assetPath);
+                            }
+                            const descriptor = parseDescriptorText(`image asset=${assetName}`);
+                            const object = {
+                                refType: slotName ? "slot" : "grid",
+                                slotName: slotName || "",
+                                anchor: slotName ? null : geometry.anchor,
+                                span: slotName ? null : geometry.span,
+                                descriptor,
+                                payloadSegments: [],
+                                kind: "image",
+                            };
+                            slide.objects.push(object);
+                            continue;
+                        }
+
+                        if (child.localName === "graphicFrame") {
+                            const graphicData = xmlDescendantsByLocalName(child, "graphicData")[0];
+                            if (!graphicData) {
+                                continue;
+                            }
+
+                            if (xmlDescendantsByLocalName(graphicData, "tbl")[0]) {
+                                const rows = [];
+                                for (const rowNode of xmlDescendantsByLocalName(graphicData, "tr")) {
+                                    const row = xmlChildrenByLocalName(rowNode, "tc").map((cellNode) => xmlDescendantsByLocalName(cellNode, "t").map((node) => node.textContent || "").join("").trim());
+                                    rows.push(row);
+                                }
+                                slide.tables.push({
+                                    name: `Table ${slide.tables.length + 1}`,
+                                    anchor: geometry.anchor,
+                                    span: geometry.span,
+                                    descriptor: parseDescriptorText("header"),
+                                    rows,
+                                });
+                                continue;
+                            }
+
+                            const chartNode = xmlDescendantsByLocalName(graphicData, "chart")[0];
+                            if (chartNode) {
+                                const chartRelId = xmlAttr(chartNode, "r:id", "id");
+                                const relation = slideRels.get(chartRelId);
+                                const parsedChart = relation ? await parseChartPart(zip, relation.target) : null;
+                                if (parsedChart) {
+                                    slide.charts.push({
+                                        title: parsedChart.title || `Chart ${slide.charts.length + 1}`,
+                                        type: parsedChart.type || "column",
+                                        anchor: geometry.anchor,
+                                        span: geometry.span,
+                                        descriptor: emptyDescriptor(),
+                                        series: parsedChart.series,
+                                    });
+                                } else {
+                                    importWarnings.push(`A chart on slide ${slideIndex + 1} could not be parsed and was skipped.`);
+                                }
+                                continue;
+                            }
+
+                            importWarnings.push(`A non-table graphic frame on slide ${slideIndex + 1} was skipped.`);
+                            continue;
+                        }
+
+                        if (!["grpSp", "cxnSp"].includes(child.localName)) {
+                            importWarnings.push(`Element '${child.localName}' on slide ${slideIndex + 1} is not yet handled by the starter importer.`);
+                        }
+                    }
+
+                    if (candidateTitleTexts.length) {
+                        slide.title = candidateTitleTexts[0];
+                    }
+
+                    deck.slides.push(slide);
+                }
+
+                if (!template.layouts.length) {
+                    template.layouts.push({
+                        name: "default",
+                        directives: {},
+                        fixedObjects: [],
+                        slots: [],
+                        extensions: [],
+                    });
+                }
+
+                if (sessionAssets.size) {
+                    importWarnings.push("Imported media references are session-backed. Downloaded DeckDoc text stays compact, but image export later depends on this browser tab retaining the imported assets.");
+                }
+                importWarnings.push("Starter import does not yet extract object animations, comments, or exact master-slide XML internals.");
+
+                const mergedDocument = mergeImportedModels(deck, template);
+                deckDocInput.value = serializeDeckDoc(mergedDocument);
+                setWarnings(importWarnings);
+                renderCurrentTexts();
+                setStatus(`Imported ${file.name} into a single DeckDoc document using grid ${importGrid}.`, "ok");
+            } catch (error) {
+                setStatus(`Failed to import PPTX.\n${error.message}`, "error");
+            }
+        }
+
+        function renderCurrentTexts() {
+            try {
+                const { resolved, warnings } = parseCurrentTexts();
+                setWarnings(warnings);
+                renderPresentation(resolved);
+                setStatus(`Rendered ${resolved.slides.length} slide(s).`, "ok");
+            } catch (error) {
+                previewRoot.innerHTML = "";
+                metaGrid.innerHTML = "";
+                setStatus(`Failed to render DeckDoc.\n${error.message}`, "error");
+            }
+        }
+
+        importButton.addEventListener("click", importPptxFile);
+        renderButton.addEventListener("click", renderCurrentTexts);
+        sampleButton.addEventListener("click", () => {
+            deckDocInput.value = SAMPLE_DOCUMENT;
+            setWarnings([]);
+            renderCurrentTexts();
+        });
+        exportButton.addEventListener("click", exportToPptx);
+        downloadDocButton.addEventListener("click", () => downloadText(deckDocInput.value, "DeckDoc.deckdoc"));
+        clearAssetsButton.addEventListener("click", () => {
+            sessionAssets.clear();
+            assetNote.textContent = "Imported media has been cleared from browser memory.";
+            setStatus("Cleared imported media from the current browser session.", "ok");
+        });
+
+        renderFeatureExplorer();
+        renderCurrentTexts();
+    </script>
+</body>
+</html>

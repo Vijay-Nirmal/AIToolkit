@@ -1,0 +1,208 @@
+= AsciiDoc Language Specification Outline
+:doctype: article
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+
+== Specification Goals
+
+This outline captures the major constructs that the toolkit document providers must preserve and render.
+
+The specification focuses on three outcomes:
+
+* preserve canonical AsciiDoc source for lossless round-tripping
+* render structured content into target document formats
+* keep advanced syntax readable when a target format cannot represent it directly
+
+== Document Structure
+
+=== Header
+
+Document headers can include a title line, attribute entries, and preamble content.
+
+[source,asciidoc]
+----
+= Sample Title
+:revnumber: 1.0
+:toc: left
+----
+
+=== Sections
+
+Sections use leading equals signs and can nest to multiple levels.
+
+== Fundamentals
+
+=== Paragraphs
+
+Regular paragraphs wrap normally and preserve inline formatting.
+
+=== Admonitions
+
+NOTE: Notes, warnings, tips, and cautions are supported admonition blocks.
+
+[TIP]
+====
+Authors can use delimited blocks when a longer admonition body is needed.
+====
+
+=== Lists
+
+* unordered list item
+* second unordered item
+
+. numbered item
+. second numbered item
+
+term:: definition list entry
+another term:: another definition
+
+=== Checklists
+
+* [x] preserve checkbox state when the target format supports it
+* [ ] keep unchecked tasks visible during round-trips
+
+== Blocks
+
+=== Source Blocks
+
+[source,csharp]
+----
+Console.WriteLine("Hello from AsciiDoc");
+----
+
+=== Literal And Listing Blocks
+
+....
+Literal blocks retain whitespace exactly.
+....
+
+----
+Listing blocks are similar but typically represent code or terminal output.
+----
+
+=== Quotes
+
+[quote,Grace Hopper]
+____
+The most dangerous phrase in the language is, "We've always done it this way."
+____
+
+=== Sidebars And Examples
+
+[sidebar]
+****
+Sidebars separate supporting context from the main narrative.
+****
+
+[example]
+====
+Example blocks provide structured demonstration content.
+====
+
+=== Open Blocks
+
+--
+Open blocks can wrap mixed nested content.
+
+* one
+* two
+--
+
+=== Tables
+
+[cols="1,2,1",options="header"]
+|===
+| Element | Purpose | Status
+
+| Header
+| Captures attributes and metadata
+| Stable
+
+| Body
+| Holds authored content blocks
+| Stable
+
+| Footer
+| Optional closing details
+| Optional
+|===
+
+=== Media
+
+image::images/diagram.png[Architecture overview, width=640]
+
+video::intro.mp4[options=autoplay]
+
+audio::theme.mp3[]
+
+== Inline Syntax
+
+Inline formatting includes *bold*, _italic_, `monospace`, ^superscript^, and ~subscript~ text.
+
+Links can target external URLs such as https://example.com[Example] or internal anchors such as <<references-and-extensions>>.
+
+Footnotes are supported where applicable.footnote:[Rendered targets may materialize footnotes differently.]
+
+Menu and UI macros such as menu:File[Export] and btn:[Publish] remain valid inline constructs.
+
+Keyboard shortcuts can be expressed with kbd:[Ctrl+Shift+P].
+
+== Includes And Conditionals
+
+The parser should preserve preprocessor directives such as include statements and conditional blocks.
+
+[source,asciidoc]
+----
+include::partials/intro.adoc[]
+
+ifdef::backend-docx[]
+This content is backend specific.
+endif::[]
+----
+
+== References And Extensions
+
+Cross references, bibliography entries, callouts, and extension syntax must survive canonical round-trips.
+
+[source,asciidoc]
+----
+See <<deprecated-syntax>> for legacy forms.
+
+[source,json]
+----
+{ "tool": "aitoolkit" }
+----
+<1> Inline callout example
+----
+
+Custom block extensions may appear as passthrough content or as explicit extension macros.
+
+++++
+<raw-html data-extension="sample">Preserve when the target cannot render it.</raw-html>
+++++
+
+== Deprecated Syntax
+
+Legacy shorthand may still appear in imported content. Providers should preserve the source even when they normalize the rendered form.
+
+[source,asciidoc]
+----
+[options="unquoted"]
+legacy text
+----
+
+== Conformance Notes
+
+Providers should prefer these behaviors:
+
+* keep author intent in the canonical stored AsciiDoc
+* render headings, lists, tables, and media into native document structures when possible
+* avoid exposing raw delimiter lines in generated office documents
+* preserve unknown directives and extensions in round-tripped source
+
+== Appendix
+
+This outline is intentionally compact, but it exercises the major syntax families used by the repository test suite.
